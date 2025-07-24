@@ -469,40 +469,72 @@ async function createConnectAccount(userId) {
 }
 
 async function completeOnboarding(body, userId) {
+  console.log('=== ONBOARDING COMPLETION DEBUG ===')
+  console.log('Request body:', JSON.stringify(body, null, 2))
+  console.log('User ID:', userId)
+  
   const { role, profileData } = body
   
-  // If no role provided in body, try to get from localStorage via client
-  let finalRole = role
-  if (!finalRole) {
-    // This would be handled by the client sending the role from localStorage
+  // Check if role is provided
+  if (!role) {
+    console.error('No role provided in request body')
     return NextResponse.json({ error: 'Role is required for onboarding completion' }, { status: 400 })
   }
   
-  console.log('Completing onboarding for user:', userId, 'role:', finalRole)
-  
-  // Save profile data to MongoDB (no Supabase metadata!)
-  const profile = {
-    userId,
-    role: finalRole,
-    ...profileData,
-    onboarding_complete: true,
-    createdAt: new Date(),
-    updatedAt: new Date()
+  // Check if user is authenticated
+  if (!userId) {
+    console.error('No user ID provided - authentication issue')
+    return NextResponse.json({ error: 'User authentication required' }, { status: 401 })
   }
   
-  await db.collection('profiles').updateOne(
-    { userId },
-    { $set: profile },
-    { upsert: true }
-  )
+  // Validate role
+  const validRoles = ['customer', 'instructor', 'merchant']
+  if (!validRoles.includes(role)) {
+    console.error('Invalid role:', role)
+    return NextResponse.json({ error: `Invalid role: ${role}` }, { status: 400 })
+  }
   
-  console.log('Onboarding completed successfully in MongoDB')
+  console.log('Completing onboarding for user:', userId, 'role:', role)
   
-  return NextResponse.json({ 
-    message: 'Onboarding completed successfully',
-    profile,
-    redirect: `/dashboard/${finalRole}`
-  })
+  try {
+    // Ensure database connection
+    await connectDB()
+    console.log('Database connected successfully')
+    
+    // Save profile data to MongoDB (no Supabase metadata!)
+    const profile = {
+      userId,
+      role: role,
+      ...profileData,
+      onboarding_complete: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }
+    
+    console.log('Saving profile:', JSON.stringify(profile, null, 2))
+    
+    const result = await db.collection('profiles').updateOne(
+      { userId },
+      { $set: profile },
+      { upsert: true }
+    )
+    
+    console.log('MongoDB update result:', result)
+    console.log('Onboarding completed successfully in MongoDB')
+    
+    return NextResponse.json({ 
+      message: 'Onboarding completed successfully',
+      profile,
+      redirect: `/dashboard/${role}`
+    })
+  } catch (error) {
+    console.error('Onboarding completion error:', error)
+    console.error('Error stack:', error.stack)
+    return NextResponse.json({ 
+      error: 'Failed to save onboarding data',
+      details: error.message
+    }, { status: 500 })
+  }
 }
 
 async function getUserProfile(userId) {
