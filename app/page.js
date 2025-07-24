@@ -89,10 +89,26 @@ export default function LandingPage() {
     const password = formData.get('password')
 
     try {
-      await signUp(email, password)
-      toast.success('Account created! Please select your role.')
-      router.push('/signup/role-selection')
+      const result = await signUp(email, password)
+      
+      if (result.user) {
+        if (result.user.email_confirmed_at) {
+          // User is confirmed and logged in
+          toast.success('Account created! Please select your role.')
+          router.push('/signup/role-selection')
+        } else {
+          // User needs email confirmation
+          toast.success('Account created! Please check your email to confirm your account, then return to select your role.')
+          // Still redirect to role selection, the role selection page will handle the auth check
+          setTimeout(() => {
+            router.push('/signup/role-selection')
+          }, 2000)
+        }
+      } else {
+        toast.error('Failed to create account')
+      }
     } catch (error) {
+      console.error('Signup error:', error)
       toast.error(error.message || 'Failed to create account')
     } finally {
       setAuthLoading(false)
