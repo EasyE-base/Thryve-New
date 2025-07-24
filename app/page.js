@@ -89,7 +89,7 @@ export default function LandingPage() {
     const password = formData.get('password')
 
     try {
-      await signUp(email, password, 'customer')
+      await signUp(email, password)
       toast.success('Account created! Please select your role.')
       router.push('/signup/role-selection')
     } catch (error) {
