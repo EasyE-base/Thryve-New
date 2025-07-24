@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { handleRoleSelection } from '@/lib/auth'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
