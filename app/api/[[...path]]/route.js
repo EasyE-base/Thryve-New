@@ -469,7 +469,43 @@ async function createConnectAccount(userId) {
 async function completeOnboarding(body, userId) {
   console.log('=== ONBOARDING COMPLETION DEBUG ===')
   console.log('Request body:', JSON.stringify(body, null, 2))
-  console.log('User ID:', userId)
+  console.log('User ID provided:', userId)
+  
+  // If no userId provided, try to get it from session
+  if (!userId) {
+    console.log('No userId provided, attempting to get from session...')
+    
+    const cookieStore = cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              )
+            } catch {
+              // Handle cookie setting errors
+            }
+          },
+        },
+      }
+    )
+    
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.user) {
+      console.log('No session found')
+      return NextResponse.json({ error: 'No active session found. Please log in again.' }, { status: 401 })
+    }
+    
+    userId = session.user.id
+    console.log('Got userId from session:', userId)
+  }
   
   const { role, profileData } = body
   
@@ -477,12 +513,6 @@ async function completeOnboarding(body, userId) {
   if (!role) {
     console.error('No role provided in request body')
     return NextResponse.json({ error: 'Role is required for onboarding completion' }, { status: 400 })
-  }
-  
-  // Check if user is authenticated
-  if (!userId) {
-    console.error('No user ID provided - authentication issue')
-    return NextResponse.json({ error: 'User authentication required' }, { status: 401 })
   }
   
   // Validate role
