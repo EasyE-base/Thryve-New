@@ -187,10 +187,8 @@ async function handlePOST(request) {
         return await testSignup(body)
       
       case '/auth/select-role':
-        if (!user) {
-          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-        }
-        return await handleRoleSelectionAPI(body, user.id)
+        // For role selection, we'll handle auth differently since user just signed up
+        return await handleRoleSelectionAPI(body, user?.id)
       
       default:
         return NextResponse.json({ error: 'Endpoint not found' }, { status: 404 })
