@@ -183,8 +183,11 @@ async function handlePOST(request) {
         }
         return await createConnectAccount(user.id)
       
-      case '/stripe/webhooks':
-        return await handleStripeWebhook(request)
+      case '/auth/test-signup':
+        return await testSignup(body)
+      
+      case '/auth/debug-session':
+        return await debugSession()
       
       default:
         return NextResponse.json({ error: 'Endpoint not found' }, { status: 404 })
