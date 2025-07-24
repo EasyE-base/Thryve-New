@@ -164,8 +164,23 @@ export default function LandingPage() {
     try {
       console.log('Attempting to select role:', role, 'for user:', user?.email)
       
-      // Pass the user object directly to avoid session issues
-      await handleRoleSelection(role, user)
+      // Use API endpoint instead of client-side auth
+      const response = await fetch('/api/auth/select-role', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ role })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to select role')
+      }
+
+      const data = await response.json()
+      console.log('Role selection response:', data)
+      
       toast.success(`Role selected: ${roles.find(r => r.id === role)?.title}`)
       
       // Navigate to onboarding
