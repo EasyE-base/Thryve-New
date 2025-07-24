@@ -12,7 +12,48 @@ import { toast } from 'sonner'
 export default function RoleSelection() {
   const [loading, setLoading] = useState(false)
   const [selectedRole, setSelectedRole] = useState(null)
+  const [authLoading, setAuthLoading] = useState(true)
+  const [user, setUser] = useState(null)
   const router = useRouter()
+  
+  const supabase = createClient()
+
+  // Check authentication status on component mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        console.log('Session check:', session)
+        
+        if (session?.user) {
+          setUser(session.user)
+          console.log('User found:', session.user.email)
+        } else {
+          console.log('No session found')
+        }
+      } catch (error) {
+        console.error('Auth check error:', error)
+      } finally {
+        setAuthLoading(false)
+      }
+    }
+
+    checkAuth()
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state change:', event, session?.user?.email)
+        if (session?.user) {
+          setUser(session.user)
+        } else {
+          setUser(null)
+        }
+      }
+    )
+
+    return () => subscription.unsubscribe()
+  }, [])
 
   const roles = [
     {
@@ -56,21 +97,18 @@ export default function RoleSelection() {
   const selectRole = async (role) => {
     if (loading) return
 
+    // Check if user is authenticated
+    if (!user) {
+      toast.error('Please sign up or log in first to select a role.')
+      router.push('/')
+      return
+    }
+
     setLoading(true)
     setSelectedRole(role)
 
     try {
-      console.log('Attempting to select role:', role)
-      
-      // Check if user is authenticated first
-      const supabase = createClient()
-      const { data: { session } } = await supabase.auth.getSession()
-      
-      if (!session?.user) {
-        throw new Error('You must be logged in to select a role. Please sign up or log in first.')
-      }
-      
-      console.log('User found:', session.user.id)
+      console.log('Attempting to select role:', role, 'for user:', user.email)
       
       await handleRoleSelection(role)
       toast.success(`Role selected: ${roles.find(r => r.id === role)?.title}`)
@@ -86,6 +124,35 @@ export default function RoleSelection() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Show loading state while checking authentication
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Checking authentication...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show message if user is not authenticated
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="max-w-md mx-auto text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Authentication Required</h1>
+          <p className="text-gray-600 mb-6">
+            You need to be logged in to select a role. Please sign up or log in first.
+          </p>
+          <Button onClick={() => router.push('/')}>
+            Go to Sign Up / Login
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   return (
