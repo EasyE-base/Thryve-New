@@ -471,38 +471,21 @@ async function createConnectAccount(userId) {
 async function completeOnboarding(body, userId) {
   const { role, profileData } = body
   
-  // Update Supabase user metadata
-  const cookieStore = cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll()
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
-          } catch {
-            // Handle cookie setting errors
-          }
-        },
-      },
-    }
-  )
+  // If no role provided in body, try to get from localStorage via client
+  let finalRole = role
+  if (!finalRole) {
+    // This would be handled by the client sending the role from localStorage
+    return NextResponse.json({ error: 'Role is required for onboarding completion' }, { status: 400 })
+  }
   
-  await supabase.auth.updateUser({
-    data: { onboarding_complete: true }
-  })
+  console.log('Completing onboarding for user:', userId, 'role:', finalRole)
   
-  // Save profile data to MongoDB
+  // Save profile data to MongoDB (no Supabase metadata!)
   const profile = {
     userId,
-    role,
+    role: finalRole,
     ...profileData,
+    onboarding_complete: true,
     createdAt: new Date(),
     updatedAt: new Date()
   }
@@ -513,9 +496,12 @@ async function completeOnboarding(body, userId) {
     { upsert: true }
   )
   
+  console.log('Onboarding completed successfully in MongoDB')
+  
   return NextResponse.json({ 
     message: 'Onboarding completed successfully',
-    profile
+    profile,
+    redirect: `/dashboard/${finalRole}`
   })
 }
 
