@@ -62,25 +62,6 @@ export default function LandingPage() {
     }
   ]
 
-  const selectRole = async (role) => {
-    if (roleLoading) return
-
-    setRoleLoading(true)
-
-    try {
-      await handleRoleSelection(role)
-      toast.success(`Role selected: ${roles.find(r => r.id === role)?.title}`)
-      
-      // Navigate to onboarding
-      router.push(`/onboarding/${role}`)
-    } catch (error) {
-      console.error('Role selection error:', error)
-      toast.error(error.message || 'Failed to select role')
-    } finally {
-      setRoleLoading(false)
-    }
-  }
-
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession()
@@ -89,7 +70,9 @@ export default function LandingPage() {
         const onboardingComplete = session.user.user_metadata?.onboarding_complete
         
         if (!role) {
-          router.push('/signup/role-selection')
+          // If logged in but no role, show role selection instead of redirecting
+          setUser(session.user)
+          setShowRoleSelection(true)
         } else if (!onboardingComplete) {
           router.push(`/onboarding/${role}`)
         } else {
@@ -108,7 +91,8 @@ export default function LandingPage() {
           const onboardingComplete = session.user.user_metadata?.onboarding_complete
           
           if (!role) {
-            router.push('/signup/role-selection')
+            setUser(session.user)
+            setShowRoleSelection(true)
           } else if (!onboardingComplete) {
             router.push(`/onboarding/${role}`)
           } else {
@@ -156,8 +140,13 @@ export default function LandingPage() {
         toast.success('Account created! Please select your role.')
         setUser(result.user)
         setShowRoleSelection(true)
+      } else if (result.user) {
+        // Sometimes session isn't immediately available, but user is created
+        toast.success('Account created! Please select your role.')
+        setUser(result.user)
+        setShowRoleSelection(true)
       } else {
-        toast.error('Failed to create account - no session created')
+        toast.error('Failed to create account')
       }
     } catch (error) {
       console.error('Signup error:', error)
@@ -260,6 +249,12 @@ export default function LandingPage() {
                 </Card>
               )
             })}
+          </div>
+
+          <div className="mt-12 text-center">
+            <p className="text-sm text-gray-500">
+              Don't worry, you can always change your role later in your account settings.
+            </p>
           </div>
         </div>
       </div>
