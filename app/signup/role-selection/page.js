@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { handleRoleSelection } from '@/lib/auth'
+import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
