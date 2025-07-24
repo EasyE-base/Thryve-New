@@ -164,32 +164,17 @@ export default function LandingPage() {
     try {
       console.log('Selecting role:', role)
       
-      const response = await fetch('/api/auth/select-role', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ role })
-      })
-
-      const data = await response.json()
+      // Store role in localStorage temporarily - no server calls!
+      localStorage.setItem('selectedRole', role)
+      localStorage.setItem('roleSelectedAt', Date.now().toString())
       
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to select role')
-      }
-
-      console.log('Role selection successful:', data)
       toast.success(`Role selected: ${roles.find(r => r.id === role)?.title}`)
       
-      // Use the redirect URL from the response
-      if (data.redirect) {
-        router.push(data.redirect)
-      } else {
-        router.push(`/onboarding/${role}`)
-      }
+      // Direct redirect to onboarding - no API calls
+      router.push(`/onboarding/${role}`)
     } catch (error) {
       console.error('Role selection error:', error)
-      toast.error(error.message || 'Failed to select role')
+      toast.error('Failed to select role')
     } finally {
       setRoleLoading(false)
     }
