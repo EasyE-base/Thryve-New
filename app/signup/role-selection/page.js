@@ -59,10 +59,27 @@ export default function RoleSelection() {
     setSelectedRole(role)
 
     try {
+      console.log('Attempting to select role:', role)
+      
+      // Check if user is authenticated first
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!session?.user) {
+        throw new Error('You must be logged in to select a role. Please sign up or log in first.')
+      }
+      
+      console.log('User found:', session.user.id)
+      
       await handleRoleSelection(role)
       toast.success(`Role selected: ${roles.find(r => r.id === role)?.title}`)
-      router.push(`/onboarding/${role}`)
+      
+      // Wait a moment for the user metadata to update
+      setTimeout(() => {
+        router.push(`/onboarding/${role}`)
+      }, 1000)
     } catch (error) {
+      console.error('Role selection error:', error)
       toast.error(error.message || 'Failed to select role')
       setSelectedRole(null)
     } finally {
