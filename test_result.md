@@ -230,4 +230,6 @@ test_plan:
 
 agent_communication:
     - agent: "testing"
-      message: "Completed comprehensive backend API testing. 7 out of 8 core endpoints working correctly. One minor issue found with Stripe Connect endpoint JSON parsing. All authentication, error handling, and CORS functionality working as expected. Database integration confirmed with sample data testing."
+      message: "Completed comprehensive backend API testing. 7 out of 8 core endpoints working correctly when service was running. One minor issue found with Stripe Connect endpoint JSON parsing. All authentication, error handling, and CORS functionality working as expected. Database integration confirmed with sample data testing."
+    - agent: "testing"
+      message: "CRITICAL: Service now has build error - 'next/headers' import issue in lib/supabase.js. This is preventing the API from running. The error indicates next/headers should only be used in Server Components, not in the pages directory. This needs immediate fix by main agent."
