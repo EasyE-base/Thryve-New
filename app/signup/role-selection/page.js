@@ -23,18 +23,28 @@ export default function RoleSelection() {
     const checkAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession()
-        console.log('Session check:', session)
+        console.log('Role selection - Session check:', session)
         
         if (session?.user) {
           setUser(session.user)
-          console.log('User found:', session.user.email)
+          console.log('User found:', session.user.email, 'Confirmed:', session.user.email_confirmed_at)
         } else {
-          console.log('No session found')
+          console.log('No session found, waiting for auth state change...')
+          // Don't immediately set authLoading to false, wait for auth state change
+          setTimeout(() => {
+            if (!user) {
+              console.log('Still no user after timeout')
+              setAuthLoading(false)
+            }
+          }, 3000) // Wait 3 seconds for session to establish
+          return
         }
       } catch (error) {
         console.error('Auth check error:', error)
       } finally {
-        setAuthLoading(false)
+        if (user) {
+          setAuthLoading(false)
+        }
       }
     }
 
@@ -46,8 +56,10 @@ export default function RoleSelection() {
         console.log('Auth state change:', event, session?.user?.email)
         if (session?.user) {
           setUser(session.user)
-        } else {
+          setAuthLoading(false)
+        } else if (event === 'SIGNED_OUT') {
           setUser(null)
+          setAuthLoading(false)
         }
       }
     )
