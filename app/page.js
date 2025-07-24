@@ -93,17 +93,12 @@ export default function LandingPage() {
       const result = await signUp(email, password)
       console.log('Signup result:', result)
       
-      if (result.user) {
-        toast.success('Account created! Redirecting to role selection...')
-        
-        // Force a session refresh and then redirect
-        const supabase = createClient()
-        await supabase.auth.getSession() // Force session refresh
-        
-        // Redirect immediately since email confirmation is disabled
-        router.push('/signup/role-selection')
+      if (result.user && result.session) {
+        toast.success('Account created! Please select your role.')
+        setUser(result.user)
+        setShowRoleSelection(true)
       } else {
-        toast.error('Failed to create account - no user returned')
+        toast.error('Failed to create account - no session created')
       }
     } catch (error) {
       console.error('Signup error:', error)
