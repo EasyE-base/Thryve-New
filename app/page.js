@@ -150,10 +150,101 @@ export default function LandingPage() {
     }
   }
 
+  const selectRole = async (role) => {
+    if (roleLoading) return
+
+    setRoleLoading(true)
+
+    try {
+      await handleRoleSelection(role)
+      toast.success(`Role selected: ${roles.find(r => r.id === role)?.title}`)
+      
+      // Navigate to onboarding
+      router.push(`/onboarding/${role}`)
+    } catch (error) {
+      console.error('Role selection error:', error)
+      toast.error(error.message || 'Failed to select role')
+    } finally {
+      setRoleLoading(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    )
+  }
+
+  // Show role selection after successful signup
+  if (showRoleSelection && user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <h1 className="text-4xl font-bold text-gray-900 sm:text-5xl">
+              Welcome to Thryve! 🎉
+            </h1>
+            <p className="mt-4 text-xl text-gray-600">
+              Hi {user.email}! Please choose your role to get started
+            </p>
+          </div>
+
+          <div className="grid gap-8 md:grid-cols-3">
+            {roles.map((role) => {
+              const Icon = role.icon
+
+              return (
+                <Card
+                  key={role.id}
+                  className="relative cursor-pointer transition-all duration-200 hover:shadow-lg"
+                  onClick={() => selectRole(role.id)}
+                >
+                  <CardHeader className="text-center pb-4">
+                    <div className="mx-auto w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
+                      <Icon className="h-8 w-8 text-indigo-600" />
+                    </div>
+                    <CardTitle className="text-2xl font-bold text-gray-900">
+                      {role.title}
+                    </CardTitle>
+                    <CardDescription className="text-gray-600">
+                      {role.description}
+                    </CardDescription>
+                  </CardHeader>
+
+                  <CardContent className="pt-0">
+                    <ul className="space-y-3 mb-6">
+                      {role.features.map((feature, index) => (
+                        <li key={index} className="flex items-center text-sm text-gray-600">
+                          <div className="w-2 h-2 bg-indigo-500 rounded-full mr-3 flex-shrink-0"></div>
+                          {feature}
+                        </li>
+                      ))}
+                    </ul>
+
+                    <Button
+                      className="w-full"
+                      disabled={roleLoading}
+                    >
+                      {roleLoading ? (
+                        <div className="flex items-center">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Selecting...
+                        </div>
+                      ) : (
+                        <div className="flex items-center">
+                          Choose {role.title}
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </div>
+                      )}
+                    </Button>
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
+        </div>
       </div>
     )
   }
