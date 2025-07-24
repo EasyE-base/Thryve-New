@@ -61,8 +61,25 @@ export default function LandingPage() {
       ]
     }
   ]
-  
-  const supabase = createClient()
+
+  const selectRole = async (role) => {
+    if (roleLoading) return
+
+    setRoleLoading(true)
+
+    try {
+      await handleRoleSelection(role)
+      toast.success(`Role selected: ${roles.find(r => r.id === role)?.title}`)
+      
+      // Navigate to onboarding
+      router.push(`/onboarding/${role}`)
+    } catch (error) {
+      console.error('Role selection error:', error)
+      toast.error(error.message || 'Failed to select role')
+    } finally {
+      setRoleLoading(false)
+    }
+  }
 
   useEffect(() => {
     const checkAuth = async () => {
