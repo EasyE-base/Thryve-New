@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { MongoClient } from 'mongodb'
 import { v4 as uuidv4 } from 'uuid'
-import { createServerSupabaseClient } from '@/lib/supabase'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 import Stripe from 'stripe'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
@@ -29,7 +30,28 @@ function handleCORS(response) {
 
 // Authentication helper
 async function getAuthenticatedUser() {
-  const supabase = createServerSupabaseClient()
+  const cookieStore = cookies()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          } catch {
+            // Handle cookie setting errors
+          }
+        },
+      },
+    }
+  )
+  
   const { data: { user }, error } = await supabase.auth.getUser()
   
   if (error || !user) {
@@ -109,7 +131,18 @@ async function handlePOST(request) {
   try {
     const url = new URL(request.url)
     const path = url.pathname.replace('/api', '')
-    const body = await request.json()
+    
+    // Handle requests that might not have a body
+    let body = {}
+    try {
+      const text = await request.text()
+      if (text) {
+        body = JSON.parse(text)
+      }
+    } catch (e) {
+      // No body or invalid JSON, use empty object
+    }
+    
     await connectDB()
 
     let user = null
@@ -227,6 +260,63 @@ async function getClasses(searchParams) {
   
   if (type) filter.type = type
   if (location) filter.location = new RegExp(location, 'i')
+  
+  // Add some sample classes if none exist
+  const existingCount = await db.collection('classes').countDocuments({})
+  if (existingCount === 0) {
+    const sampleClasses = [
+      {
+        id: uuidv4(),
+        instructorId: 'sample-instructor-1',
+        title: 'Morning Yoga Flow',
+        description: 'Start your day with energizing yoga poses and breathing exercises.',
+        type: 'Yoga',
+        schedule: new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
+        duration: 60,
+        capacity: 15,
+        price: 25.00,
+        location: 'Studio A, Downtown',
+        status: 'active',
+        bookings: [],
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: uuidv4(),
+        instructorId: 'sample-instructor-2',
+        title: 'HIIT Cardio Blast',
+        description: 'High-intensity interval training to boost your metabolism.',
+        type: 'HIIT',
+        schedule: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // Day after tomorrow
+        duration: 45,
+        capacity: 12,
+        price: 30.00,
+        location: 'Studio B, Midtown',
+        status: 'active',
+        bookings: [],
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: uuidv4(),
+        instructorId: 'sample-instructor-3',
+        title: 'Strength Training Basics',
+        description: 'Learn proper form and build strength with guided weight training.',
+        type: 'Strength',
+        schedule: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // In 3 days
+        duration: 50,
+        capacity: 10,
+        price: 35.00,
+        location: 'Gym Floor, Westside',
+        status: 'active',
+        bookings: [],
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+    ]
+    
+    await db.collection('classes').insertMany(sampleClasses)
+  }
   
   const classes = await db.collection('classes')
     .find(filter)
@@ -378,7 +468,28 @@ async function completeOnboarding(body, userId) {
   const { role, profileData } = body
   
   // Update Supabase user metadata
-  const supabase = createServerSupabaseClient()
+  const cookieStore = cookies()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          } catch {
+            // Handle cookie setting errors
+          }
+        },
+      },
+    }
+  )
+  
   await supabase.auth.updateUser({
     data: { onboarding_complete: true }
   })
