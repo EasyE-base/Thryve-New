@@ -729,72 +729,41 @@ async function debugSession() {
 async function handleRoleSelectionAPI(body, userId) {
   const { role } = body
   
-  console.log('=== ROLE SELECTION DEBUG ===')
-  console.log('Received role:', role)
-  console.log('Role type:', typeof role)
+  console.log('=== SIMPLE ROLE SELECTION ===')
   console.log('User ID:', userId)
-  console.log('Body:', JSON.stringify(body))
+  console.log('Selected role:', role)
   
   // Validate role
   const validRoles = ['customer', 'instructor', 'merchant']
   if (!validRoles.includes(role)) {
-    console.error('Invalid role received:', role)
-    return NextResponse.json({ error: `Invalid role: ${role}. Must be one of: ${validRoles.join(', ')}` }, { status: 400 })
+    return NextResponse.json({ error: `Invalid role: ${role}` }, { status: 400 })
   }
   
-  const cookieStore = cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll()
-        },
-        setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            )
-          } catch {
-            // Handle cookie setting errors
-          }
-        },
-      },
-    }
-  )
-  
   try {
-    console.log('Attempting to update user metadata...')
+    // Store role selection in MongoDB instead of Supabase metadata
+    await db.collection('profiles').updateOne(
+      { userId },
+      { 
+        $set: { 
+          role,
+          onboarding_complete: false,
+          updatedAt: new Date()
+        } 
+      },
+      { upsert: true }
+    )
     
-    // Update user metadata with selected role
-    const { data, error } = await supabase.auth.updateUser({
-      data: { 
-        role: role.toString(), // Ensure it's a string
-        onboarding_complete: false 
-      }
-    })
-    
-    if (error) {
-      console.error('Supabase updateUser error:', error)
-      console.error('Error code:', error.code)
-      console.error('Error message:', error.message)
-      console.error('Error details:', error.details)
-      throw error
-    }
-    
-    console.log('Role updated successfully:', data?.user?.user_metadata)
+    console.log('Role stored in MongoDB successfully')
     
     return NextResponse.json({ 
       message: 'Role selected successfully',
       role,
-      user: data.user
+      redirect: `/onboarding/${role}`
     })
   } catch (error) {
-    console.error('Role selection API error:', error)
+    console.error('MongoDB role storage error:', error)
     return NextResponse.json({ 
-      error: error.message || 'Failed to update role',
-      details: error.details || 'Unknown error'
+      error: 'Failed to store role selection'
     }, { status: 500 })
   }
 }
