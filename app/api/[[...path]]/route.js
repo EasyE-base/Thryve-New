@@ -725,3 +725,57 @@ async function debugSession() {
     message: 'Debug session info'
   })
 }
+
+async function handleRoleSelectionAPI(body, userId) {
+  const { role } = body
+  
+  const cookieStore = cookies()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          } catch {
+            // Handle cookie setting errors
+          }
+        },
+      },
+    }
+  )
+  
+  try {
+    console.log('Server-side role selection for user:', userId, 'role:', role)
+    
+    // Update user metadata with selected role
+    const { data, error } = await supabase.auth.updateUser({
+      data: { 
+        role,
+        onboarding_complete: false 
+      }
+    })
+    
+    if (error) {
+      console.error('Role update error:', error)
+      throw error
+    }
+    
+    console.log('Role updated successfully:', data)
+    
+    return NextResponse.json({ 
+      message: 'Role selected successfully',
+      role,
+      user: data.user
+    })
+  } catch (error) {
+    console.error('Role selection API error:', error)
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+}
