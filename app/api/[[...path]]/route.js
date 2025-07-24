@@ -634,3 +634,91 @@ async function handleAccountUpdate(account) {
     }
   )
 }
+
+// Debug functions
+async function testSignup(body) {
+  const { email, password } = body
+  
+  const cookieStore = cookies()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          } catch {
+            // Handle cookie setting errors
+          }
+        },
+      },
+    }
+  )
+  
+  try {
+    // Test signup
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          onboarding_complete: false
+        }
+      }
+    })
+    
+    console.log('Signup result:', data)
+    console.log('Signup error:', error)
+    
+    // Check session immediately after
+    const { data: sessionData } = await supabase.auth.getSession()
+    
+    return NextResponse.json({
+      signup: { data, error },
+      session: sessionData,
+      message: 'Debug signup complete'
+    })
+  } catch (err) {
+    return NextResponse.json({ error: err.message }, { status: 500 })
+  }
+}
+
+async function debugSession() {
+  const cookieStore = cookies()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          } catch {
+            // Handle cookie setting errors
+          }
+        },
+      },
+    }
+  )
+  
+  const { data: sessionData } = await supabase.auth.getSession()
+  const { data: userData } = await supabase.auth.getUser()
+  
+  return NextResponse.json({
+    session: sessionData,
+    user: userData,
+    cookies: cookieStore.getAll(),
+    message: 'Debug session info'
+  })
+}
