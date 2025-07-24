@@ -162,7 +162,10 @@ export default function LandingPage() {
     setRoleLoading(true)
 
     try {
-      await handleRoleSelection(role)
+      console.log('Attempting to select role:', role, 'for user:', user?.email)
+      
+      // Pass the user object directly to avoid session issues
+      await handleRoleSelection(role, user)
       toast.success(`Role selected: ${roles.find(r => r.id === role)?.title}`)
       
       // Navigate to onboarding
