@@ -729,6 +729,19 @@ async function debugSession() {
 async function handleRoleSelectionAPI(body, userId) {
   const { role } = body
   
+  console.log('=== ROLE SELECTION DEBUG ===')
+  console.log('Received role:', role)
+  console.log('Role type:', typeof role)
+  console.log('User ID:', userId)
+  console.log('Body:', JSON.stringify(body))
+  
+  // Validate role
+  const validRoles = ['customer', 'instructor', 'merchant']
+  if (!validRoles.includes(role)) {
+    console.error('Invalid role received:', role)
+    return NextResponse.json({ error: `Invalid role: ${role}. Must be one of: ${validRoles.join(', ')}` }, { status: 400 })
+  }
+  
   const cookieStore = cookies()
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -752,22 +765,25 @@ async function handleRoleSelectionAPI(body, userId) {
   )
   
   try {
-    console.log('Server-side role selection for user:', userId, 'role:', role)
+    console.log('Attempting to update user metadata...')
     
     // Update user metadata with selected role
     const { data, error } = await supabase.auth.updateUser({
       data: { 
-        role,
+        role: role.toString(), // Ensure it's a string
         onboarding_complete: false 
       }
     })
     
     if (error) {
-      console.error('Role update error:', error)
+      console.error('Supabase updateUser error:', error)
+      console.error('Error code:', error.code)
+      console.error('Error message:', error.message)
+      console.error('Error details:', error.details)
       throw error
     }
     
-    console.log('Role updated successfully:', data)
+    console.log('Role updated successfully:', data?.user?.user_metadata)
     
     return NextResponse.json({ 
       message: 'Role selected successfully',
@@ -776,6 +792,9 @@ async function handleRoleSelectionAPI(body, userId) {
     })
   } catch (error) {
     console.error('Role selection API error:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ 
+      error: error.message || 'Failed to update role',
+      details: error.details || 'Unknown error'
+    }, { status: 500 })
   }
 }
