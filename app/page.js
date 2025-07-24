@@ -18,7 +18,49 @@ export default function LandingPage() {
   const [loading, setLoading] = useState(true)
   const [authLoading, setAuthLoading] = useState(false)
   const [showRoleSelection, setShowRoleSelection] = useState(false)
+  const [roleLoading, setRoleLoading] = useState(false)
   const router = useRouter()
+  
+  const supabase = createClient()
+
+  const roles = [
+    {
+      id: 'customer',
+      title: 'Customer',
+      icon: Users,
+      description: 'Book fitness classes and track your progress',
+      features: [
+        'Browse and book classes',
+        'Track your fitness journey',
+        'Connect with instructors',
+        'Manage your schedule'
+      ]
+    },
+    {
+      id: 'instructor',
+      title: 'Instructor',
+      icon: Dumbbell,
+      description: 'Teach classes and earn money doing what you love',
+      features: [
+        'Create and manage classes',
+        'Set your own schedule',
+        'Earn money from bookings',
+        'Build your client base'
+      ]
+    },
+    {
+      id: 'merchant',
+      title: 'Studio Owner',
+      icon: Building2,
+      description: 'Manage your studio and grow your fitness business',
+      features: [
+        'Manage multiple locations',
+        'Oversee staff and instructors',
+        'Track business analytics',
+        'Handle payments and bookings'
+      ]
+    }
+  ]
   
   const supabase = createClient()
 
