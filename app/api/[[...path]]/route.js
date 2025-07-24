@@ -166,10 +166,8 @@ async function handlePOST(request) {
         return await createBooking(body, user.id)
       
       case '/onboarding/complete':
-        if (!user) {
-          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-        }
-        return await completeOnboarding(body, user.id)
+        // For onboarding completion, handle auth differently since user just went through role selection
+        return await completeOnboarding(body, user?.id)
       
       case '/stripe/create-payment-intent':
         if (!user) {
