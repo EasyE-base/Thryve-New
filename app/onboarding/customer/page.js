@@ -97,15 +97,20 @@ export default function CustomerOnboarding() {
     setLoading(true)
 
     try {
-      if (!user || !role) {
-        throw new Error('User not authenticated or role not found')
+      if (!user) {
+        throw new Error('User not authenticated')
       }
+
+      // Use user.uid and role from context, with fallback
+      const userRole = role || 'customer' // Default to customer if role is still loading
+      
+      console.log('🔥 Customer Onboarding: Completing onboarding for user:', user.uid, 'role:', userRole)
 
       const response = await fetch('/api/onboarding/complete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          role: role,
+          role: userRole,
           profileData: formData
         })
       })
@@ -116,7 +121,11 @@ export default function CustomerOnboarding() {
       }
 
       toast.success('Welcome to Thryve! Your profile is complete.')
-      router.push('/dashboard/customer')
+      
+      // Add a small delay to ensure the redirect works properly
+      setTimeout(() => {
+        router.push('/dashboard/customer')
+      }, 1000)
     } catch (error) {
       console.error('Onboarding completion error:', error)
       toast.error(error.message || 'Failed to complete onboarding')
