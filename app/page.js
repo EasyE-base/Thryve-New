@@ -19,7 +19,20 @@ export default function LandingPage() {
   const [showRoleSelection, setShowRoleSelection] = useState(false)
   const [roleLoading, setRoleLoading] = useState(false)
   const [selectedRole, setSelectedRole] = useState(null)
+  const [sessionTimeout, setSessionTimeout] = useState(false)
   const router = useRouter()
+
+  // Add timeout for session loading
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (status === 'loading') {
+        console.log('Session loading timeout - forcing display')
+        setSessionTimeout(true)
+      }
+    }, 10000) // 10 second timeout
+
+    return () => clearTimeout(timer)
+  }, [status])
 
   const roles = [
     {
