@@ -26,7 +26,7 @@ export default function LandingPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       if (status === 'loading') {
-        console.log('Session loading timeout - forcing display')
+        console.log('⚠️ Session loading timeout - showing homepage anyway')
         setSessionTimeout(true)
       }
     }, 10000) // 10 second timeout
