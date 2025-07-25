@@ -122,15 +122,20 @@ export default function MerchantOnboarding() {
     setLoading(true)
 
     try {
-      if (!user || !role) {
-        throw new Error('User not authenticated or role not found')
+      if (!user) {
+        throw new Error('User not authenticated')
       }
+
+      // Use user.uid and role from context, with fallback
+      const userRole = role || 'merchant' // Default to merchant if role is still loading
+      
+      console.log('🔥 Merchant Onboarding: Completing onboarding for user:', user.uid, 'role:', userRole)
 
       const response = await fetch('/api/onboarding/complete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          role: role,
+          role: userRole,
           profileData: formData
         })
       })
@@ -141,7 +146,11 @@ export default function MerchantOnboarding() {
       }
 
       toast.success('Welcome to Thryve! Your studio profile is complete.')
-      router.push('/dashboard/merchant')
+      
+      // Add a small delay to ensure the redirect works properly
+      setTimeout(() => {
+        router.push('/dashboard/merchant')
+      }, 1000)
     } catch (error) {
       console.error('Onboarding completion error:', error)
       toast.error(error.message || 'Failed to complete onboarding')
