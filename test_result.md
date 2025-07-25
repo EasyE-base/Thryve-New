@@ -244,7 +244,6 @@ metadata:
 test_plan:
   current_focus:
     - "Supabase Authentication & Session Management"
-    - "GET /api/classes - List available fitness classes"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
