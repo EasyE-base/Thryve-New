@@ -11,7 +11,7 @@ import uuid
 from datetime import datetime, timedelta
 
 # Configuration
-BASE_URL = "http://localhost:3000"
+BASE_URL = "https://870d8c0e-aab0-4481-9ea9-29109473d993.preview.emergentagent.com"
 API_BASE = f"{BASE_URL}/api"
 
 class ThryveAPITester:
