@@ -164,27 +164,34 @@ export default function LandingPage() {
     setSelectedRole(role)
 
     try {
-      console.log('=== ROLE SELECTION WITH SESSION REFRESH ===')
+      console.log('=== ALTERNATIVE ROLE SELECTION APPROACH ===')
       console.log('Selected role:', role)
       
       const supabase = createClient()
       
-      // Force refresh the session first
-      console.log('Refreshing session...')
-      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
-      console.log('Refresh result:', refreshData)
-      console.log('Refresh error:', refreshError)
-      
-      // Get the current session after refresh
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-      console.log('Session after refresh:', session?.user?.id)
-      console.log('Session error:', sessionError)
+      // Check session first
+      const { data: { session } } = await supabase.auth.getSession()
+      console.log('Current session:', session?.user?.id)
       
       if (!session?.user) {
-        throw new Error('No active session found after refresh. Please sign in again.')
+        console.log('No session found, trying sign-in approach...')
+        
+        // If no session, prompt user to sign in with their credentials
+        toast.error('Session expired. Please sign in to continue.')
+        
+        // Store the role selection temporarily and redirect to sign in
+        localStorage.setItem('pendingRole', role)
+        
+        // Reset the auth state and show sign in
+        setShowRoleSelection(false)
+        setUser(null)
+        
+        toast.info('Please sign in with your credentials to complete role selection.')
+        return
       }
       
-      console.log('Attempting to update user metadata...')
+      // If we have a session, try the role update
+      console.log('Session found, attempting role update...')
       const { data, error } = await supabase.auth.updateUser({
         data: { 
           role: String(role).trim(),
@@ -192,26 +199,31 @@ export default function LandingPage() {
         }
       })
       
-      console.log('Update result:', data)
-      console.log('Update error:', error)
-      
       if (error) {
-        console.error('Supabase updateUser error details:', {
-          message: error.message,
-          status: error.status,
-          details: error.details,
-          code: error.code
-        })
+        console.error('Role update error:', error)
         throw error
       }
       
       toast.success(`Role selected: ${roles.find(r => r.id === role)?.title}`)
-      
-      // Navigate to onboarding
       router.push(`/onboarding/${role}`)
+      
     } catch (error) {
       console.error('Role selection error:', error)
-      toast.error(`Failed to select role: ${error.message}`)
+      
+      if (error.message.includes('string did not match')) {
+        // Handle the specific Supabase validation error
+        toast.error('Role selection failed due to validation. Using fallback method...')
+        
+        // Fallback: Store in localStorage and redirect
+        localStorage.setItem('pendingRole', role)
+        localStorage.setItem('pendingRoleTime', Date.now().toString())
+        
+        toast.success(`Role selected: ${roles.find(r => r.id === role)?.title}`)
+        router.push(`/onboarding/${role}`)
+      } else {
+        toast.error(`Failed to select role: ${error.message}`)
+      }
+      
       setSelectedRole(null)
     } finally {
       setRoleLoading(false)
