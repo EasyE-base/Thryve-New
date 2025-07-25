@@ -369,15 +369,18 @@ frontend:
 
   - task: "Session Management & Persistence"
     implemented: true
-    working: "NA"
+    working: false
     file: "components/auth-provider.jsx"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "testing"
           comment: "CANNOT TEST: Session management testing blocked by onboarding completion issue. Unable to complete full authentication flow to test session persistence, logout functionality, and signin with existing credentials."
+        - working: false
+          agent: "testing"
+          comment: "BLOCKED BY API INFRASTRUCTURE ISSUE: Cannot test session management because users cannot complete the authentication flow due to 502 API errors during role selection. The session management code appears properly implemented in AuthProvider with Firebase auth state management, but cannot be verified due to infrastructure issues preventing complete user flows."
 
   - task: "Instructor Onboarding Flow"
     implemented: true
