@@ -53,12 +53,30 @@ export default function InstructorOnboarding() {
   ]
 
   useEffect(() => {
-    // Check if role was selected
-    const selectedRole = localStorage.getItem('selectedRole')
-    if (!selectedRole || selectedRole !== 'instructor') {
-      toast.error('Please select your role first')
-      router.push('/')
+    // Get role from Supabase session instead of localStorage
+    const checkSession = async () => {
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!session?.user) {
+        toast.error('Please sign in first')
+        router.push('/')
+        return
+      }
+      
+      const userRole = session.user.user_metadata?.role
+      if (!userRole) {
+        toast.error('Please select your role first')
+        router.push('/')
+        return
+      }
+      
+      if (userRole !== 'instructor') {
+        router.push(`/onboarding/${userRole}`)
+      }
     }
+
+    checkSession()
   }, [router])
 
   const handleInputChange = (field, value) => {
