@@ -162,27 +162,17 @@ export default function LandingPage() {
     setSelectedRole(role)
 
     try {
-      console.log('=== NEXTAUTH ROLE SELECTION ===')
+      console.log('=== SIMPLIFIED NEXTAUTH ROLE SELECTION ===')
       console.log('Selected role:', role)
       
-      // Update role via API
-      const response = await fetch('/api/auth/select-role', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role })
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to select role')
-      }
-
-      // Update the session to include the new role
+      // For now, just update the session without database
+      // Later we'll add MongoDB storage
       await update({ role, onboarding_complete: false })
       
       toast.success(`Role selected: ${roles.find(r => r.id === role)?.title}`)
       
-      // Redirect will happen via useEffect when session updates
+      // Redirect to onboarding
+      router.push(`/onboarding/${role}`)
     } catch (error) {
       console.error('Role selection error:', error)
       toast.error(`Failed to select role: ${error.message}`)
