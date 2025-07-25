@@ -1,6 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useAuthState } from 'react-firebase-hooks/auth'
+import { auth } from '@/lib/firebase'
+import { signUp, signIn, updateUserRole, getUserRole } from '@/lib/firebase-auth'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -11,14 +14,13 @@ import { Dumbbell, Users, Building2, Star, Calendar, CreditCard, ArrowRight } fr
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
-// Simple fallback authentication without NextAuth complexity
 export default function LandingPage() {
-  const [loading, setLoading] = useState(false)
+  const [user, loading, error] = useAuthState(auth)
   const [authLoading, setAuthLoading] = useState(false)
   const [showRoleSelection, setShowRoleSelection] = useState(false)
   const [roleLoading, setRoleLoading] = useState(false)
   const [selectedRole, setSelectedRole] = useState(null)
-  const [userEmail, setUserEmail] = useState('')
+  const [userRole, setUserRole] = useState(null)
   const router = useRouter()
 
   const roles = [
@@ -60,6 +62,42 @@ export default function LandingPage() {
     }
   ]
 
+  // Check user role when Firebase user changes
+  useEffect(() => {
+    const checkUserRole = async () => {
+      if (user) {
+        console.log('🔥 Firebase user detected:', user.email)
+        
+        try {
+          const userData = await getUserRole(user.uid)
+          
+          if (!userData || !userData.role) {
+            console.log('🔥 No role found, showing role selection')
+            setShowRoleSelection(true)
+          } else {
+            console.log('🔥 User role found:', userData.role)
+            setUserRole(userData.role)
+            
+            if (!userData.onboarding_complete) {
+              console.log('🔥 Redirecting to onboarding')
+              router.push(`/onboarding/${userData.role}`)
+            } else {
+              console.log('🔥 Redirecting to dashboard')
+              router.push(`/dashboard/${userData.role}`)
+            }
+          }
+        } catch (error) {
+          console.error('❌ Error checking user role:', error)
+          setShowRoleSelection(true)
+        }
+      }
+    }
+
+    if (!loading && user) {
+      checkUserRole()
+    }
+  }, [user, loading, router])
+
   const handleSignIn = async (e) => {
     e.preventDefault()
     setAuthLoading(true)
@@ -69,33 +107,21 @@ export default function LandingPage() {
     const password = formData.get('password')
 
     try {
-      console.log('=== SIMPLE AUTH SIGNIN ===')
-      
-      const response = await fetch('/api/auth/simple-signin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to sign in')
-      }
-
-      // Simple redirect based on user data
-      if (result.user.role && result.user.onboarding_complete) {
-        router.push(`/dashboard/${result.user.role}`)
-      } else if (result.user.role) {
-        router.push(`/onboarding/${result.user.role}`)
-      } else {
-        setUserEmail(result.user.email)
-        setShowRoleSelection(true)
-        toast.success('Signed in successfully! Please select your role.')
-      }
+      await signIn(email, password)
+      toast.success('Signed in successfully!')
     } catch (error) {
       console.error('Sign-in error:', error)
-      toast.error(error.message || 'Failed to sign in')
+      let errorMessage = 'Failed to sign in'
+      
+      if (error.code === 'auth/user-not-found') {
+        errorMessage = 'No account found with this email'
+      } else if (error.code === 'auth/wrong-password') {
+        errorMessage = 'Incorrect password'
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address'
+      }
+      
+      toast.error(errorMessage)
     } finally {
       setAuthLoading(false)
     }
@@ -110,53 +136,38 @@ export default function LandingPage() {
     const password = formData.get('password')
 
     try {
-      console.log('=== SIMPLE AUTH SIGNUP ===')
-      
-      const response = await fetch('/api/auth/simple-signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to create account')
-      }
-
-      setUserEmail(result.user.email)
-      setShowRoleSelection(true)
+      await signUp(email, password)
       toast.success('Account created! Please select your role.')
+      // The useEffect will handle showing role selection
     } catch (error) {
       console.error('Signup error:', error)
-      toast.error(error.message || 'Failed to create account')
+      let errorMessage = 'Failed to create account'
+      
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = 'An account already exists with this email'
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = 'Password should be at least 6 characters'
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address'
+      }
+      
+      toast.error(errorMessage)
     } finally {
       setAuthLoading(false)
     }
   }
 
   const selectRole = async (role) => {
-    if (roleLoading) return
+    if (roleLoading || !user) return
 
     setRoleLoading(true)
     setSelectedRole(role)
 
     try {
-      console.log('=== SIMPLE ROLE SELECTION ===')
-      
-      const response = await fetch('/api/auth/simple-role', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: userEmail, role })
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to select role')
-      }
-
+      await updateUserRole(user, role)
       toast.success(`Role selected: ${roles.find(r => r.id === role)?.title}`)
+      
+      // Redirect to onboarding
       router.push(`/onboarding/${role}`)
     } catch (error) {
       console.error('Role selection error:', error)
@@ -167,8 +178,20 @@ export default function LandingPage() {
     }
   }
 
-  // Simple role selection screen
-  if (showRoleSelection && userEmail) {
+  // Show loading while Firebase initializes
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading Thryve...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show role selection after successful signup or if user has no role
+  if (showRoleSelection && user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
@@ -177,7 +200,7 @@ export default function LandingPage() {
               Welcome to Thryve! 🎉
             </h1>
             <p className="mt-4 text-xl text-gray-600">
-              Hi {userEmail}! Please choose your role to get started
+              Hi {user.email}! Please choose your role to get started
             </p>
           </div>
 
@@ -342,8 +365,9 @@ export default function LandingPage() {
                         id="signup-password"
                         name="password"
                         type="password"
-                        placeholder="Create a password"
+                        placeholder="Create a password (min 6 characters)"
                         required
+                        minLength={6}
                       />
                     </div>
                     <Button 
