@@ -240,9 +240,9 @@ metadata:
 
 test_plan:
   current_focus:
-    - "POST /api/stripe/connect/account - Create Stripe Connect account for instructors"
-  stuck_tasks:
-    - "POST /api/stripe/connect/account - Create Stripe Connect account for instructors"
+    - "Supabase Authentication & Session Management"
+    - "GET /api/classes - List available fitness classes"
+  stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
