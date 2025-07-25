@@ -74,9 +74,9 @@ export default function LandingPage() {
   ]
 
   useEffect(() => {
-    if (status === 'loading') return
-
-    if (session?.user) {
+    console.log('NextAuth status changed:', { status, hasSession: !!session, sessionTimeout })
+    
+    if (status === 'authenticated' && session?.user) {
       console.log('NextAuth session:', { 
         email: session.user.email,
         role: session.user.role,
@@ -97,7 +97,7 @@ export default function LandingPage() {
         router.push(`/dashboard/${role}`)
       }
     }
-  }, [session, status, router])
+  }, [session, status, router, sessionTimeout])
 
   const handleSignIn = async (e) => {
     e.preventDefault()
