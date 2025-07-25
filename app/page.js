@@ -196,6 +196,7 @@ export default function LandingPage() {
   }
 
   // Show loading only if session is actually loading and not timed out
+  // BUT don't block the page if session fetch is failing
   if (status === 'loading' && !sessionTimeout) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
@@ -207,6 +208,9 @@ export default function LandingPage() {
       </div>
     )
   }
+
+  // If session timeout or unauthenticated, show the main page
+  // This ensures users can always access the signup/signin forms
 
   // Show role selection after successful signup or if user has no role
   if (showRoleSelection && session?.user) {
