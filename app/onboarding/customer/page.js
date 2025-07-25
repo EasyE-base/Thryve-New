@@ -10,7 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Progress } from '@/components/ui/progress'
 import { ArrowRight, ArrowLeft, CheckCircle } from 'lucide-react'
 import { toast } from 'sonner'
-import { createClient } from '@/utils/supabase/client'
+import { createClient } from '@/lib/supabase'
 
 export default function CustomerOnboarding() {
   const [currentStep, setCurrentStep] = useState(1)
