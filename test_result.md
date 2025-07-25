@@ -105,12 +105,72 @@
 user_problem_statement: "PHASE 2: FIREBASE MIGRATION - The Thryve fitness platform has been migrated from Supabase to Firebase Auth due to persistent user-reported issues (black screens, redirect loops) despite passing automated tests. Firebase implementation is now complete and needs comprehensive testing to ensure the authentication flow, role selection, and session management work correctly. Previous Supabase implementation is deprecated."
 
 backend:
-  - task: "Supabase Authentication & Session Management"
+  - task: "Firebase Authentication Setup & Configuration"
     implemented: true
-    working: true
-    file: "lib/supabase.js"
+    working: "unknown"
+    file: "lib/firebase.js"
     stuck_count: 0
     priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "Firebase configuration completed with all required keys (apiKey, authDomain, projectId, storageBucket, messagingSenderId, appId). Firebase app initialized and auth service exported. Ready for testing."
+
+  - task: "Firebase Authentication Helper Functions"
+    implemented: true
+    working: "unknown"
+    file: "lib/firebase-auth.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "Firebase auth helper functions implemented for signup, signin, and user management. Ready for testing with the Firebase configuration."
+
+  - task: "Firebase Role Management API"
+    implemented: true
+    working: "unknown"
+    file: "app/api/auth/firebase-role/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "Firebase role management API endpoint created to handle server-side user role updates in MongoDB authenticated via Firebase. Ready for testing."
+
+  - task: "Firebase User Data Management API"
+    implemented: true
+    working: "unknown"
+    file: "app/api/auth/firebase-user/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "Firebase user data management API endpoint created for additional user data handling in MongoDB via Firebase authentication. Ready for testing."
+
+  - task: "Main Page Firebase Integration"
+    implemented: true
+    working: "unknown"
+    file: "app/page.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "Main application page updated to integrate Firebase authentication logic, replacing previous auth systems. Includes signup, signin, and role selection functionality. Ready for testing."
+
+  - task: "Supabase Authentication & Session Management (DEPRECATED)"
+    implemented: true
+    working: "deprecated"
+    file: "lib/supabase.js"
+    stuck_count: 0
+    priority: "low"
     needs_retesting: false
     status_history:
         - working: false
@@ -119,6 +179,9 @@ backend:
         - working: true
           agent: "main"
           comment: "RESOLVED: Fixed by changing lib/supabase.js to use createBrowserClient from @supabase/ssr instead of basic @supabase/supabase-js. Application now loads successfully, authentication works, and no more SSR cookie errors."
+        - working: "deprecated"
+          agent: "main"
+          comment: "DEPRECATED: Supabase auth replaced with Firebase Auth due to persistent user-reported issues (black screens, redirect loops) despite passing automated tests."
 
   - task: "GET /api/classes - List available fitness classes"
     implemented: true
