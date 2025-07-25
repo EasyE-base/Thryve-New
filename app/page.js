@@ -117,6 +117,35 @@ export default function LandingPage() {
 
     try {
       await signIn(email, password)
+      
+      // Check if there's a pending role selection
+      const pendingRole = localStorage.getItem('pendingRole')
+      if (pendingRole) {
+        console.log('Found pending role after sign in:', pendingRole)
+        localStorage.removeItem('pendingRole')
+        localStorage.removeItem('pendingRoleTime')
+        
+        toast.success('Signed in successfully! Completing role selection...')
+        
+        // Try to set the role now that we're signed in
+        const supabase = createClient()
+        try {
+          await supabase.auth.updateUser({
+            data: { 
+              role: pendingRole,
+              onboarding_complete: false
+            }
+          })
+          
+          toast.success(`Role selected: ${roles.find(r => r.id === pendingRole)?.title}`)
+          router.push(`/onboarding/${pendingRole}`)
+          return
+        } catch (roleError) {
+          console.error('Failed to set pending role:', roleError)
+          // Continue with normal sign in flow
+        }
+      }
+      
       toast.success('Signed in successfully!')
     } catch (error) {
       toast.error(error.message || 'Failed to sign in')
