@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase'
-import { signOut } from '@/lib/client-auth'
+import { useAuth } from '@/components/auth-provider'
+import { signOut } from '@/lib/firebase-auth'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -13,27 +13,28 @@ import { toast } from 'sonner'
 import { format } from 'date-fns'
 
 export default function InstructorDashboard() {
-  const [user, setUser] = useState(null)
+  const { user, role, loading: authLoading } = useAuth()
   const [classes, setClasses] = useState([])
   const [loading, setLoading] = useState(true)
   const router = useRouter()
-  
-  const supabase = createClient()
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        router.push('/login')
-        return
-      }
+    if (authLoading) return
 
-      setUser(session.user)
-      await loadInstructorData()
+    if (!user) {
+      router.push('/')
+      return
     }
 
-    checkAuth()
-  }, [router])
+    if (role && role !== 'instructor') {
+      router.push(`/dashboard/${role}`)
+      return
+    }
+
+    if (user) {
+      loadInstructorData()
+    }
+  }, [user, role, authLoading, router])
 
   const loadInstructorData = async () => {
     try {
@@ -50,11 +51,16 @@ export default function InstructorDashboard() {
   }
 
   const handleSignOut = async () => {
-    await signOut()
-    router.push('/')
+    try {
+      await signOut()
+      router.push('/')
+    } catch (error) {
+      console.error('Sign out error:', error)
+      toast.error('Failed to sign out')
+    }
   }
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>

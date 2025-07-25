@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase'
-import { signOut } from '@/lib/client-auth'
+import { useAuth } from '@/components/auth-provider'
+import { signOut } from '@/lib/firebase-auth'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -12,33 +12,37 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
 export default function MerchantDashboard() {
-  const [user, setUser] = useState(null)
+  const { user, role, loading: authLoading } = useAuth()
   const [loading, setLoading] = useState(true)
   const router = useRouter()
-  
-  const supabase = createClient()
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        router.push('/login')
-        return
-      }
+    if (authLoading) return
 
-      setUser(session.user)
-      setLoading(false)
+    if (!user) {
+      router.push('/')
+      return
     }
 
-    checkAuth()
-  }, [router])
+    if (role && role !== 'merchant') {
+      router.push(`/dashboard/${role}`)
+      return
+    }
+
+    setLoading(false)
+  }, [user, role, authLoading, router])
 
   const handleSignOut = async () => {
-    await signOut()
-    router.push('/')
+    try {
+      await signOut()
+      router.push('/')
+    } catch (error) {
+      console.error('Sign out error:', error)
+      toast.error('Failed to sign out')
+    }
   }
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -164,160 +168,110 @@ export default function MerchantDashboard() {
           </div>
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Recent Activity */}
+        {/* Overview Cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          {/* Instructors Card */}
           <Card>
             <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-              <CardDescription>Latest updates from your studio</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No recent activity</h3>
-                <p className="text-gray-600 mb-4">
-                  Activity will appear here once you start managing your studio.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Instructors Overview */}
-          <Card>
-            <CardHeader>
-              <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle>Instructors</CardTitle>
-                  <CardDescription>Manage your teaching staff</CardDescription>
-                </div>
-                <Button size="sm">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Instructor
-                </Button>
-              </div>
+              <CardTitle>Your Instructors</CardTitle>
+              <CardDescription>Manage your fitness professionals</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-center py-8">
                 <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No instructors yet</h3>
                 <p className="text-gray-600 mb-4">
-                  Invite instructors to start offering classes at your studio.
+                  Invite qualified instructors to join your studio and start offering classes.
                 </p>
                 <Button>
                   <Plus className="h-4 w-4 mr-2" />
-                  Invite Your First Instructor
+                  Invite Instructor
                 </Button>
               </div>
             </CardContent>
           </Card>
 
-          {/* Classes Overview */}
+          {/* Classes Card */}
           <Card>
             <CardHeader>
-              <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle>Classes</CardTitle>
-                  <CardDescription>Manage your class schedule</CardDescription>
-                </div>
-                <Button size="sm">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Class
-                </Button>
-              </div>
+              <CardTitle>Classes & Schedule</CardTitle>
+              <CardDescription>Manage your class offerings</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="text-center py-8">
                 <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No classes scheduled</h3>
                 <p className="text-gray-600 mb-4">
-                  Work with your instructors to schedule classes.
+                  Work with your instructors to create and schedule fitness classes.
                 </p>
-                <Button>View Schedule</Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Revenue Analytics */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Revenue Analytics</CardTitle>
-              <CardDescription>Track your business performance</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">Analytics coming soon</h3>
-                <p className="text-gray-600 mb-4">
-                  Detailed analytics will be available once you have bookings.
-                </p>
-                <Button variant="outline">Learn More</Button>
+                <Button variant="outline">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Plan Schedule
+                </Button>
               </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Getting Started Guide */}
-        <div className="mt-12">
-          <Card>
-            <CardHeader>
-              <CardTitle>Getting Started as a Studio Owner</CardTitle>
-              <CardDescription>
-                Follow these steps to set up and grow your fitness business
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div className="flex items-start space-x-3">
-                    <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium">1</div>
-                    <div>
-                      <h4 className="font-medium">Complete Studio Profile</h4>
-                      <p className="text-sm text-gray-600">Add photos, amenities, and operating hours</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start space-x-3">
-                    <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium">2</div>
-                    <div>
-                      <h4 className="font-medium">Invite Instructors</h4>
-                      <p className="text-sm text-gray-600">Add qualified instructors to teach at your studio</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start space-x-3">
-                    <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium">3</div>
-                    <div>
-                      <h4 className="font-medium">Setup Payment Processing</h4>
-                      <p className="text-sm text-gray-600">Configure Stripe Connect for automated payouts</p>
-                    </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Getting Started as a Studio Owner</CardTitle>
+            <CardDescription>
+              Follow these steps to set up your fitness business on Thryve
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium">1</div>
+                  <div>
+                    <h4 className="font-medium">Complete Studio Profile</h4>
+                    <p className="text-sm text-gray-600">Add photos, amenities, and business information</p>
                   </div>
                 </div>
-                <div className="space-y-4">
-                  <div className="flex items-start space-x-3">
-                    <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium">4</div>
-                    <div>
-                      <h4 className="font-medium">Schedule Classes</h4>
-                      <p className="text-sm text-gray-600">Work with instructors to create a class schedule</p>
-                    </div>
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium">2</div>
+                  <div>
+                    <h4 className="font-medium">Invite Qualified Instructors</h4>
+                    <p className="text-sm text-gray-600">Find and invite certified fitness professionals</p>
                   </div>
-                  <div className="flex items-start space-x-3">
-                    <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium">5</div>
-                    <div>
-                      <h4 className="font-medium">Promote Your Studio</h4>
-                      <p className="text-sm text-gray-600">Market your studio to attract new members</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start space-x-3">
-                    <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium">6</div>
-                    <div>
-                      <h4 className="font-medium">Monitor Performance</h4>
-                      <p className="text-sm text-gray-600">Use analytics to optimize your business</p>
-                    </div>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium">3</div>
+                  <div>
+                    <h4 className="font-medium">Setup Payment Processing</h4>
+                    <p className="text-sm text-gray-600">Configure Stripe Connect for seamless payments</p>
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+              <div className="space-y-4">
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium">4</div>
+                  <div>
+                    <h4 className="font-medium">Create Class Schedule</h4>
+                    <p className="text-sm text-gray-600">Work with instructors to plan diverse class offerings</p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium">5</div>
+                  <div>
+                    <h4 className="font-medium">Launch & Promote</h4>
+                    <p className="text-sm text-gray-600">Go live and start attracting customers</p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-medium">6</div>
+                  <div>
+                    <h4 className="font-medium">Monitor & Optimize</h4>
+                    <p className="text-sm text-gray-600">Use analytics to grow your business</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

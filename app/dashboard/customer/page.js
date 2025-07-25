@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase'
-import { signOut } from '@/lib/client-auth'
+import { useAuth } from '@/components/auth-provider'
+import { signOut } from '@/lib/firebase-auth'
 import { formatPrice, getStripe } from '@/lib/stripe'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -16,7 +16,7 @@ import { toast } from 'sonner'
 import { format } from 'date-fns'
 
 export default function CustomerDashboard() {
-  const [user, setUser] = useState(null)
+  const { user, role, loading: authLoading } = useAuth()
   const [classes, setClasses] = useState([])
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
@@ -26,22 +26,24 @@ export default function CustomerDashboard() {
   const [filterType, setFilterType] = useState('all')
   
   const router = useRouter()
-  const supabase = createClient()
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        router.push('/login')
-        return
-      }
+    if (authLoading) return
 
-      setUser(session.user)
-      await loadDashboardData()
+    if (!user) {
+      router.push('/')
+      return
     }
 
-    checkAuth()
-  }, [router])
+    if (role && role !== 'customer') {
+      router.push(`/dashboard/${role}`)
+      return
+    }
+
+    if (user) {
+      loadDashboardData()
+    }
+  }, [user, role, authLoading, router])
 
   const loadDashboardData = async () => {
     try {
@@ -68,8 +70,13 @@ export default function CustomerDashboard() {
   }
 
   const handleSignOut = async () => {
-    await signOut()
-    router.push('/')
+    try {
+      await signOut()
+      router.push('/')
+    } catch (error) {
+      console.error('Sign out error:', error)
+      toast.error('Failed to sign out')
+    }
   }
 
   const handleBookClass = async (classItem) => {
@@ -145,7 +152,7 @@ export default function CustomerDashboard() {
 
   const classTypes = [...new Set(classes.map(c => c.type))].filter(Boolean)
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
