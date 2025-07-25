@@ -306,7 +306,11 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Supabase Authentication & Session Management"
+    - "Firebase Authentication Setup & Configuration"
+    - "Firebase Authentication Helper Functions"
+    - "Firebase Role Management API"
+    - "Firebase User Data Management API"
+    - "Main Page Firebase Integration"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
