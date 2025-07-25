@@ -160,29 +160,33 @@ export default function LandingPage() {
     if (roleLoading) return
 
     setRoleLoading(true)
+    setSelectedRole(role)
 
     try {
-      console.log('=== PROPER ROLE SELECTION DEBUG ===')
+      console.log('=== ROLE SELECTION WITH SESSION REFRESH ===')
       console.log('Selected role:', role)
-      console.log('User object:', user)
       
-      // Use the proper Supabase client-side approach
       const supabase = createClient()
       
-      // First, verify we have a session
+      // Force refresh the session first
+      console.log('Refreshing session...')
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession()
+      console.log('Refresh result:', refreshData)
+      console.log('Refresh error:', refreshError)
+      
+      // Get the current session after refresh
       const { data: { session }, error: sessionError } = await supabase.auth.getSession()
-      console.log('Current session:', session?.user?.id)
+      console.log('Session after refresh:', session?.user?.id)
       console.log('Session error:', sessionError)
       
       if (!session?.user) {
-        throw new Error('No active session found. Please refresh and try again.')
+        throw new Error('No active session found after refresh. Please sign in again.')
       }
       
-      // Try to update user metadata with proper validation
       console.log('Attempting to update user metadata...')
       const { data, error } = await supabase.auth.updateUser({
         data: { 
-          role: String(role).trim(), // Ensure clean string
+          role: String(role).trim(),
           onboarding_complete: false
         }
       })
@@ -207,6 +211,7 @@ export default function LandingPage() {
     } catch (error) {
       console.error('Role selection error:', error)
       toast.error(`Failed to select role: ${error.message}`)
+      setSelectedRole(null)
     } finally {
       setRoleLoading(false)
     }
