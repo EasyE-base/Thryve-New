@@ -112,211 +112,234 @@ export default function CustomerOnboarding() {
     }
   }
 
-  const renderStep = () => {
-    switch (currentStep) {
-      case 1:
-        return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Personal Information</h2>
-              <p className="text-gray-600">Tell us a bit about yourself</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">First Name</Label>
-                <Input
-                  id="firstName"
-                  value={formData.firstName}
-                  onChange={(e) => handleInputChange('firstName', e.target.value)}
-                  placeholder="Enter your first name"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name</Label>
-                <Input
-                  id="lastName"
-                  value={formData.lastName}
-                  onChange={(e) => handleInputChange('lastName', e.target.value)}
-                  placeholder="Enter your last name"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => handleInputChange('phone', e.target.value)}
-                  placeholder="(555) 123-4567"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="zipCode">Zip Code</Label>
-                <Input
-                  id="zipCode"
-                  value={formData.zipCode}
-                  onChange={(e) => handleInputChange('zipCode', e.target.value)}
-                  placeholder="12345"
-                  required
-                />
-              </div>
-            </div>
-          </div>
-        )
-
-      case 2:
-        return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Fitness Interests</h2>
-              <p className="text-gray-600">What types of activities interest you?</p>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {fitnessInterests.map((interest) => (
-                <div key={interest} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={interest}
-                    checked={formData.interests.includes(interest)}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        handleArrayToggle('interests', interest)
-                      } else {
-                        handleArrayToggle('interests', interest)
-                      }
-                    }}
-                  />
-                  <Label
-                    htmlFor={interest}
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    {interest}
-                  </Label>
-                </div>
-              ))}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="fitnessLevel">Current Fitness Level</Label>
-              <select
-                id="fitnessLevel"
-                value={formData.fitnessLevel}
-                onChange={(e) => handleInputChange('fitnessLevel', e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <option value="">Select your fitness level</option>
-                <option value="beginner">Beginner</option>
-                <option value="intermediate">Intermediate</option>
-                <option value="advanced">Advanced</option>
-              </select>
-            </div>
-          </div>
-        )
-
-      case 3:
-        return (
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Fitness Goals</h2>
-              <p className="text-gray-600">What are you hoping to achieve?</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {fitnessGoals.map((goal) => (
-                <div key={goal} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={goal}
-                    checked={formData.goals.includes(goal)}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        handleArrayToggle('goals', goal)
-                      } else {
-                        handleArrayToggle('goals', goal)
-                      }
-                    }}
-                  />
-                  <Label
-                    htmlFor={goal}
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                  >
-                    {goal}
-                  </Label>
-                </div>
-              ))}
-            </div>
-
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <div className="flex items-center mb-2">
-                <CheckCircle className="h-5 w-5 text-blue-600 mr-2" />
-                <h3 className="font-semibold text-blue-900">You're all set!</h3>
-              </div>
-              <p className="text-blue-800 text-sm">
-                Click "Complete Setup" to finish your onboarding and start booking classes.
-              </p>
-            </div>
-          </div>
-        )
-
-      default:
-        return null
-    }
-  }
-
-  const canProceed = () => {
-    switch (currentStep) {
-      case 1:
-        return formData.firstName && formData.lastName && formData.zipCode
-      case 2:
-        return formData.interests.length > 0 && formData.fitnessLevel
-      case 3:
-        return formData.goals.length > 0
-      default:
-        return false
-    }
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto">
-        <div className="mb-8">
-          <div className="text-center mb-6">
-            <h1 className="text-3xl font-bold text-gray-900">Customer Onboarding</h1>
-            <p className="text-gray-600">Step {currentStep} of {totalSteps}</p>
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl">
+            Customer Onboarding
+          </h1>
+          <p className="mt-4 text-lg text-gray-600">
+            Let's get your profile set up so you can start your fitness journey
+          </p>
+          <div className="mt-4">
+            <Progress value={(currentStep / totalSteps) * 100} className="w-full" />
+            <p className="text-sm text-gray-500 mt-2">Step {currentStep} of {totalSteps}</p>
           </div>
-          <Progress value={(currentStep / totalSteps) * 100} className="h-2" />
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Welcome to Thryve!</CardTitle>
+            <CardTitle className="flex items-center">
+              {currentStep === 1 && <User className="h-5 w-5 mr-2" />}
+              {currentStep === 2 && <Target className="h-5 w-5 mr-2" />}
+              {currentStep === 3 && <CheckCircle className="h-5 w-5 mr-2" />}
+              
+              {currentStep === 1 && "Personal Information"}
+              {currentStep === 2 && "Fitness Goals & Preferences"}
+              {currentStep === 3 && "Emergency Contact & Health"}
+            </CardTitle>
             <CardDescription>
-              Let's set up your profile so we can recommend the best classes for you.
+              {currentStep === 1 && "Tell us about yourself"}
+              {currentStep === 2 && "Help us personalize your experience"}
+              {currentStep === 3 && "Safety and health information"}
             </CardDescription>
           </CardHeader>
 
           <CardContent className="space-y-6">
-            {renderStep()}
+            {/* Step 1: Personal Information */}
+            {currentStep === 1 && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="firstName">First Name *</Label>
+                    <Input
+                      id="firstName"
+                      value={formData.firstName}
+                      onChange={(e) => updateFormData('firstName', e.target.value)}
+                      placeholder="Enter your first name"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="lastName">Last Name *</Label>
+                    <Input
+                      id="lastName"
+                      value={formData.lastName}
+                      onChange={(e) => updateFormData('lastName', e.target.value)}
+                      placeholder="Enter your last name"
+                      required
+                    />
+                  </div>
+                </div>
 
+                <div>
+                  <Label htmlFor="phone">Phone Number *</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => updateFormData('phone', e.target.value)}
+                    placeholder="(555) 123-4567"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="dateOfBirth">Date of Birth *</Label>
+                    <Input
+                      id="dateOfBirth"
+                      type="date"
+                      value={formData.dateOfBirth}
+                      onChange={(e) => updateFormData('dateOfBirth', e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="gender">Gender</Label>
+                    <Select onValueChange={(value) => updateFormData('gender', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select gender" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="male">Male</SelectItem>
+                        <SelectItem value="female">Female</SelectItem>
+                        <SelectItem value="non-binary">Non-binary</SelectItem>
+                        <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Fitness Goals & Preferences */}
+            {currentStep === 2 && (
+              <div className="space-y-6">
+                <div>
+                  <Label htmlFor="fitnessLevel">Current Fitness Level *</Label>
+                  <Select onValueChange={(value) => updateFormData('fitnessLevel', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select your fitness level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="beginner">Beginner - New to fitness</SelectItem>
+                      <SelectItem value="intermediate">Intermediate - Some experience</SelectItem>
+                      <SelectItem value="advanced">Advanced - Very experienced</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label>Fitness Goals * (Select all that apply)</Label>
+                  <div className="grid grid-cols-2 gap-3 mt-3">
+                    {[
+                      'Weight Loss',
+                      'Muscle Building',
+                      'Cardiovascular Health',
+                      'Flexibility',
+                      'Strength Training',
+                      'Sport-Specific Training',
+                      'Stress Relief',
+                      'General Wellness'
+                    ].map((goal) => (
+                      <div key={goal} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={goal}
+                          checked={formData.goals.includes(goal)}
+                          onCheckedChange={() => toggleGoal(goal)}
+                        />
+                        <Label htmlFor={goal} className="text-sm font-normal">
+                          {goal}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Emergency Contact & Health */}
+            {currentStep === 3 && (
+              <div className="space-y-6">
+                <div>
+                  <Label htmlFor="medicalConditions">
+                    Medical Conditions or Injuries (Optional)
+                  </Label>
+                  <Textarea
+                    id="medicalConditions"
+                    value={formData.medicalConditions}
+                    onChange={(e) => updateFormData('medicalConditions', e.target.value)}
+                    placeholder="Please list any medical conditions, injuries, or physical limitations we should be aware of..."
+                    className="min-h-[100px]"
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-base font-medium">Emergency Contact</Label>
+                  <div className="grid gap-4 mt-3">
+                    <div>
+                      <Label htmlFor="emergencyName">Contact Name</Label>
+                      <Input
+                        id="emergencyName"
+                        value={formData.emergencyContact.name}
+                        onChange={(e) => updateNestedFormData('emergencyContact', 'name', e.target.value)}
+                        placeholder="Emergency contact full name"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="emergencyPhone">Phone Number</Label>
+                        <Input
+                          id="emergencyPhone"
+                          type="tel"
+                          value={formData.emergencyContact.phone}
+                          onChange={(e) => updateNestedFormData('emergencyContact', 'phone', e.target.value)}
+                          placeholder="(555) 123-4567"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="emergencyRelationship">Relationship</Label>
+                        <Input
+                          id="emergencyRelationship"
+                          value={formData.emergencyContact.relationship}
+                          onChange={(e) => updateNestedFormData('emergencyContact', 'relationship', e.target.value)}
+                          placeholder="e.g., Spouse, Parent, Friend"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Navigation Buttons */}
             <div className="flex justify-between pt-6">
               <Button
                 variant="outline"
                 onClick={prevStep}
                 disabled={currentStep === 1}
+                className="flex items-center"
               >
-                <ArrowLeft className="mr-2 h-4 w-4" />
+                <ArrowLeft className="h-4 w-4 mr-2" />
                 Previous
               </Button>
 
-              {currentStep === totalSteps ? (
+              {currentStep < totalSteps ? (
+                <Button
+                  onClick={nextStep}
+                  disabled={!isStepValid(currentStep)}
+                  className="flex items-center"
+                >
+                  Next
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              ) : (
                 <Button
                   onClick={completeOnboarding}
-                  disabled={!canProceed() || loading}
+                  disabled={loading}
+                  className="flex items-center bg-green-600 hover:bg-green-700"
                 >
                   {loading ? (
                     <div className="flex items-center">
@@ -324,19 +347,11 @@ export default function CustomerOnboarding() {
                       Completing...
                     </div>
                   ) : (
-                    <>
+                    <div className="flex items-center">
                       Complete Setup
-                      <CheckCircle className="ml-2 h-4 w-4" />
-                    </>
+                      <CheckCircle className="h-4 w-4 ml-2" />
+                    </div>
                   )}
-                </Button>
-              ) : (
-                <Button
-                  onClick={nextStep}
-                  disabled={!canProceed()}
-                >
-                  Next
-                  <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               )}
             </div>
