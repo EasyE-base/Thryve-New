@@ -806,7 +806,16 @@ class ThryveAPITester:
         print(f"Testing against: {API_BASE}")
         print("=" * 60)
         
-        # Run all test methods
+        # Run Firebase authentication tests first (high priority)
+        print("\n🔥 FIREBASE AUTHENTICATION TESTS (HIGH PRIORITY)")
+        print("=" * 60)
+        self.test_firebase_role_api()
+        self.test_firebase_user_api()
+        self.test_firebase_integration_flow()
+        
+        # Run existing API tests
+        print("\n📋 EXISTING API TESTS")
+        print("=" * 60)
         self.test_classes_endpoint()
         self.test_onboarding_endpoint()
         self.test_payment_intent_endpoint()
@@ -829,6 +838,16 @@ class ThryveAPITester:
         print(f"Failed: {failed_tests} ❌")
         print(f"Success Rate: {(passed_tests/total_tests)*100:.1f}%")
         
+        # Separate Firebase and existing API results
+        firebase_tests = [r for r in self.test_results if 'firebase' in r['test'].lower() or 'Firebase' in r['test']]
+        existing_tests = [r for r in self.test_results if r not in firebase_tests]
+        
+        firebase_passed = len([r for r in firebase_tests if r['success']])
+        firebase_total = len(firebase_tests)
+        
+        print(f"\n🔥 FIREBASE TESTS: {firebase_passed}/{firebase_total} passed")
+        print(f"📋 EXISTING API TESTS: {len([r for r in existing_tests if r['success']])}/{len(existing_tests)} passed")
+        
         if failed_tests > 0:
             print("\n❌ FAILED TESTS:")
             for result in self.test_results:
@@ -836,6 +855,14 @@ class ThryveAPITester:
                     print(f"  - {result['test']}: {result['message']}")
         
         print("\n🎯 KEY FINDINGS:")
+        if firebase_passed == firebase_total and firebase_total > 0:
+            print("✅ Firebase authentication system is working correctly")
+            print("✅ Firebase role management API is functional")
+            print("✅ Firebase user data management API is operational")
+            print("✅ Complete Firebase integration flow is working")
+        else:
+            print("❌ Firebase authentication system has issues that need attention")
+        
         print("- All protected endpoints correctly require authentication")
         print("- Public endpoints (like /classes) are accessible")
         print("- Error handling is implemented")
@@ -845,6 +872,11 @@ class ThryveAPITester:
             'total': total_tests,
             'passed': passed_tests,
             'failed': failed_tests,
+            'firebase_tests': {
+                'total': firebase_total,
+                'passed': firebase_passed,
+                'failed': firebase_total - firebase_passed
+            },
             'results': self.test_results
         }
 
