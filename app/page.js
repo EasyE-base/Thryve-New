@@ -164,6 +164,7 @@ export default function LandingPage() {
     setSelectedRole(role)
 
     try {
+      // Try to update role via API first
       await updateUserRole(user, role)
       toast.success(`Role selected: ${roles.find(r => r.id === role)?.title}`)
       
@@ -171,8 +172,30 @@ export default function LandingPage() {
       router.push(`/onboarding/${role}`)
     } catch (error) {
       console.error('Role selection error:', error)
-      toast.error(`Failed to select role: ${error.message}`)
-      setSelectedRole(null)
+      
+      // If it's a 502 error or API routing issue, provide a helpful message and temporary workaround
+      if (error.message.includes('Server temporarily unavailable') || 
+          error.message.includes('502') || 
+          error.message.includes('Server routing issue')) {
+        
+        // Store role temporarily in localStorage as a fallback
+        localStorage.setItem('selectedRole', role)
+        localStorage.setItem('tempUserData', JSON.stringify({
+          uid: user.uid,
+          email: user.email,
+          role: role
+        }))
+        
+        toast.error(`API routing issue detected. We've temporarily saved your role selection. Please proceed to onboarding - your selection will be saved once the server is fully available.`)
+        
+        // Still allow them to proceed to onboarding
+        setTimeout(() => {
+          router.push(`/onboarding/${role}`)
+        }, 2000)
+      } else {
+        toast.error(`Failed to select role: ${error.message}`)
+        setSelectedRole(null)
+      }
     } finally {
       setRoleLoading(false)
     }
