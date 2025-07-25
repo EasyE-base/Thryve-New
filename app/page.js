@@ -124,29 +124,22 @@ export default function LandingPage() {
     const password = formData.get('password')
 
     try {
-      console.log('=== SIMPLIFIED NEXTAUTH SIGNUP ===')
+      console.log('=== NEXTAUTH MONGODB SIGNUP ===')
       
-      // For now, just simulate account creation and immediately show role selection
-      // Later we'll add actual account creation to MongoDB
-      
-      if (email === 'test@example.com' && password === 'test123') {
-        // Use the test credentials to sign in
-        const signInResult = await signIn('credentials', {
-          email,
-          password,
-          redirect: false
-        })
+      // Use NextAuth credentials provider with signup action
+      const signInResult = await signIn('credentials', {
+        email,
+        password,
+        action: 'signup', // This tells the provider to create a new user
+        redirect: false
+      })
 
-        if (signInResult?.error) {
-          throw new Error('Sign-in failed after account creation')
-        }
-
-        toast.success('Account created! Please select your role.')
-        setShowRoleSelection(true)
-      } else {
-        // For any other email, show instructions to use test account
-        toast.error('For testing, please use: test@example.com / test123')
+      if (signInResult?.error) {
+        throw new Error(signInResult.error)
       }
+
+      toast.success('Account created! Please select your role.')
+      // The session will be automatically established, useEffect will trigger role selection
     } catch (error) {
       console.error('Signup error:', error)
       toast.error(error.message || 'Failed to create account')
