@@ -2,78 +2,52 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/components/auth-provider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Progress } from '@/components/ui/progress'
-import { CheckCircle, User, Target, ArrowLeft, ArrowRight } from 'lucide-react'
+import { ArrowRight, ArrowLeft, CheckCircle } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function CustomerOnboarding() {
+  const { user, role, loading: authLoading } = useAuth()
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     phone: '',
-    dateOfBirth: '',
-    gender: '',
-    fitnessLevel: '',
-    goals: [],
-    medicalConditions: '',
+    fitnessGoals: '',
+    experienceLevel: '',
+    preferredActivities: '',
     emergencyContact: {
       name: '',
       phone: '',
       relationship: ''
-    }
+    },
+    medicalConditions: ''
   })
-
+  
   const router = useRouter()
   const totalSteps = 3
 
-  // Simple session check - just verify we have a role parameter
   useEffect(() => {
-    // For simple auth, we'll assume if they reached this page, they have customer role
-    console.log('Customer onboarding loaded - simple auth mode')
-  }, [])
+    if (authLoading) return
 
-  const completeOnboarding = async () => {
-    if (loading) return
-
-    setLoading(true)
-
-    try {
-      console.log('=== SIMPLE ONBOARDING COMPLETION ===')
-      
-      // For now, just mark onboarding as complete and redirect
-      // In a full implementation, you'd save the profile data to the database
-      toast.success('Welcome to Thryve! Your profile is complete.')
-      
-      // Redirect to customer dashboard
-      router.push('/dashboard/customer')
-    } catch (error) {
-      console.error('Onboarding completion error:', error)
-      toast.error('Failed to complete onboarding. Please try again.')
-    } finally {
-      setLoading(false)
+    if (!user) {
+      toast.error('Please sign in first')
+      router.push('/')
+      return
     }
-  }
 
-  const nextStep = () => {
-    if (currentStep < totalSteps) {
-      setCurrentStep(currentStep + 1)
+    if (role && role !== 'customer') {
+      router.push(`/onboarding/${role}`)
+      return
     }
-  }
-
-  const prevStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1)
-    }
-  }
+  }, [user, role, authLoading, router])
 
   const updateFormData = (field, value) => {
     setFormData(prev => ({
@@ -92,67 +66,104 @@ export default function CustomerOnboarding() {
     }))
   }
 
-  const toggleGoal = (goal) => {
-    setFormData(prev => ({
-      ...prev,
-      goals: prev.goals.includes(goal) 
-        ? prev.goals.filter(g => g !== goal)
-        : [...prev.goals, goal]
-    }))
+  const nextStep = () => {
+    if (currentStep < totalSteps) {
+      setCurrentStep(currentStep + 1)
+    }
+  }
+
+  const prevStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1)
+    }
   }
 
   const isStepValid = (step) => {
-    switch(step) {
+    switch (step) {
       case 1:
-        return formData.firstName && formData.lastName && formData.phone && formData.dateOfBirth
+        return formData.firstName && formData.lastName && formData.phone
       case 2:
-        return formData.fitnessLevel && formData.goals.length > 0
+        return formData.fitnessGoals && formData.experienceLevel && formData.preferredActivities
+      case 3:
+        return formData.emergencyContact.name && formData.emergencyContact.phone && formData.emergencyContact.relationship
       default:
         return false
     }
   }
 
+  const completeOnboarding = async () => {
+    if (loading) return
+
+    setLoading(true)
+
+    try {
+      if (!user || !role) {
+        throw new Error('User not authenticated or role not found')
+      }
+
+      const response = await fetch('/api/onboarding/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          role: role,
+          profileData: formData
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to complete onboarding')
+      }
+
+      toast.success('Welcome to Thryve! Your profile is complete.')
+      router.push('/dashboard/customer')
+    } catch (error) {
+      console.error('Onboarding completion error:', error)
+      toast.error(error.message || 'Failed to complete onboarding')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl">
-            Customer Onboarding
-          </h1>
-          <p className="mt-4 text-lg text-gray-600">
-            Let's get your profile set up so you can start your fitness journey
-          </p>
-          <div className="mt-4">
-            <Progress value={(currentStep / totalSteps) * 100} className="w-full" />
-            <p className="text-sm text-gray-500 mt-2">Step {currentStep} of {totalSteps}</p>
+        <div className="mb-8">
+          <div className="text-center mb-6">
+            <h1 className="text-3xl font-bold text-gray-900">Customer Onboarding</h1>
+            <p className="text-gray-600">Step {currentStep} of {totalSteps}</p>
           </div>
+          <Progress value={(currentStep / totalSteps) * 100} className="h-2" />
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center">
-              {currentStep === 1 && <User className="h-5 w-5 mr-2" />}
-              {currentStep === 2 && <Target className="h-5 w-5 mr-2" />}
-              {currentStep === 3 && <CheckCircle className="h-5 w-5 mr-2" />}
-              
-              {currentStep === 1 && "Personal Information"}
-              {currentStep === 2 && "Fitness Goals & Preferences"}
-              {currentStep === 3 && "Emergency Contact & Health"}
-            </CardTitle>
+            <CardTitle>Welcome to Thryve!</CardTitle>
             <CardDescription>
-              {currentStep === 1 && "Tell us about yourself"}
-              {currentStep === 2 && "Help us personalize your experience"}
-              {currentStep === 3 && "Safety and health information"}
+              Let's get to know you better to provide the best fitness experience.
             </CardDescription>
           </CardHeader>
 
           <CardContent className="space-y-6">
             {/* Step 1: Personal Information */}
             {currentStep === 1 && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="firstName">First Name *</Label>
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Personal Information</h2>
+                  <p className="text-gray-600">Tell us about yourself</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName">First Name</Label>
                     <Input
                       id="firstName"
                       value={formData.firstName}
@@ -161,8 +172,8 @@ export default function CustomerOnboarding() {
                       required
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="lastName">Last Name *</Label>
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName">Last Name</Label>
                     <Input
                       id="lastName"
                       value={formData.lastName}
@@ -173,8 +184,8 @@ export default function CustomerOnboarding() {
                   </div>
                 </div>
 
-                <div>
-                  <Label htmlFor="phone">Phone Number *</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone Number</Label>
                   <Input
                     id="phone"
                     type="tel"
@@ -184,85 +195,64 @@ export default function CustomerOnboarding() {
                     required
                   />
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="dateOfBirth">Date of Birth *</Label>
-                    <Input
-                      id="dateOfBirth"
-                      type="date"
-                      value={formData.dateOfBirth}
-                      onChange={(e) => updateFormData('dateOfBirth', e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="gender">Gender</Label>
-                    <Select onValueChange={(value) => updateFormData('gender', value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select gender" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="male">Male</SelectItem>
-                        <SelectItem value="female">Female</SelectItem>
-                        <SelectItem value="non-binary">Non-binary</SelectItem>
-                        <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
               </div>
             )}
 
-            {/* Step 2: Fitness Goals & Preferences */}
+            {/* Step 2: Fitness Information */}
             {currentStep === 2 && (
               <div className="space-y-6">
                 <div>
-                  <Label htmlFor="fitnessLevel">Current Fitness Level *</Label>
-                  <Select onValueChange={(value) => updateFormData('fitnessLevel', value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select your fitness level" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="beginner">Beginner - New to fitness</SelectItem>
-                      <SelectItem value="intermediate">Intermediate - Some experience</SelectItem>
-                      <SelectItem value="advanced">Advanced - Very experienced</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Fitness Goals & Preferences</h2>
+                  <p className="text-gray-600">Help us understand your fitness journey</p>
                 </div>
 
-                <div>
-                  <Label>Fitness Goals * (Select all that apply)</Label>
-                  <div className="grid grid-cols-2 gap-3 mt-3">
-                    {[
-                      'Weight Loss',
-                      'Muscle Building',
-                      'Cardiovascular Health',
-                      'Flexibility',
-                      'Strength Training',
-                      'Sport-Specific Training',
-                      'Stress Relief',
-                      'General Wellness'
-                    ].map((goal) => (
-                      <div key={goal} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={goal}
-                          checked={formData.goals.includes(goal)}
-                          onCheckedChange={() => toggleGoal(goal)}
-                        />
-                        <Label htmlFor={goal} className="text-sm font-normal">
-                          {goal}
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="fitnessGoals">What are your fitness goals?</Label>
+                  <Textarea
+                    id="fitnessGoals"
+                    value={formData.fitnessGoals}
+                    onChange={(e) => updateFormData('fitnessGoals', e.target.value)}
+                    placeholder="e.g., Weight loss, muscle building, general fitness, stress relief..."
+                    className="min-h-[100px]"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="experienceLevel">Experience Level</Label>
+                  <select
+                    id="experienceLevel"
+                    value={formData.experienceLevel}
+                    onChange={(e) => updateFormData('experienceLevel', e.target.value)}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="">Select your experience level</option>
+                    <option value="beginner">Beginner - New to fitness</option>
+                    <option value="intermediate">Intermediate - Some experience</option>
+                    <option value="advanced">Advanced - Very experienced</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="preferredActivities">Preferred Activities</Label>
+                  <Textarea
+                    id="preferredActivities"
+                    value={formData.preferredActivities}
+                    onChange={(e) => updateFormData('preferredActivities', e.target.value)}
+                    placeholder="e.g., Yoga, weightlifting, cardio, dance, martial arts..."
+                    className="min-h-[100px]"
+                  />
                 </div>
               </div>
             )}
 
-            {/* Step 3: Emergency Contact & Health */}
+            {/* Step 3: Health & Emergency Contact */}
             {currentStep === 3 && (
               <div className="space-y-6">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Health & Safety Information</h2>
+                  <p className="text-gray-600">This information helps ensure your safety</p>
+                </div>
+
                 <div>
                   <Label htmlFor="medicalConditions">
                     Medical Conditions or Injuries (Optional)

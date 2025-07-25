@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/components/auth-provider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -10,9 +11,9 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Progress } from '@/components/ui/progress'
 import { ArrowRight, ArrowLeft, CheckCircle } from 'lucide-react'
 import { toast } from 'sonner'
-import { createClient } from '@/lib/supabase'
 
 export default function MerchantOnboarding() {
+  const { user, role, loading: authLoading } = useAuth()
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -60,31 +61,19 @@ export default function MerchantOnboarding() {
   ]
 
   useEffect(() => {
-    // Get role from Supabase session instead of localStorage
-    const checkSession = async () => {
-      const supabase = createClient()
-      const { data: { session } } = await supabase.auth.getSession()
-      
-      if (!session?.user) {
-        toast.error('Please sign in first')
-        router.push('/')
-        return
-      }
-      
-      const userRole = session.user.user_metadata?.role
-      if (!userRole) {
-        toast.error('Please select your role first')
-        router.push('/')
-        return
-      }
-      
-      if (userRole !== 'merchant') {
-        router.push(`/onboarding/${userRole}`)
-      }
+    if (authLoading) return
+
+    if (!user) {
+      toast.error('Please sign in first')
+      router.push('/')
+      return
     }
 
-    checkSession()
-  }, [router])
+    if (role && role !== 'merchant') {
+      router.push(`/onboarding/${role}`)
+      return
+    }
+  }, [user, role, authLoading, router])
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
@@ -133,28 +122,15 @@ export default function MerchantOnboarding() {
     setLoading(true)
 
     try {
-      console.log('=== PROPER ONBOARDING COMPLETION ===')
-      
-      // Get current user and role from Supabase session
-      const supabase = createClient()
-      const { data: { session } } = await supabase.auth.getSession()
-      
-      if (!session?.user) {
-        throw new Error('No active session found. Please refresh and try again.')
+      if (!user || !role) {
+        throw new Error('User not authenticated or role not found')
       }
-      
-      const userRole = session.user.user_metadata?.role
-      console.log('User role from metadata:', userRole)
-      
-      if (!userRole) {
-        throw new Error('Role not found. Please select your role again.')
-      }
-      
+
       const response = await fetch('/api/onboarding/complete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          role: userRole,
+          role: role,
           profileData: formData
         })
       })
@@ -164,23 +140,8 @@ export default function MerchantOnboarding() {
         throw new Error(errorData.error || 'Failed to complete onboarding')
       }
 
-      const data = await response.json()
-      
-      // Update Supabase user metadata to mark onboarding as complete
-      await supabase.auth.updateUser({
-        data: { 
-          ...session.user.user_metadata,
-          onboarding_complete: true 
-        }
-      })
-
       toast.success('Welcome to Thryve! Your studio profile is complete.')
-      
-      if (data.redirect) {
-        router.push(data.redirect)
-      } else {
-        router.push(`/dashboard/${userRole}`)
-      }
+      router.push('/dashboard/merchant')
     } catch (error) {
       console.error('Onboarding completion error:', error)
       toast.error(error.message || 'Failed to complete onboarding')
@@ -415,6 +376,14 @@ export default function MerchantOnboarding() {
       default:
         return false
     }
+  }
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    )
   }
 
   return (
