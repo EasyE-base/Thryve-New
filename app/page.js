@@ -70,13 +70,21 @@ export default function LandingPage() {
         const role = session.user.user_metadata?.role
         const onboardingComplete = session.user.user_metadata?.onboarding_complete
         
+        console.log('Initial auth check:', { 
+          userId: session.user.id?.substring(0, 8),
+          role, 
+          onboardingComplete 
+        })
+        
         if (!role) {
           // If logged in but no role, show role selection instead of redirecting
           setUser(session.user)
           setShowRoleSelection(true)
         } else if (!onboardingComplete) {
+          console.log(`Redirecting to onboarding: /onboarding/${role}`)
           router.push(`/onboarding/${role}`)
         } else {
+          console.log(`Redirecting to dashboard: /dashboard/${role}`)
           router.push(`/dashboard/${role}`)
         }
       }
@@ -87,19 +95,34 @@ export default function LandingPage() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (session?.user) {
+        console.log('Auth state changed:', { event, userId: session?.user?.id?.substring(0, 8) })
+        
+        if (event === 'SIGNED_IN' && session?.user) {
           const role = session.user.user_metadata?.role
           const onboardingComplete = session.user.user_metadata?.onboarding_complete
           
-          if (!role) {
-            setUser(session.user)
-            setShowRoleSelection(true)
-          } else if (!onboardingComplete) {
-            router.push(`/onboarding/${role}`)
-          } else {
-            router.push(`/dashboard/${role}`)
-          }
+          console.log('Sign-in detected:', { role, onboardingComplete })
+          
+          // Small delay to allow metadata to sync
+          setTimeout(() => {
+            if (!role) {
+              console.log('No role found, showing role selection')
+              setUser(session.user)
+              setShowRoleSelection(true)
+            } else if (!onboardingComplete) {
+              console.log(`Redirecting to onboarding after sign-in: /onboarding/${role}`)
+              router.push(`/onboarding/${role}`)
+            } else {
+              console.log(`Redirecting to dashboard after sign-in: /dashboard/${role}`)
+              router.push(`/dashboard/${role}`)
+            }
+          }, 100)
+        } else if (event === 'SIGNED_OUT') {
+          console.log('User signed out')
+          setUser(null)
+          setShowRoleSelection(false)
         }
+        
         setUser(session?.user || null)
       }
     )
