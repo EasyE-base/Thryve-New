@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { signIn, useSession } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -12,27 +11,15 @@ import { Dumbbell, Users, Building2, Star, Calendar, CreditCard, ArrowRight } fr
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
+// Simple fallback authentication without NextAuth complexity
 export default function LandingPage() {
-  const { data: session, status, update } = useSession()
   const [loading, setLoading] = useState(false)
   const [authLoading, setAuthLoading] = useState(false)
   const [showRoleSelection, setShowRoleSelection] = useState(false)
   const [roleLoading, setRoleLoading] = useState(false)
   const [selectedRole, setSelectedRole] = useState(null)
-  const [sessionTimeout, setSessionTimeout] = useState(false)
+  const [userEmail, setUserEmail] = useState('')
   const router = useRouter()
-
-  // Add timeout for session loading
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (status === 'loading') {
-        console.log('⚠️ Session loading timeout - showing homepage anyway')
-        setSessionTimeout(true)
-      }
-    }, 10000) // 10 second timeout
-
-    return () => clearTimeout(timer)
-  }, [status])
 
   const roles = [
     {
@@ -73,32 +60,6 @@ export default function LandingPage() {
     }
   ]
 
-  useEffect(() => {
-    console.log('NextAuth status changed:', { status, hasSession: !!session, sessionTimeout })
-    
-    if (status === 'authenticated' && session?.user) {
-      console.log('NextAuth session:', { 
-        email: session.user.email,
-        role: session.user.role,
-        onboarding_complete: session.user.onboarding_complete
-      })
-
-      const role = session.user.role
-      const onboardingComplete = session.user.onboarding_complete
-
-      if (!role) {
-        // If logged in but no role, show role selection
-        setShowRoleSelection(true)
-      } else if (!onboardingComplete) {
-        console.log(`Redirecting to onboarding: /onboarding/${role}`)
-        router.push(`/onboarding/${role}`)
-      } else {
-        console.log(`Redirecting to dashboard: /dashboard/${role}`)
-        router.push(`/dashboard/${role}`)
-      }
-    }
-  }, [session, status, router, sessionTimeout])
-
   const handleSignIn = async (e) => {
     e.preventDefault()
     setAuthLoading(true)
@@ -108,18 +69,30 @@ export default function LandingPage() {
     const password = formData.get('password')
 
     try {
-      console.log('=== NEXTAUTH SIGNIN ===')
-      const result = await signIn('credentials', {
-        email,
-        password,
-        redirect: false
+      console.log('=== SIMPLE AUTH SIGNIN ===')
+      
+      const response = await fetch('/api/auth/simple-signin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
       })
 
-      if (result?.error) {
-        throw new Error(result.error)
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to sign in')
       }
 
-      toast.success('Signed in successfully!')
+      // Simple redirect based on user data
+      if (result.user.role && result.user.onboarding_complete) {
+        router.push(`/dashboard/${result.user.role}`)
+      } else if (result.user.role) {
+        router.push(`/onboarding/${result.user.role}`)
+      } else {
+        setUserEmail(result.user.email)
+        setShowRoleSelection(true)
+        toast.success('Signed in successfully! Please select your role.')
+      }
     } catch (error) {
       console.error('Sign-in error:', error)
       toast.error(error.message || 'Failed to sign in')
@@ -137,30 +110,23 @@ export default function LandingPage() {
     const password = formData.get('password')
 
     try {
-      console.log('=== NEXTAUTH MONGODB SIGNUP ===')
-      console.log('Attempting signup for:', email)
+      console.log('=== SIMPLE AUTH SIGNUP ===')
       
-      // Use NextAuth credentials provider with signup action
-      const signInResult = await signIn('credentials', {
-        email,
-        password,
-        action: 'signup', // This tells the provider to create a new user
-        redirect: false
+      const response = await fetch('/api/auth/simple-signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
       })
 
-      console.log('Signup result:', signInResult)
+      const result = await response.json()
 
-      if (signInResult?.error) {
-        throw new Error(signInResult.error)
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create account')
       }
 
-      if (signInResult?.ok) {
-        toast.success('Account created! Please select your role.')
-        console.log('✅ Signup successful - session should be established')
-        // The session will be automatically established, useEffect will trigger role selection
-      } else {
-        throw new Error('Signup failed - no error message provided')
-      }
+      setUserEmail(result.user.email)
+      setShowRoleSelection(true)
+      toast.success('Account created! Please select your role.')
     } catch (error) {
       console.error('Signup error:', error)
       toast.error(error.message || 'Failed to create account')
@@ -176,15 +142,21 @@ export default function LandingPage() {
     setSelectedRole(role)
 
     try {
-      console.log('=== NEXTAUTH MONGODB ROLE SELECTION ===')
-      console.log('Selected role:', role)
+      console.log('=== SIMPLE ROLE SELECTION ===')
       
-      // Update the session (this will trigger the JWT callback which updates MongoDB)
-      await update({ role, onboarding_complete: false })
-      
+      const response = await fetch('/api/auth/simple-role', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: userEmail, role })
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to select role')
+      }
+
       toast.success(`Role selected: ${roles.find(r => r.id === role)?.title}`)
-      
-      // Redirect to onboarding
       router.push(`/onboarding/${role}`)
     } catch (error) {
       console.error('Role selection error:', error)
@@ -195,25 +167,8 @@ export default function LandingPage() {
     }
   }
 
-  // Show loading only if session is actually loading and not timed out
-  // BUT don't block the page if session fetch is failing
-  if (status === 'loading' && !sessionTimeout) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading Thryve...</p>
-          <p className="text-sm text-gray-500 mt-2">Initializing secure session...</p>
-        </div>
-      </div>
-    )
-  }
-
-  // If session timeout or unauthenticated, show the main page
-  // This ensures users can always access the signup/signin forms
-
-  // Show role selection after successful signup or if user has no role
-  if (showRoleSelection && session?.user) {
+  // Simple role selection screen
+  if (showRoleSelection && userEmail) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
@@ -222,11 +177,8 @@ export default function LandingPage() {
               Welcome to Thryve! 🎉
             </h1>
             <p className="mt-4 text-xl text-gray-600">
-              Hi {session.user.email}! Please choose your role to get started
+              Hi {userEmail}! Please choose your role to get started
             </p>
-            <div className="mt-2 text-sm text-gray-500">
-              User ID: {session.user.id?.substring(0, 8)}... (for debugging)
-            </div>
           </div>
 
           <div className="grid gap-8 md:grid-cols-3">
