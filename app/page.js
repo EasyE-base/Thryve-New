@@ -232,6 +232,9 @@ export default function LandingPage() {
             <p className="mt-4 text-xl text-gray-600">
               Hi {user.email}! Please choose your role to get started
             </p>
+            <div className="mt-2 text-sm text-gray-500">
+              Session ID: {user.id?.substring(0, 8)}... (for debugging)
+            </div>
           </div>
 
           <div className="grid gap-8 md:grid-cols-3">
@@ -270,7 +273,7 @@ export default function LandingPage() {
                       className="w-full"
                       disabled={roleLoading}
                     >
-                      {roleLoading ? (
+                      {roleLoading && selectedRole === role.id ? (
                         <div className="flex items-center">
                           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
                           Selecting...
@@ -292,6 +295,24 @@ export default function LandingPage() {
             <p className="text-sm text-gray-500">
               Don't worry, you can always change your role later in your account settings.
             </p>
+            <div className="mt-4">
+              <Button 
+                variant="outline" 
+                onClick={async () => {
+                  // Session refresh button for debugging
+                  const supabase = createClient()
+                  const { data: { session } } = await supabase.auth.getSession()
+                  console.log('Manual session check:', session)
+                  if (session?.user) {
+                    toast.success(`Session active for ${session.user.email}`)
+                  } else {
+                    toast.error('No active session found')
+                  }
+                }}
+              >
+                Debug: Check Session
+              </Button>
+            </div>
           </div>
         </div>
       </div>
