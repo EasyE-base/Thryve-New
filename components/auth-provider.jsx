@@ -34,12 +34,46 @@ export default function AuthProvider({ children }) {
           console.log('🔥 AuthProvider: Got user data:', userData)
           
           // getUserRole returns the full user data object, we need just the role
-          const userRole = userData?.role || null
-          console.log('🔥 AuthProvider: Setting role:', userRole)
+          let userRole = userData?.role || null
           
+          // Fallback: Check localStorage if API is not available
+          if (!userRole && typeof window !== 'undefined') {
+            const tempUserData = localStorage.getItem('tempUserData')
+            if (tempUserData) {
+              try {
+                const parsedData = JSON.parse(tempUserData)
+                if (parsedData.uid === firebaseUser.uid) {
+                  userRole = parsedData.role
+                  console.log('🔥 AuthProvider: Using localStorage fallback role:', userRole)
+                }
+              } catch (e) {
+                console.error('Failed to parse localStorage data:', e)
+              }
+            }
+          }
+          
+          console.log('🔥 AuthProvider: Setting role:', userRole)
           setRole(userRole)
         } catch (error) {
           console.error('❌ AuthProvider: Error fetching user role:', error)
+          
+          // Fallback: Check localStorage if API fails
+          if (typeof window !== 'undefined') {
+            const tempUserData = localStorage.getItem('tempUserData')
+            if (tempUserData) {
+              try {
+                const parsedData = JSON.parse(tempUserData)
+                if (parsedData.uid === firebaseUser.uid) {
+                  console.log('🔥 AuthProvider: Using localStorage fallback due to API error:', parsedData.role)
+                  setRole(parsedData.role)
+                  return
+                }
+              } catch (e) {
+                console.error('Failed to parse localStorage fallback data:', e)
+              }
+            }
+          }
+          
           setRole(null)
         } finally {
           // Set loading to false after role fetch completes (success or error)
@@ -50,6 +84,12 @@ export default function AuthProvider({ children }) {
         setUser(null)
         setRole(null)
         setLoading(false)
+        
+        // Clear localStorage when user logs out
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('tempUserData')
+          localStorage.removeItem('selectedRole')
+        }
       }
     })
 
