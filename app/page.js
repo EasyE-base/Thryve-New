@@ -155,11 +155,10 @@ export default function LandingPage() {
     setSelectedRole(role)
 
     try {
-      console.log('=== SIMPLIFIED NEXTAUTH ROLE SELECTION ===')
+      console.log('=== NEXTAUTH MONGODB ROLE SELECTION ===')
       console.log('Selected role:', role)
       
-      // For now, just update the session without database
-      // Later we'll add MongoDB storage
+      // Update the session (this will trigger the JWT callback which updates MongoDB)
       await update({ role, onboarding_complete: false })
       
       toast.success(`Role selected: ${roles.find(r => r.id === role)?.title}`)
