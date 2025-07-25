@@ -31,15 +31,12 @@ export default function CustomerOnboarding() {
   const totalSteps = 3
 
   useEffect(() => {
-    // Get role from Supabase session instead of localStorage
-    const checkSession = async () => {
-      const supabase = createClient()
-      const { data: { session } } = await supabase.auth.getSession()
-      
-      console.log('Onboarding page - checking session:', { 
+    // Check NextAuth session for authentication and role
+    const checkSession = () => {
+      console.log('Onboarding page - checking NextAuth session:', { 
         hasSession: !!session?.user,
         userId: session?.user?.id?.substring(0, 8),
-        role: session?.user?.user_metadata?.role 
+        role: session?.user?.role 
       })
       
       if (!session?.user) {
@@ -49,26 +46,11 @@ export default function CustomerOnboarding() {
         return
       }
       
-      const userRole = session.user.user_metadata?.role
+      const userRole = session.user.role
       if (!userRole) {
-        console.log('❌ No role found in onboarding, waiting a bit longer...')
-        
-        // Instead of immediately redirecting, wait a bit for role to sync
-        setTimeout(async () => {
-          const { data: { session: retrySession } } = await supabase.auth.getSession()
-          const retryRole = retrySession?.user?.user_metadata?.role
-          
-          console.log('Retry check - role:', retryRole)
-          
-          if (!retryRole) {
-            toast.error('Please select your role first')
-            router.push('/')
-          } else if (retryRole !== 'customer') {
-            router.push(`/onboarding/${retryRole}`)
-          } else {
-            console.log('✅ Role found after retry, staying on customer onboarding')
-          }
-        }, 1000) // Wait 1 second for role to sync
+        console.log('❌ No role found in onboarding, redirecting to role selection')
+        toast.error('Please select your role first')
+        router.push('/')
         return
       }
       
@@ -80,8 +62,11 @@ export default function CustomerOnboarding() {
       }
     }
 
-    checkSession()
-  }, [router])
+    // Only check session if it's loaded (not in loading state)
+    if (session !== undefined) {
+      checkSession()
+    }
+  }, [session, router])
 
   const fitnessInterests = [
     'Yoga', 'Pilates', 'HIIT', 'Strength Training', 'Cardio',
