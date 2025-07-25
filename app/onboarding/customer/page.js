@@ -127,54 +127,30 @@ export default function CustomerOnboarding() {
     setLoading(true)
 
     try {
-      console.log('=== PROPER ONBOARDING COMPLETION ===')
+      console.log('=== NEXTAUTH ONBOARDING COMPLETION ===')
       
-      // Get current user and role from Supabase session
-      const supabase = createClient()
-      const { data: { session } } = await supabase.auth.getSession()
-      
+      // Get current session from NextAuth
       if (!session?.user) {
         throw new Error('No active session found. Please refresh and try again.')
       }
       
-      const userRole = session.user.user_metadata?.role
-      console.log('User role from metadata:', userRole)
+      const userRole = session.user.role
+      console.log('User role from NextAuth session:', userRole)
       
       if (!userRole) {
         throw new Error('Role not found. Please select your role again.')
       }
       
-      const response = await fetch('/api/onboarding/complete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          role: userRole,
-          profileData: formData
-        })
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to complete onboarding')
-      }
-
-      const data = await response.json()
-      
-      // Update Supabase user metadata to mark onboarding as complete
-      await supabase.auth.updateUser({
-        data: { 
-          ...session.user.user_metadata,
-          onboarding_complete: true 
-        }
+      // Update the session to mark onboarding as complete
+      await update({ 
+        role: userRole, 
+        onboarding_complete: true 
       })
 
       toast.success('Welcome to Thryve! Your profile is complete.')
       
-      if (data.redirect) {
-        router.push(data.redirect)
-      } else {
-        router.push(`/dashboard/${userRole}`)
-      }
+      // Redirect to dashboard after successful onboarding
+      router.push(`/dashboard/${userRole}`)
     } catch (error) {
       console.error('Onboarding completion error:', error)
       toast.error(error.message || 'Failed to complete onboarding')
