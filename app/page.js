@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase'
-import { signIn, signUp, handleRoleSelection } from '@/lib/auth'
+import { signIn, useSession } from 'next-auth/react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -14,15 +13,13 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 
 export default function LandingPage() {
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const { data: session, status, update } = useSession()
+  const [loading, setLoading] = useState(false)
   const [authLoading, setAuthLoading] = useState(false)
   const [showRoleSelection, setShowRoleSelection] = useState(false)
   const [roleLoading, setRoleLoading] = useState(false)
   const [selectedRole, setSelectedRole] = useState(null)
   const router = useRouter()
-  
-  const supabase = createClient()
 
   const roles = [
     {
@@ -64,71 +61,30 @@ export default function LandingPage() {
   ]
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session?.user) {
-        const role = session.user.user_metadata?.role
-        const onboardingComplete = session.user.user_metadata?.onboarding_complete
-        
-        console.log('Initial auth check:', { 
-          userId: session.user.id?.substring(0, 8),
-          role, 
-          onboardingComplete 
-        })
-        
-        if (!role) {
-          // If logged in but no role, show role selection instead of redirecting
-          setUser(session.user)
-          setShowRoleSelection(true)
-        } else if (!onboardingComplete) {
-          console.log(`Redirecting to onboarding: /onboarding/${role}`)
-          router.push(`/onboarding/${role}`)
-        } else {
-          console.log(`Redirecting to dashboard: /dashboard/${role}`)
-          router.push(`/dashboard/${role}`)
-        }
+    if (status === 'loading') return
+
+    if (session?.user) {
+      console.log('NextAuth session:', { 
+        email: session.user.email,
+        role: session.user.role,
+        onboarding_complete: session.user.onboarding_complete
+      })
+
+      const role = session.user.role
+      const onboardingComplete = session.user.onboarding_complete
+
+      if (!role) {
+        // If logged in but no role, show role selection
+        setShowRoleSelection(true)
+      } else if (!onboardingComplete) {
+        console.log(`Redirecting to onboarding: /onboarding/${role}`)
+        router.push(`/onboarding/${role}`)
+      } else {
+        console.log(`Redirecting to dashboard: /dashboard/${role}`)
+        router.push(`/dashboard/${role}`)
       }
-      setLoading(false)
     }
-
-    checkAuth()
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth state changed:', { event, userId: session?.user?.id?.substring(0, 8) })
-        
-        if (event === 'SIGNED_IN' && session?.user) {
-          const role = session.user.user_metadata?.role
-          const onboardingComplete = session.user.user_metadata?.onboarding_complete
-          
-          console.log('Sign-in detected:', { role, onboardingComplete })
-          
-          // Small delay to allow metadata to sync
-          setTimeout(() => {
-            if (!role) {
-              console.log('No role found, showing role selection')
-              setUser(session.user)
-              setShowRoleSelection(true)
-            } else if (!onboardingComplete) {
-              console.log(`Redirecting to onboarding after sign-in: /onboarding/${role}`)
-              router.push(`/onboarding/${role}`)
-            } else {
-              console.log(`Redirecting to dashboard after sign-in: /dashboard/${role}`)
-              router.push(`/dashboard/${role}`)
-            }
-          }, 100)
-        } else if (event === 'SIGNED_OUT') {
-          console.log('User signed out')
-          setUser(null)
-          setShowRoleSelection(false)
-        }
-        
-        setUser(session?.user || null)
-      }
-    )
-
-    return () => subscription.unsubscribe()
-  }, [router])
+  }, [session, status, router])
 
   const handleSignIn = async (e) => {
     e.preventDefault()
@@ -139,38 +95,20 @@ export default function LandingPage() {
     const password = formData.get('password')
 
     try {
-      await signIn(email, password)
-      
-      // Check if there's a pending role selection
-      const pendingRole = localStorage.getItem('pendingRole')
-      if (pendingRole) {
-        console.log('Found pending role after sign in:', pendingRole)
-        localStorage.removeItem('pendingRole')
-        localStorage.removeItem('pendingRoleTime')
-        
-        toast.success('Signed in successfully! Completing role selection...')
-        
-        // Try to set the role now that we're signed in
-        const supabase = createClient()
-        try {
-          await supabase.auth.updateUser({
-            data: { 
-              role: pendingRole,
-              onboarding_complete: false
-            }
-          })
-          
-          toast.success(`Role selected: ${roles.find(r => r.id === pendingRole)?.title}`)
-          router.push(`/onboarding/${pendingRole}`)
-          return
-        } catch (roleError) {
-          console.error('Failed to set pending role:', roleError)
-          // Continue with normal sign in flow
-        }
+      console.log('=== NEXTAUTH SIGNIN ===')
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false
+      })
+
+      if (result?.error) {
+        throw new Error(result.error)
       }
-      
+
       toast.success('Signed in successfully!')
     } catch (error) {
+      console.error('Sign-in error:', error)
       toast.error(error.message || 'Failed to sign in')
     } finally {
       setAuthLoading(false)
@@ -186,21 +124,33 @@ export default function LandingPage() {
     const password = formData.get('password')
 
     try {
-      const result = await signUp(email, password)
-      console.log('Signup result:', result)
+      console.log('=== NEXTAUTH SIGNUP ===')
       
-      if (result.user && result.session) {
-        toast.success('Account created! Please select your role.')
-        setUser(result.user)
-        setShowRoleSelection(true)
-      } else if (result.user) {
-        // Sometimes session isn't immediately available, but user is created
-        toast.success('Account created! Please select your role.')
-        setUser(result.user)
-        setShowRoleSelection(true)
-      } else {
-        toast.error('Failed to create account')
+      // Create user account
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to create account')
       }
+
+      // Automatically sign in after successful signup
+      const signInResult = await signIn('credentials', {
+        email,
+        password,
+        redirect: false
+      })
+
+      if (signInResult?.error) {
+        throw new Error('Account created but sign-in failed. Please try signing in manually.')
+      }
+
+      toast.success('Account created! Please select your role.')
+      setShowRoleSelection(true)
     } catch (error) {
       console.error('Signup error:', error)
       toast.error(error.message || 'Failed to create account')
@@ -216,73 +166,37 @@ export default function LandingPage() {
     setSelectedRole(role)
 
     try {
-      console.log('=== ALTERNATIVE ROLE SELECTION APPROACH ===')
+      console.log('=== NEXTAUTH ROLE SELECTION ===')
       console.log('Selected role:', role)
       
-      const supabase = createClient()
-      
-      // Check session first
-      const { data: { session } } = await supabase.auth.getSession()
-      console.log('Current session:', session?.user?.id)
-      
-      if (!session?.user) {
-        console.log('No session found, trying sign-in approach...')
-        
-        // If no session, prompt user to sign in with their credentials
-        toast.error('Session expired. Please sign in to continue.')
-        
-        // Store the role selection temporarily and redirect to sign in
-        localStorage.setItem('pendingRole', role)
-        
-        // Reset the auth state and show sign in
-        setShowRoleSelection(false)
-        setUser(null)
-        
-        toast.info('Please sign in with your credentials to complete role selection.')
-        return
-      }
-      
-      // If we have a session, try the role update
-      console.log('Session found, attempting role update...')
-      const { data, error } = await supabase.auth.updateUser({
-        data: { 
-          role: String(role).trim(),
-          onboarding_complete: false
-        }
+      // Update role via API
+      const response = await fetch('/api/auth/select-role', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role })
       })
-      
-      if (error) {
-        console.error('Role update error:', error)
-        throw error
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to select role')
       }
+
+      // Update the session to include the new role
+      await update({ role, onboarding_complete: false })
       
       toast.success(`Role selected: ${roles.find(r => r.id === role)?.title}`)
-      router.push(`/onboarding/${role}`)
       
+      // Redirect will happen via useEffect when session updates
     } catch (error) {
       console.error('Role selection error:', error)
-      
-      if (error.message.includes('string did not match')) {
-        // Handle the specific Supabase validation error
-        toast.error('Role selection failed due to validation. Using fallback method...')
-        
-        // Fallback: Store in localStorage and redirect
-        localStorage.setItem('pendingRole', role)
-        localStorage.setItem('pendingRoleTime', Date.now().toString())
-        
-        toast.success(`Role selected: ${roles.find(r => r.id === role)?.title}`)
-        router.push(`/onboarding/${role}`)
-      } else {
-        toast.error(`Failed to select role: ${error.message}`)
-      }
-      
+      toast.error(`Failed to select role: ${error.message}`)
       setSelectedRole(null)
     } finally {
       setRoleLoading(false)
     }
   }
 
-  if (loading) {
+  if (status === 'loading') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
@@ -290,8 +204,8 @@ export default function LandingPage() {
     )
   }
 
-  // Show role selection after successful signup
-  if (showRoleSelection && user) {
+  // Show role selection after successful signup or if user has no role
+  if (showRoleSelection && session?.user) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-4xl mx-auto">
@@ -300,10 +214,10 @@ export default function LandingPage() {
               Welcome to Thryve! 🎉
             </h1>
             <p className="mt-4 text-xl text-gray-600">
-              Hi {user.email}! Please choose your role to get started
+              Hi {session.user.email}! Please choose your role to get started
             </p>
             <div className="mt-2 text-sm text-gray-500">
-              Session ID: {user.id?.substring(0, 8)}... (for debugging)
+              User ID: {session.user.id?.substring(0, 8)}... (for debugging)
             </div>
           </div>
 
@@ -365,24 +279,6 @@ export default function LandingPage() {
             <p className="text-sm text-gray-500">
               Don't worry, you can always change your role later in your account settings.
             </p>
-            <div className="mt-4">
-              <Button 
-                variant="outline" 
-                onClick={async () => {
-                  // Session refresh button for debugging
-                  const supabase = createClient()
-                  const { data: { session } } = await supabase.auth.getSession()
-                  console.log('Manual session check:', session)
-                  if (session?.user) {
-                    toast.success(`Session active for ${session.user.email}`)
-                  } else {
-                    toast.error('No active session found')
-                  }
-                }}
-              >
-                Debug: Check Session
-              </Button>
-            </div>
           </div>
         </div>
       </div>
