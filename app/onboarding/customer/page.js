@@ -41,30 +41,26 @@ export default function CustomerOnboarding() {
     console.log('Customer onboarding loaded - simple auth mode')
   }, [])
 
-  const fitnessInterests = [
-    'Yoga', 'Pilates', 'HIIT', 'Strength Training', 'Cardio',
-    'Dance', 'Martial Arts', 'Swimming', 'Cycling', 'Running'
-  ]
+  const completeOnboarding = async () => {
+    if (loading) return
 
-  const fitnessGoals = [
-    'Weight Loss', 'Muscle Building', 'Flexibility', 'Endurance',
-    'Stress Relief', 'General Fitness', 'Rehabilitation'
-  ]
+    setLoading(true)
 
-  const handleInputChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }))
-  }
-
-  const handleArrayToggle = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: prev[field].includes(value)
-        ? prev[field].filter(item => item !== value)
-        : [...prev[field], value]
-    }))
+    try {
+      console.log('=== SIMPLE ONBOARDING COMPLETION ===')
+      
+      // For now, just mark onboarding as complete and redirect
+      // In a full implementation, you'd save the profile data to the database
+      toast.success('Welcome to Thryve! Your profile is complete.')
+      
+      // Redirect to customer dashboard
+      router.push('/dashboard/customer')
+    } catch (error) {
+      console.error('Onboarding completion error:', error)
+      toast.error('Failed to complete onboarding. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   const nextStep = () => {
@@ -79,41 +75,40 @@ export default function CustomerOnboarding() {
     }
   }
 
-  const completeOnboarding = async () => {
-    if (loading) return
+  const updateFormData = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
 
-    setLoading(true)
-
-    try {
-      console.log('=== NEXTAUTH ONBOARDING COMPLETION ===')
-      
-      // Get current session from NextAuth
-      if (!session?.user) {
-        throw new Error('No active session found. Please refresh and try again.')
+  const updateNestedFormData = (parent, field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [parent]: {
+        ...prev[parent],
+        [field]: value
       }
-      
-      const userRole = session.user.role
-      console.log('User role from NextAuth session:', userRole)
-      
-      if (!userRole) {
-        throw new Error('Role not found. Please select your role again.')
-      }
-      
-      // Update the session to mark onboarding as complete
-      await update({ 
-        role: userRole, 
-        onboarding_complete: true 
-      })
+    }))
+  }
 
-      toast.success('Welcome to Thryve! Your profile is complete.')
-      
-      // Redirect to dashboard after successful onboarding
-      router.push(`/dashboard/${userRole}`)
-    } catch (error) {
-      console.error('Onboarding completion error:', error)
-      toast.error(error.message || 'Failed to complete onboarding')
-    } finally {
-      setLoading(false)
+  const toggleGoal = (goal) => {
+    setFormData(prev => ({
+      ...prev,
+      goals: prev.goals.includes(goal) 
+        ? prev.goals.filter(g => g !== goal)
+        : [...prev.goals, goal]
+    }))
+  }
+
+  const isStepValid = (step) => {
+    switch(step) {
+      case 1:
+        return formData.firstName && formData.lastName && formData.phone && formData.dateOfBirth
+      case 2:
+        return formData.fitnessLevel && formData.goals.length > 0
+      default:
+        return false
     }
   }
 
