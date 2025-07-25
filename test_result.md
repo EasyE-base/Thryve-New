@@ -126,7 +126,7 @@ backend:
     file: "app/api/[[...path]]/route.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: true
           agent: "testing"
@@ -134,6 +134,9 @@ backend:
         - working: true
           agent: "main"
           comment: "Needs retesting after Supabase auth fix to ensure API endpoints still work with new authentication configuration."
+        - working: true
+          agent: "testing"
+          comment: "RETESTED AFTER SUPABASE FIX: API endpoint working perfectly. Returns proper JSON structure with classes array and total count. Query parameters (limit, type, location) working correctly. MongoDB connection confirmed. Sample data auto-creation working. Authentication protection verified for protected endpoints. CORS headers properly configured. Note: External routing via Kubernetes ingress has issues (502 errors), but API functionality is fully operational when accessed directly."
 
   - task: "POST /api/onboarding/complete - Complete user onboarding process"
     implemented: true
