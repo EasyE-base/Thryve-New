@@ -34,7 +34,14 @@ export default function CustomerOnboarding() {
       const supabase = createClient()
       const { data: { session } } = await supabase.auth.getSession()
       
+      console.log('Onboarding page - checking session:', { 
+        hasSession: !!session?.user,
+        userId: session?.user?.id?.substring(0, 8),
+        role: session?.user?.user_metadata?.role 
+      })
+      
       if (!session?.user) {
+        console.log('❌ No session found in onboarding, redirecting to home')
         toast.error('Please sign in first')
         router.push('/')
         return
@@ -42,13 +49,32 @@ export default function CustomerOnboarding() {
       
       const userRole = session.user.user_metadata?.role
       if (!userRole) {
-        toast.error('Please select your role first')
-        router.push('/')
+        console.log('❌ No role found in onboarding, waiting a bit longer...')
+        
+        // Instead of immediately redirecting, wait a bit for role to sync
+        setTimeout(async () => {
+          const { data: { session: retrySession } } = await supabase.auth.getSession()
+          const retryRole = retrySession?.user?.user_metadata?.role
+          
+          console.log('Retry check - role:', retryRole)
+          
+          if (!retryRole) {
+            toast.error('Please select your role first')
+            router.push('/')
+          } else if (retryRole !== 'customer') {
+            router.push(`/onboarding/${retryRole}`)
+          } else {
+            console.log('✅ Role found after retry, staying on customer onboarding')
+          }
+        }, 1000) // Wait 1 second for role to sync
         return
       }
       
       if (userRole !== 'customer') {
+        console.log(`Wrong role (${userRole}), redirecting to correct onboarding`)
         router.push(`/onboarding/${userRole}`)
+      } else {
+        console.log('✅ Customer role confirmed, onboarding can proceed')
       }
     }
 
