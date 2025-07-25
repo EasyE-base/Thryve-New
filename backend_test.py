@@ -448,6 +448,357 @@ class ThryveAPITester:
                 False, 
                 f"Exception occurred: {str(e)}"
             )
+
+    def test_firebase_role_api(self):
+        """Test Firebase Role Management API"""
+        print("\n=== Testing Firebase Role Management API ===")
+        
+        # Test POST /api/auth/firebase-role with valid data
+        test_user_data = {
+            "uid": f"test_firebase_user_{uuid.uuid4().hex[:8]}",
+            "email": "firebase.test@example.com",
+            "role": "customer"
+        }
+        
+        try:
+            response = self.session.post(
+                f"{API_BASE}/auth/firebase-role",
+                json=test_user_data,
+                headers={'Content-Type': 'application/json'}
+            )
+            
+            if response.status_code == 200:
+                data = response.json()
+                if 'message' in data and 'role' in data:
+                    self.log_result(
+                        "POST /api/auth/firebase-role (valid data)", 
+                        True, 
+                        "Successfully created/updated user role",
+                        f"Role: {data['role']}, Upserted: {data.get('upserted', False)}"
+                    )
+                else:
+                    self.log_result(
+                        "POST /api/auth/firebase-role (valid data)", 
+                        False, 
+                        "Response missing required fields",
+                        data
+                    )
+            else:
+                self.log_result(
+                    "POST /api/auth/firebase-role (valid data)", 
+                    False, 
+                    f"Failed with status code: {response.status_code}",
+                    response.text
+                )
+                
+        except Exception as e:
+            self.log_result(
+                "POST /api/auth/firebase-role (valid data)", 
+                False, 
+                f"Exception occurred: {str(e)}"
+            )
+        
+        # Test with missing required fields
+        try:
+            invalid_data = {"email": "test@example.com"}  # Missing uid and role
+            response = self.session.post(
+                f"{API_BASE}/auth/firebase-role",
+                json=invalid_data,
+                headers={'Content-Type': 'application/json'}
+            )
+            
+            if response.status_code == 400:
+                self.log_result(
+                    "POST /api/auth/firebase-role (missing fields)", 
+                    True, 
+                    "Correctly validates required fields (400 Bad Request)",
+                    "Validation working properly"
+                )
+            else:
+                self.log_result(
+                    "POST /api/auth/firebase-role (missing fields)", 
+                    False, 
+                    f"Expected 400, got {response.status_code}",
+                    response.text
+                )
+                
+        except Exception as e:
+            self.log_result(
+                "POST /api/auth/firebase-role (missing fields)", 
+                False, 
+                f"Exception occurred: {str(e)}"
+            )
+        
+        # Test with invalid role
+        try:
+            invalid_role_data = {
+                "uid": f"test_user_{uuid.uuid4().hex[:8]}",
+                "email": "test@example.com",
+                "role": "invalid_role"
+            }
+            response = self.session.post(
+                f"{API_BASE}/auth/firebase-role",
+                json=invalid_role_data,
+                headers={'Content-Type': 'application/json'}
+            )
+            
+            if response.status_code == 400:
+                self.log_result(
+                    "POST /api/auth/firebase-role (invalid role)", 
+                    True, 
+                    "Correctly validates role values (400 Bad Request)",
+                    "Role validation working"
+                )
+            else:
+                self.log_result(
+                    "POST /api/auth/firebase-role (invalid role)", 
+                    False, 
+                    f"Expected 400, got {response.status_code}",
+                    response.text
+                )
+                
+        except Exception as e:
+            self.log_result(
+                "POST /api/auth/firebase-role (invalid role)", 
+                False, 
+                f"Exception occurred: {str(e)}"
+            )
+
+    def test_firebase_user_api(self):
+        """Test Firebase User Data Management API"""
+        print("\n=== Testing Firebase User Data Management API ===")
+        
+        # First create a user to test retrieval
+        test_uid = f"test_firebase_user_{uuid.uuid4().hex[:8]}"
+        test_user_data = {
+            "uid": test_uid,
+            "email": "firebase.user.test@example.com",
+            "role": "instructor"
+        }
+        
+        # Create user first
+        try:
+            create_response = self.session.post(
+                f"{API_BASE}/auth/firebase-role",
+                json=test_user_data,
+                headers={'Content-Type': 'application/json'}
+            )
+            
+            if create_response.status_code == 200:
+                # Now test GET /api/auth/firebase-user
+                response = self.session.get(f"{API_BASE}/auth/firebase-user?uid={test_uid}")
+                
+                if response.status_code == 200:
+                    data = response.json()
+                    expected_fields = ['uid', 'email', 'role', 'onboarding_complete']
+                    
+                    if all(field in data for field in expected_fields):
+                        self.log_result(
+                            "GET /api/auth/firebase-user (valid uid)", 
+                            True, 
+                            "Successfully retrieved user data",
+                            f"User: {data['email']}, Role: {data['role']}"
+                        )
+                    else:
+                        missing_fields = [f for f in expected_fields if f not in data]
+                        self.log_result(
+                            "GET /api/auth/firebase-user (valid uid)", 
+                            False, 
+                            f"Response missing fields: {missing_fields}",
+                            data
+                        )
+                else:
+                    self.log_result(
+                        "GET /api/auth/firebase-user (valid uid)", 
+                        False, 
+                        f"Failed with status code: {response.status_code}",
+                        response.text
+                    )
+            else:
+                self.log_result(
+                    "GET /api/auth/firebase-user (setup)", 
+                    False, 
+                    "Failed to create test user for retrieval test",
+                    create_response.text
+                )
+                
+        except Exception as e:
+            self.log_result(
+                "GET /api/auth/firebase-user (valid uid)", 
+                False, 
+                f"Exception occurred: {str(e)}"
+            )
+        
+        # Test with missing uid parameter
+        try:
+            response = self.session.get(f"{API_BASE}/auth/firebase-user")
+            
+            if response.status_code == 400:
+                self.log_result(
+                    "GET /api/auth/firebase-user (missing uid)", 
+                    True, 
+                    "Correctly validates required uid parameter (400 Bad Request)",
+                    "Parameter validation working"
+                )
+            else:
+                self.log_result(
+                    "GET /api/auth/firebase-user (missing uid)", 
+                    False, 
+                    f"Expected 400, got {response.status_code}",
+                    response.text
+                )
+                
+        except Exception as e:
+            self.log_result(
+                "GET /api/auth/firebase-user (missing uid)", 
+                False, 
+                f"Exception occurred: {str(e)}"
+            )
+        
+        # Test with non-existent uid
+        try:
+            fake_uid = f"nonexistent_user_{uuid.uuid4().hex[:8]}"
+            response = self.session.get(f"{API_BASE}/auth/firebase-user?uid={fake_uid}")
+            
+            if response.status_code == 404:
+                self.log_result(
+                    "GET /api/auth/firebase-user (non-existent uid)", 
+                    True, 
+                    "Correctly returns 404 for non-existent user",
+                    "User not found handling working"
+                )
+            else:
+                self.log_result(
+                    "GET /api/auth/firebase-user (non-existent uid)", 
+                    False, 
+                    f"Expected 404, got {response.status_code}",
+                    response.text
+                )
+                
+        except Exception as e:
+            self.log_result(
+                "GET /api/auth/firebase-user (non-existent uid)", 
+                False, 
+                f"Exception occurred: {str(e)}"
+            )
+
+    def test_firebase_integration_flow(self):
+        """Test complete Firebase authentication integration flow"""
+        print("\n=== Testing Firebase Integration Flow ===")
+        
+        # Test complete user creation and retrieval flow
+        test_uid = f"integration_test_{uuid.uuid4().hex[:8]}"
+        test_email = f"integration.test.{uuid.uuid4().hex[:8]}@example.com"
+        
+        try:
+            # Step 1: Create user with role
+            user_data = {
+                "uid": test_uid,
+                "email": test_email,
+                "role": "merchant"
+            }
+            
+            create_response = self.session.post(
+                f"{API_BASE}/auth/firebase-role",
+                json=user_data,
+                headers={'Content-Type': 'application/json'}
+            )
+            
+            if create_response.status_code != 200:
+                self.log_result(
+                    "Firebase Integration Flow", 
+                    False, 
+                    "Failed to create user in step 1",
+                    create_response.text
+                )
+                return
+            
+            # Step 2: Retrieve user data
+            get_response = self.session.get(f"{API_BASE}/auth/firebase-user?uid={test_uid}")
+            
+            if get_response.status_code != 200:
+                self.log_result(
+                    "Firebase Integration Flow", 
+                    False, 
+                    "Failed to retrieve user in step 2",
+                    get_response.text
+                )
+                return
+            
+            user_data_retrieved = get_response.json()
+            
+            # Step 3: Verify data consistency
+            if (user_data_retrieved['uid'] == test_uid and 
+                user_data_retrieved['email'] == test_email and 
+                user_data_retrieved['role'] == 'merchant'):
+                
+                self.log_result(
+                    "Firebase Integration Flow", 
+                    True, 
+                    "Complete user creation and retrieval flow working",
+                    f"User: {test_email}, Role: merchant, UID: {test_uid}"
+                )
+            else:
+                self.log_result(
+                    "Firebase Integration Flow", 
+                    False, 
+                    "Data inconsistency in retrieved user",
+                    f"Expected: {user_data}, Got: {user_data_retrieved}"
+                )
+            
+            # Step 4: Test role update
+            update_data = {
+                "uid": test_uid,
+                "email": test_email,
+                "role": "customer"  # Change role
+            }
+            
+            update_response = self.session.post(
+                f"{API_BASE}/auth/firebase-role",
+                json=update_data,
+                headers={'Content-Type': 'application/json'}
+            )
+            
+            if update_response.status_code == 200:
+                # Verify role was updated
+                verify_response = self.session.get(f"{API_BASE}/auth/firebase-user?uid={test_uid}")
+                if verify_response.status_code == 200:
+                    updated_user = verify_response.json()
+                    if updated_user['role'] == 'customer':
+                        self.log_result(
+                            "Firebase Role Update Flow", 
+                            True, 
+                            "Role update functionality working correctly",
+                            f"Role changed from merchant to customer"
+                        )
+                    else:
+                        self.log_result(
+                            "Firebase Role Update Flow", 
+                            False, 
+                            "Role was not updated properly",
+                            f"Expected: customer, Got: {updated_user['role']}"
+                        )
+                else:
+                    self.log_result(
+                        "Firebase Role Update Flow", 
+                        False, 
+                        "Failed to verify role update",
+                        verify_response.text
+                    )
+            else:
+                self.log_result(
+                    "Firebase Role Update Flow", 
+                    False, 
+                    "Failed to update user role",
+                    update_response.text
+                )
+                
+        except Exception as e:
+            self.log_result(
+                "Firebase Integration Flow", 
+                False, 
+                f"Exception occurred: {str(e)}"
+            )
     
     def run_all_tests(self):
         """Run all backend API tests"""
