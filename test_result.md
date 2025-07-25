@@ -233,3 +233,5 @@ agent_communication:
       message: "Completed comprehensive backend API testing. 7 out of 8 core endpoints working correctly when service was running. One minor issue found with Stripe Connect endpoint JSON parsing. All authentication, error handling, and CORS functionality working as expected. Database integration confirmed with sample data testing."
     - agent: "testing"
       message: "CRITICAL: Service now has build error - 'next/headers' import issue in lib/supabase.js. This is preventing the API from running. The error indicates next/headers should only be used in Server Components, not in the pages directory. This needs immediate fix by main agent."
+    - agent: "main"
+      message: "RESOLVED: Fixed critical Supabase SSR configuration issue. Changed lib/supabase.js to use createBrowserClient from @supabase/ssr instead of basic @supabase/supabase-js client. This resolved the 'Cannot read properties of undefined (reading 'get')' cookie errors and 'Auto refresh tick failed' session errors. Application now loads successfully without 404s or JavaScript errors."
