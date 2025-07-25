@@ -25,8 +25,9 @@ export default function AuthProvider({ children }) {
       if (firebaseUser) {
         setUser(firebaseUser)
         try {
-          const userRole = await getUserRole(firebaseUser.uid)
-          setRole(userRole)
+          const userData = await getUserRole(firebaseUser.uid)
+          // getUserRole returns the full user data object, we need just the role
+          setRole(userData?.role || null)
         } catch (error) {
           console.error('Error fetching user role:', error)
           setRole(null)
