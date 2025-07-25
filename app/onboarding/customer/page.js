@@ -27,6 +27,7 @@ export default function CustomerOnboarding() {
   })
   
   const router = useRouter()
+  const { data: session, update } = useSession()
   const totalSteps = 3
 
   useEffect(() => {
