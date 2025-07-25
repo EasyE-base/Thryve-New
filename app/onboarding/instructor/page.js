@@ -10,6 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Progress } from '@/components/ui/progress'
 import { ArrowRight, ArrowLeft, CheckCircle } from 'lucide-react'
 import { toast } from 'sonner'
+import { createClient } from '@/lib/supabase'
 
 export default function InstructorOnboarding() {
   const [currentStep, setCurrentStep] = useState(1)
