@@ -138,6 +138,7 @@ export default function LandingPage() {
 
     try {
       console.log('=== NEXTAUTH MONGODB SIGNUP ===')
+      console.log('Attempting signup for:', email)
       
       // Use NextAuth credentials provider with signup action
       const signInResult = await signIn('credentials', {
@@ -147,12 +148,19 @@ export default function LandingPage() {
         redirect: false
       })
 
+      console.log('Signup result:', signInResult)
+
       if (signInResult?.error) {
         throw new Error(signInResult.error)
       }
 
-      toast.success('Account created! Please select your role.')
-      // The session will be automatically established, useEffect will trigger role selection
+      if (signInResult?.ok) {
+        toast.success('Account created! Please select your role.')
+        console.log('✅ Signup successful - session should be established')
+        // The session will be automatically established, useEffect will trigger role selection
+      } else {
+        throw new Error('Signup failed - no error message provided')
+      }
     } catch (error) {
       console.error('Signup error:', error)
       toast.error(error.message || 'Failed to create account')
