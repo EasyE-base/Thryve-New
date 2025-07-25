@@ -19,6 +19,7 @@ export default function LandingPage() {
   const [authLoading, setAuthLoading] = useState(false)
   const [showRoleSelection, setShowRoleSelection] = useState(false)
   const [roleLoading, setRoleLoading] = useState(false)
+  const [selectedRole, setSelectedRole] = useState(null)
   const router = useRouter()
   
   const supabase = createClient()
