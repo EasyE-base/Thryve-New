@@ -113,35 +113,56 @@ export default function InstructorOnboarding() {
     setLoading(true)
 
     try {
-      const selectedRole = localStorage.getItem('selectedRole')
+      console.log('=== PROPER ONBOARDING COMPLETION ===')
+      
+      // Get current user and role from Supabase session
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!session?.user) {
+        throw new Error('No active session found. Please refresh and try again.')
+      }
+      
+      const userRole = session.user.user_metadata?.role
+      console.log('User role from metadata:', userRole)
+      
+      if (!userRole) {
+        throw new Error('Role not found. Please select your role again.')
+      }
       
       const response = await fetch('/api/onboarding/complete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          role: selectedRole,
+          role: userRole,
           profileData: formData
         })
       })
 
       if (!response.ok) {
-        throw new Error('Failed to complete onboarding')
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to complete onboarding')
       }
 
       const data = await response.json()
       
-      // Clear localStorage
-      localStorage.removeItem('selectedRole')
-      localStorage.removeItem('roleSelectedAt')
+      // Update Supabase user metadata to mark onboarding as complete
+      await supabase.auth.updateUser({
+        data: { 
+          ...session.user.user_metadata,
+          onboarding_complete: true 
+        }
+      })
 
       toast.success('Welcome to Thryve! Your instructor profile is complete.')
       
       if (data.redirect) {
         router.push(data.redirect)
       } else {
-        router.push('/dashboard/instructor')
+        router.push(`/dashboard/${userRole}`)
       }
     } catch (error) {
+      console.error('Onboarding completion error:', error)
       toast.error(error.message || 'Failed to complete onboarding')
     } finally {
       setLoading(false)
