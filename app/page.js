@@ -124,33 +124,29 @@ export default function LandingPage() {
     const password = formData.get('password')
 
     try {
-      console.log('=== NEXTAUTH SIGNUP ===')
+      console.log('=== SIMPLIFIED NEXTAUTH SIGNUP ===')
       
-      // Create user account
-      const response = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      })
+      // For now, just simulate account creation and immediately show role selection
+      // Later we'll add actual account creation to MongoDB
+      
+      if (email === 'test@example.com' && password === 'test123') {
+        // Use the test credentials to sign in
+        const signInResult = await signIn('credentials', {
+          email,
+          password,
+          redirect: false
+        })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to create account')
+        if (signInResult?.error) {
+          throw new Error('Sign-in failed after account creation')
+        }
+
+        toast.success('Account created! Please select your role.')
+        setShowRoleSelection(true)
+      } else {
+        // For any other email, show instructions to use test account
+        toast.error('For testing, please use: test@example.com / test123')
       }
-
-      // Automatically sign in after successful signup
-      const signInResult = await signIn('credentials', {
-        email,
-        password,
-        redirect: false
-      })
-
-      if (signInResult?.error) {
-        throw new Error('Account created but sign-in failed. Please try signing in manually.')
-      }
-
-      toast.success('Account created! Please select your role.')
-      setShowRoleSelection(true)
     } catch (error) {
       console.error('Signup error:', error)
       toast.error(error.message || 'Failed to create account')
