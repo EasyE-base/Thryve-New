@@ -162,19 +162,51 @@ export default function LandingPage() {
     setRoleLoading(true)
 
     try {
-      console.log('Selecting role:', role)
+      console.log('=== PROPER ROLE SELECTION DEBUG ===')
+      console.log('Selected role:', role)
+      console.log('User object:', user)
       
-      // Store role in localStorage temporarily - no server calls!
-      localStorage.setItem('selectedRole', role)
-      localStorage.setItem('roleSelectedAt', Date.now().toString())
+      // Use the proper Supabase client-side approach
+      const supabase = createClient()
+      
+      // First, verify we have a session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+      console.log('Current session:', session?.user?.id)
+      console.log('Session error:', sessionError)
+      
+      if (!session?.user) {
+        throw new Error('No active session found. Please refresh and try again.')
+      }
+      
+      // Try to update user metadata with proper validation
+      console.log('Attempting to update user metadata...')
+      const { data, error } = await supabase.auth.updateUser({
+        data: { 
+          role: String(role).trim(), // Ensure clean string
+          onboarding_complete: false
+        }
+      })
+      
+      console.log('Update result:', data)
+      console.log('Update error:', error)
+      
+      if (error) {
+        console.error('Supabase updateUser error details:', {
+          message: error.message,
+          status: error.status,
+          details: error.details,
+          code: error.code
+        })
+        throw error
+      }
       
       toast.success(`Role selected: ${roles.find(r => r.id === role)?.title}`)
       
-      // Direct redirect to onboarding - no API calls
+      // Navigate to onboarding
       router.push(`/onboarding/${role}`)
     } catch (error) {
       console.error('Role selection error:', error)
-      toast.error('Failed to select role')
+      toast.error(`Failed to select role: ${error.message}`)
     } finally {
       setRoleLoading(false)
     }
