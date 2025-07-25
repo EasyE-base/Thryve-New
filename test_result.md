@@ -454,8 +454,9 @@ test_plan:
     - "Customer Dashboard Access"
   stuck_tasks:
     - "Firebase AuthProvider Integration"
+    - "API Infrastructure Issues"
   test_all: false
-  test_priority: "stuck_first"
+  test_priority: "infrastructure_first"
 
 agent_communication:
     - agent: "testing"
