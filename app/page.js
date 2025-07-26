@@ -364,6 +364,7 @@ export default function LandingPage() {
                   size="lg" 
                   variant="outline" 
                   className="border-white/30 text-white hover:bg-white/10 px-8 py-4 text-lg rounded-xl"
+                  onClick={() => toast.info('Demo video coming soon!')}
                 >
                   <PlayCircle className="mr-2 h-5 w-5" />
                   Watch Demo
