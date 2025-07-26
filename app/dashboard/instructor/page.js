@@ -197,10 +197,12 @@ export default function InstructorDashboard() {
             <h3 className="text-xl font-semibold text-gray-900">
               Your Classes ({classes.length})
             </h3>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Class
-            </Button>
+            <Link href="/instructor/create-class">
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Class
+              </Button>
+            </Link>
           </div>
 
           {classes.length === 0 ? (
