@@ -207,48 +207,54 @@ export default function CustomerDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Section */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome back! 👋
+        <div className="mb-12">
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
+            Ready to <span className="bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">Thryve?</span> 💪
           </h2>
-          <p className="text-gray-600">
-            Ready to book your next fitness class?
+          <p className="text-xl text-blue-200">
+            Discover amazing fitness classes and connect with world-class instructors
           </p>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+          <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center">
-                <Calendar className="h-8 w-8 text-blue-600" />
+                <div className="w-14 h-14 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center">
+                  <Calendar className="h-7 w-7 text-white" />
+                </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Classes Booked</p>
-                  <p className="text-2xl font-bold text-gray-900">{bookings.length}</p>
+                  <p className="text-blue-200 font-medium">Classes Booked</p>
+                  <p className="text-3xl font-bold text-white">{bookings.length}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center">
-                <Star className="h-8 w-8 text-yellow-600" />
+                <div className="w-14 h-14 bg-gradient-to-br from-purple-400 to-purple-600 rounded-xl flex items-center justify-center">
+                  <Star className="h-7 w-7 text-white" />
+                </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Favorite Type</p>
-                  <p className="text-2xl font-bold text-gray-900">Yoga</p>
+                  <p className="text-blue-200 font-medium">Favorite Type</p>
+                  <p className="text-3xl font-bold text-white">Yoga</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center">
-                <Dumbbell className="h-8 w-8 text-green-600" />
+                <div className="w-14 h-14 bg-gradient-to-br from-green-400 to-green-600 rounded-xl flex items-center justify-center">
+                  <Dumbbell className="h-7 w-7 text-white" />
+                </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">This Month</p>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-blue-200 font-medium">This Month</p>
+                  <p className="text-3xl font-bold text-white">
                     {bookings.filter(b => new Date(b.createdAt).getMonth() === new Date().getMonth()).length}
                   </p>
                 </div>
