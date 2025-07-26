@@ -63,35 +63,49 @@ export default function InstructorDashboard() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-400 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-white text-xl font-light">Loading Dashboard...</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-black/20 backdrop-blur-md shadow-xl border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center">
-              <Dumbbell className="h-8 w-8 text-blue-600 mr-3" />
-              <h1 className="text-2xl font-bold text-gray-900">Thryve Instructor</h1>
+          <div className="flex justify-between items-center py-6">
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center">
+                <Dumbbell className="h-7 w-7 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-white">Thryve Instructor</h1>
+                <p className="text-blue-200 text-sm">Instructor Dashboard</p>
+              </div>
             </div>
             
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <Avatar>
-                  <AvatarFallback>
-                    <User className="h-4 w-4" />
+            <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-3">
+                <Avatar className="h-10 w-10 ring-2 ring-blue-400/50">
+                  <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white">
+                    <User className="h-5 w-5" />
                   </AvatarFallback>
                 </Avatar>
-                <span className="text-sm font-medium text-gray-700">
-                  {user?.email}
-                </span>
+                <div className="hidden sm:block">
+                  <span className="text-white font-medium">Welcome back!</span>
+                  <p className="text-blue-200 text-sm">{user?.email}</p>
+                </div>
               </div>
-              <Button variant="ghost" size="sm" onClick={handleSignOut}>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleSignOut}
+                className="text-white hover:text-blue-400 hover:bg-white/10 border border-white/20"
+              >
                 <LogOut className="h-4 w-4 mr-2" />
                 Sign Out
               </Button>
@@ -102,36 +116,40 @@ export default function InstructorDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Section */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome back, Instructor! 💪
+        <div className="mb-12">
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
+            Teach, <span className="bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">Inspire</span>, Earn 💪
           </h2>
-          <p className="text-gray-600">
-            Manage your classes, view bookings, and grow your fitness business.
+          <p className="text-xl text-blue-200">
+            Manage your classes, connect with students, and grow your fitness business
           </p>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+          <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center">
-                <Calendar className="h-8 w-8 text-blue-600" />
+                <div className="w-14 h-14 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center">
+                  <Calendar className="h-7 w-7 text-white" />
+                </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Total Classes</p>
-                  <p className="text-2xl font-bold text-gray-900">{classes.length}</p>
+                  <p className="text-blue-200 font-medium">Total Classes</p>
+                  <p className="text-3xl font-bold text-white">{classes.length}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center">
-                <Users className="h-8 w-8 text-green-600" />
+                <div className="w-14 h-14 bg-gradient-to-br from-green-400 to-green-600 rounded-xl flex items-center justify-center">
+                  <Users className="h-7 w-7 text-white" />
+                </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Total Bookings</p>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-blue-200 font-medium">Total Bookings</p>
+                  <p className="text-3xl font-bold text-white">
                     {classes.reduce((sum, c) => sum + (c.bookings?.length || 0), 0)}
                   </p>
                 </div>
@@ -139,13 +157,15 @@ export default function InstructorDashboard() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center">
-                <DollarSign className="h-8 w-8 text-yellow-600" />
+                <div className="w-14 h-14 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-xl flex items-center justify-center">
+                  <DollarSign className="h-7 w-7 text-white" />
+                </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Earnings (Est.)</p>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-blue-200 font-medium">Earnings (Est.)</p>
+                  <p className="text-3xl font-bold text-white">
                     ${Math.round(classes.reduce((sum, c) => sum + (c.price * (c.bookings?.length || 0) * 0.85), 0))}
                   </p>
                 </div>
@@ -153,13 +173,15 @@ export default function InstructorDashboard() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center">
-                <Clock className="h-8 w-8 text-purple-600" />
+                <div className="w-14 h-14 bg-gradient-to-br from-purple-400 to-purple-600 rounded-xl flex items-center justify-center">
+                  <Clock className="h-7 w-7 text-white" />
+                </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Upcoming</p>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className="text-blue-200 font-medium">Upcoming</p>
+                  <p className="text-3xl font-bold text-white">
                     {classes.filter(c => new Date(c.schedule) > new Date()).length}
                   </p>
                 </div>
@@ -169,25 +191,48 @@ export default function InstructorDashboard() {
         </div>
 
         {/* Quick Actions */}
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-semibold text-gray-900">Quick Actions</h3>
+        <div className="mb-12">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-2xl font-bold text-white">Quick Actions</h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Link href="/instructor/create-class">
-              <Button className="h-24 flex-col space-y-2 w-full">
-                <Plus className="h-6 w-6" />
-                <span>Create New Class</span>
-              </Button>
+              <Card className="group cursor-pointer bg-gradient-to-br from-blue-500/20 to-blue-600/20 backdrop-blur-md border-white/20 hover:scale-105 transition-all duration-300">
+                <CardContent className="p-8 text-center">
+                  <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                    <Plus className="h-8 w-8 text-white" />
+                  </div>
+                  <h4 className="text-xl font-bold text-white mb-2">Create New Class</h4>
+                  <p className="text-blue-200">Design and schedule your next class</p>
+                </CardContent>
+              </Card>
             </Link>
-            <Button variant="outline" className="h-24 flex-col space-y-2 w-full" onClick={() => toast.info('Schedule view coming soon!')}>
-              <Calendar className="h-6 w-6" />
-              <span>View Schedule</span>
-            </Button>
-            <Button variant="outline" className="h-24 flex-col space-y-2 w-full" onClick={() => toast.info('Stripe Connect integration coming soon!')}>
-              <DollarSign className="h-6 w-6" />
-              <span>Setup Stripe Connect</span>
-            </Button>
+            
+            <Card 
+              className="group cursor-pointer bg-gradient-to-br from-purple-500/20 to-purple-600/20 backdrop-blur-md border-white/20 hover:scale-105 transition-all duration-300"
+              onClick={() => toast.info('Schedule view coming soon!')}
+            >
+              <CardContent className="p-8 text-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-purple-400 to-purple-600 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                  <Calendar className="h-8 w-8 text-white" />
+                </div>
+                <h4 className="text-xl font-bold text-white mb-2">View Schedule</h4>
+                <p className="text-blue-200">Manage your upcoming classes</p>
+              </CardContent>
+            </Card>
+            
+            <Card 
+              className="group cursor-pointer bg-gradient-to-br from-green-500/20 to-green-600/20 backdrop-blur-md border-white/20 hover:scale-105 transition-all duration-300"
+              onClick={() => toast.info('Stripe Connect integration coming soon!')}
+            >
+              <CardContent className="p-8 text-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-green-600 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                  <DollarSign className="h-8 w-8 text-white" />
+                </div>
+                <h4 className="text-xl font-bold text-white mb-2">Setup Payments</h4>
+                <p className="text-blue-200">Connect Stripe to receive payments</p>
+              </CardContent>
+            </Card>
           </div>
         </div>
 
