@@ -294,121 +294,128 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+      {/* Navigation */}
+      <nav className="fixed top-0 w-full z-50 bg-black/20 backdrop-blur-md border-b border-white/10">
+        <div className="container mx-auto px-4">
+          <div className="flex justify-between items-center h-20">
+            <div className="flex items-center space-x-2">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg flex items-center justify-center">
+                <Dumbbell className="h-6 w-6 text-white" />
+              </div>
+              <span className="text-2xl font-bold text-white">Thryve</span>
+            </div>
+            
+            {!user && (
+              <div className="flex items-center space-x-4">
+                <Button variant="ghost" className="text-white hover:text-blue-400 hover:bg-white/10">
+                  About
+                </Button>
+                <Button variant="ghost" className="text-white hover:text-blue-400 hover:bg-white/10">
+                  Pricing
+                </Button>
+                <Button className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white border-0">
+                  Get Started
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      </nav>
+
       {/* Hero Section */}
-      <div className="relative overflow-hidden">
-        <div className="max-w-7xl mx-auto">
-          <div className="relative z-10 pb-8 sm:pb-16 md:pb-20 lg:max-w-2xl lg:w-full lg:pb-28 xl:pb-32">
-            <header className="relative">
-              <div className="max-w-7xl mx-auto px-4 sm:px-6">
-                <div className="flex justify-between items-center py-6 md:justify-start md:space-x-10">
-                  <div className="flex justify-start lg:w-0 lg:flex-1">
-                    <div className="flex items-center">
-                      <Dumbbell className="h-8 w-8 text-indigo-600" />
-                      <span className="ml-2 text-2xl font-bold text-gray-900">Thryve</span>
-                    </div>
+      <section className="pt-32 pb-20 px-4">
+        <div className="container mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+            <div className="text-left">
+              <h1 className="text-6xl md:text-8xl font-bold text-white leading-tight mb-8">
+                Your Fitness
+                <span className="block bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">
+                  Revolution
+                </span>
+                Starts Here
+              </h1>
+              
+              <p className="text-xl text-blue-200 mb-8 leading-relaxed max-w-xl">
+                Connect with world-class instructors, discover premium studios, and transform your fitness journey with our revolutionary platform.
+              </p>
+              
+              <div className="flex flex-col sm:flex-row gap-4 mb-12">
+                <Button 
+                  size="lg" 
+                  className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white border-0 px-8 py-4 text-lg font-semibold rounded-xl"
+                >
+                  Start Your Journey
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+                <Button 
+                  size="lg" 
+                  variant="outline" 
+                  className="border-white/30 text-white hover:bg-white/10 px-8 py-4 text-lg rounded-xl"
+                >
+                  <PlayCircle className="mr-2 h-5 w-5" />
+                  Watch Demo
+                </Button>
+              </div>
+
+              <div className="flex items-center space-x-8">
+                <div className="flex items-center space-x-2">
+                  <div className="flex -space-x-2">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 border-2 border-white"></div>
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 border-2 border-white"></div>
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-green-600 border-2 border-white"></div>
+                  </div>
+                  <span className="text-white/80 text-sm">Join 50K+ members</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
+                  ))}
+                  <span className="text-white/80 text-sm ml-2">4.9/5 rating</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative">
+              <div className="relative rounded-3xl overflow-hidden shadow-2xl transform rotate-3 hover:rotate-0 transition-transform duration-500">
+                <Image
+                  src="https://images.unsplash.com/photo-1541694458248-5aa2101c77df"
+                  alt="Premium Fitness Experience"
+                  width={600}
+                  height={800}
+                  className="object-cover w-full h-full"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-blue-900/50 to-transparent"></div>
+              </div>
+              
+              {/* Floating stats cards */}
+              <div className="absolute -top-4 -left-4 bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center">
+                    <TrendingUp className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-white font-semibold">+127%</p>
+                    <p className="text-white/70 text-sm">Growth Rate</p>
                   </div>
                 </div>
               </div>
-            </header>
-
-            <main className="mt-10 mx-auto max-w-7xl px-4 sm:mt-12 sm:px-6 md:mt-16 lg:mt-20 lg:px-8 xl:mt-28">
-              <div className="sm:text-center lg:text-left">
-                <h1 className="text-4xl tracking-tight font-extrabold text-gray-900 sm:text-5xl md:text-6xl">
-                  <span className="block xl:inline">Your fitness</span>{' '}
-                  <span className="block text-indigo-600 xl:inline">community hub</span>
-                </h1>
-                <p className="mt-3 text-base text-gray-500 sm:mt-5 sm:text-lg sm:max-w-xl sm:mx-auto md:mt-5 md:text-xl lg:mx-0">
-                  Book classes, teach fitness, or manage your studio. One platform connecting the entire fitness ecosystem.
-                </p>
+              
+              <div className="absolute -bottom-4 -right-4 bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
+                <div className="flex items-center space-x-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center">
+                    <Award className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-white font-semibold">#1</p>
+                    <p className="text-white/70 text-sm">Fitness Platform</p>
+                  </div>
+                </div>
               </div>
-            </main>
+            </div>
           </div>
         </div>
-        
-        {/* Auth Section */}
-        <div className="lg:absolute lg:inset-y-0 lg:right-0 lg:w-1/2 flex items-center justify-center p-8">
-          <Card className="w-full max-w-md">
-            <CardHeader>
-              <CardTitle>Get Started</CardTitle>
-              <CardDescription>Join the Thryve community today</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Tabs defaultValue="signin" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="signin">Sign In</TabsTrigger>
-                  <TabsTrigger value="signup">Sign Up</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="signin">
-                  <form onSubmit={handleSignIn} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="signin-email">Email</Label>
-                      <Input
-                        id="signin-email"
-                        name="email"
-                        type="email"
-                        placeholder="Enter your email"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="signin-password">Password</Label>
-                      <Input
-                        id="signin-password"
-                        name="password"
-                        type="password"
-                        placeholder="Enter your password"
-                        required
-                      />
-                    </div>
-                    <Button 
-                      type="submit" 
-                      className="w-full" 
-                      disabled={authLoading}
-                    >
-                      {authLoading ? 'Signing in...' : 'Sign In'}
-                    </Button>
-                  </form>
-                </TabsContent>
-                
-                <TabsContent value="signup">
-                  <form onSubmit={handleSignUp} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-email">Email</Label>
-                      <Input
-                        id="signup-email"
-                        name="email"
-                        type="email"
-                        placeholder="Enter your email"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-password">Password</Label>
-                      <Input
-                        id="signup-password"
-                        name="password"
-                        type="password"
-                        placeholder="Create a password (min 6 characters)"
-                        required
-                        minLength={6}
-                      />
-                    </div>
-                    <Button 
-                      type="submit" 
-                      className="w-full" 
-                      disabled={authLoading}
-                    >
-                      {authLoading ? 'Creating account...' : 'Create Account'}
-                    </Button>
-                  </form>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+      </section>
 
       {/* Features Section */}
       <div id="features" className="py-12 bg-white">
