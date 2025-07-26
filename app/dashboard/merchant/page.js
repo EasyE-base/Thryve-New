@@ -168,22 +168,26 @@ export default function MerchantDashboard() {
             <h3 className="text-xl font-semibold text-gray-900">Quick Actions</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Button className="h-24 flex-col space-y-2">
-              <Plus className="h-6 w-6" />
-              <span>Add Instructor</span>
-            </Button>
-            <Button variant="outline" className="h-24 flex-col space-y-2">
+            <Link href="/dashboard/merchant/staff">
+              <Button className="h-24 flex-col space-y-2 w-full">
+                <Plus className="h-6 w-6" />
+                <span>Add Instructor</span>
+              </Button>
+            </Link>
+            <Button variant="outline" className="h-24 flex-col space-y-2 w-full" onClick={() => toast.info('Schedule management coming soon!')}>
               <Calendar className="h-6 w-6" />
               <span>Manage Schedule</span>
             </Button>
-            <Button variant="outline" className="h-24 flex-col space-y-2">
+            <Button variant="outline" className="h-24 flex-col space-y-2 w-full" onClick={() => toast.info('Analytics dashboard coming soon!')}>
               <BarChart3 className="h-6 w-6" />
               <span>View Analytics</span>
             </Button>
-            <Button variant="outline" className="h-24 flex-col space-y-2">
-              <Settings className="h-6 w-6" />
-              <span>Studio Settings</span>
-            </Button>
+            <Link href="/settings">
+              <Button variant="outline" className="h-24 flex-col space-y-2 w-full">
+                <Settings className="h-6 w-6" />
+                <span>Studio Settings</span>
+              </Button>
+            </Link>
           </div>
         </div>
 
