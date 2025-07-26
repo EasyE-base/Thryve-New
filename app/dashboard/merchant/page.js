@@ -64,35 +64,49 @@ export default function MerchantDashboard() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-400 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-white text-xl font-light">Loading Dashboard...</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-black/20 backdrop-blur-md shadow-xl border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center">
-              <Building2 className="h-8 w-8 text-blue-600 mr-3" />
-              <h1 className="text-2xl font-bold text-gray-900">Thryve Business</h1>
+          <div className="flex justify-between items-center py-6">
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center">
+                <Building2 className="h-7 w-7 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-white">Thryve Business</h1>
+                <p className="text-blue-200 text-sm">Studio Owner Dashboard</p>
+              </div>
             </div>
             
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <Avatar>
-                  <AvatarFallback>
-                    <User className="h-4 w-4" />
+            <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-3">
+                <Avatar className="h-10 w-10 ring-2 ring-blue-400/50">
+                  <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white">
+                    <User className="h-5 w-5" />
                   </AvatarFallback>
                 </Avatar>
-                <span className="text-sm font-medium text-gray-700">
-                  {user?.email}
-                </span>
+                <div className="hidden sm:block">
+                  <span className="text-white font-medium">Welcome back!</span>
+                  <p className="text-blue-200 text-sm">{user?.email}</p>
+                </div>
               </div>
-              <Button variant="ghost" size="sm" onClick={handleSignOut}>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleSignOut}
+                className="text-white hover:text-blue-400 hover:bg-white/10 border border-white/20"
+              >
                 <LogOut className="h-4 w-4 mr-2" />
                 Sign Out
               </Button>
@@ -103,60 +117,68 @@ export default function MerchantDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Section */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome back, Studio Owner! 🏢
+        <div className="mb-12">
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
+            Grow Your <span className="bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">Studio</span> 🏢
           </h2>
-          <p className="text-gray-600">
-            Manage your studio, track performance, and grow your fitness business.
+          <p className="text-xl text-blue-200">
+            Manage your team, track performance, and scale your fitness business
           </p>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+          <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center">
-                <Users className="h-8 w-8 text-blue-600" />
+                <div className="w-14 h-14 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center">
+                  <Users className="h-7 w-7 text-white" />
+                </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Total Members</p>
-                  <p className="text-2xl font-bold text-gray-900">0</p>
+                  <p className="text-blue-200 font-medium">Total Members</p>
+                  <p className="text-3xl font-bold text-white">0</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center">
-                <Calendar className="h-8 w-8 text-green-600" />
+                <div className="w-14 h-14 bg-gradient-to-br from-green-400 to-green-600 rounded-xl flex items-center justify-center">
+                  <Calendar className="h-7 w-7 text-white" />
+                </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Classes Today</p>
-                  <p className="text-2xl font-bold text-gray-900">0</p>
+                  <p className="text-blue-200 font-medium">Classes Today</p>
+                  <p className="text-3xl font-bold text-white">0</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center">
-                <DollarSign className="h-8 w-8 text-yellow-600" />
+                <div className="w-14 h-14 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-xl flex items-center justify-center">
+                  <DollarSign className="h-7 w-7 text-white" />
+                </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Monthly Revenue</p>
-                  <p className="text-2xl font-bold text-gray-900">$0</p>
+                  <p className="text-blue-200 font-medium">Monthly Revenue</p>
+                  <p className="text-3xl font-bold text-white">$0</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center">
-                <TrendingUp className="h-8 w-8 text-purple-600" />
+                <div className="w-14 h-14 bg-gradient-to-br from-purple-400 to-purple-600 rounded-xl flex items-center justify-center">
+                  <TrendingUp className="h-7 w-7 text-white" />
+                </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Growth</p>
-                  <p className="text-2xl font-bold text-gray-900">+0%</p>
+                  <p className="text-blue-200 font-medium">Growth</p>
+                  <p className="text-3xl font-bold text-white">+0%</p>
                 </div>
               </div>
             </CardContent>
@@ -164,30 +186,59 @@ export default function MerchantDashboard() {
         </div>
 
         {/* Quick Actions */}
-        <div className="mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-semibold text-gray-900">Quick Actions</h3>
+        <div className="mb-12">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-2xl font-bold text-white">Quick Actions</h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <Link href="/dashboard/merchant/staff">
-              <Button className="h-24 flex-col space-y-2 w-full">
-                <Plus className="h-6 w-6" />
-                <span>Add Instructor</span>
-              </Button>
+              <Card className="group cursor-pointer bg-gradient-to-br from-blue-500/20 to-blue-600/20 backdrop-blur-md border-white/20 hover:scale-105 transition-all duration-300">
+                <CardContent className="p-8 text-center">
+                  <div className="w-16 h-16 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                    <Plus className="h-8 w-8 text-white" />
+                  </div>
+                  <h4 className="text-xl font-bold text-white mb-2">Add Instructor</h4>
+                  <p className="text-blue-200">Invite new team members</p>
+                </CardContent>
+              </Card>
             </Link>
-            <Button variant="outline" className="h-24 flex-col space-y-2 w-full" onClick={() => toast.info('Schedule management coming soon!')}>
-              <Calendar className="h-6 w-6" />
-              <span>Manage Schedule</span>
-            </Button>
-            <Button variant="outline" className="h-24 flex-col space-y-2 w-full" onClick={() => toast.info('Analytics dashboard coming soon!')}>
-              <BarChart3 className="h-6 w-6" />
-              <span>View Analytics</span>
-            </Button>
+            
+            <Card 
+              className="group cursor-pointer bg-gradient-to-br from-purple-500/20 to-purple-600/20 backdrop-blur-md border-white/20 hover:scale-105 transition-all duration-300"
+              onClick={() => toast.info('Schedule management coming soon!')}
+            >
+              <CardContent className="p-8 text-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-purple-400 to-purple-600 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                  <Calendar className="h-8 w-8 text-white" />
+                </div>
+                <h4 className="text-xl font-bold text-white mb-2">Manage Schedule</h4>
+                <p className="text-blue-200">Plan classes and events</p>
+              </CardContent>
+            </Card>
+            
+            <Card 
+              className="group cursor-pointer bg-gradient-to-br from-green-500/20 to-green-600/20 backdrop-blur-md border-white/20 hover:scale-105 transition-all duration-300"
+              onClick={() => toast.info('Analytics dashboard coming soon!')}
+            >
+              <CardContent className="p-8 text-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-green-600 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                  <BarChart3 className="h-8 w-8 text-white" />
+                </div>
+                <h4 className="text-xl font-bold text-white mb-2">View Analytics</h4>
+                <p className="text-blue-200">Track business performance</p>
+              </CardContent>
+            </Card>
+            
             <Link href="/settings">
-              <Button variant="outline" className="h-24 flex-col space-y-2 w-full">
-                <Settings className="h-6 w-6" />
-                <span>Studio Settings</span>
-              </Button>
+              <Card className="group cursor-pointer bg-gradient-to-br from-orange-500/20 to-orange-600/20 backdrop-blur-md border-white/20 hover:scale-105 transition-all duration-300">
+                <CardContent className="p-8 text-center">
+                  <div className="w-16 h-16 bg-gradient-to-br from-orange-400 to-orange-600 rounded-xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300">
+                    <Settings className="h-8 w-8 text-white" />
+                  </div>
+                  <h4 className="text-xl font-bold text-white mb-2">Studio Settings</h4>
+                  <p className="text-blue-200">Configure your business</p>
+                </CardContent>
+              </Card>
             </Link>
           </div>
         </div>
