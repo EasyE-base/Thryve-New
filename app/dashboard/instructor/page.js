@@ -173,15 +173,17 @@ export default function InstructorDashboard() {
             <h3 className="text-xl font-semibold text-gray-900">Quick Actions</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Button className="h-24 flex-col space-y-2">
-              <Plus className="h-6 w-6" />
-              <span>Create New Class</span>
-            </Button>
-            <Button variant="outline" className="h-24 flex-col space-y-2">
+            <Link href="/instructor/create-class">
+              <Button className="h-24 flex-col space-y-2 w-full">
+                <Plus className="h-6 w-6" />
+                <span>Create New Class</span>
+              </Button>
+            </Link>
+            <Button variant="outline" className="h-24 flex-col space-y-2 w-full" onClick={() => toast.info('Schedule view coming soon!')}>
               <Calendar className="h-6 w-6" />
               <span>View Schedule</span>
             </Button>
-            <Button variant="outline" className="h-24 flex-col space-y-2">
+            <Button variant="outline" className="h-24 flex-col space-y-2 w-full" onClick={() => toast.info('Stripe Connect integration coming soon!')}>
               <DollarSign className="h-6 w-6" />
               <span>Setup Stripe Connect</span>
             </Button>
