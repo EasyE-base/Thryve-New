@@ -11,6 +11,7 @@ import { Calendar, Clock, Users, DollarSign, Plus, Edit, Trash2, LogOut, User, D
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { format } from 'date-fns'
+import Link from 'next/link'
 
 export default function InstructorDashboard() {
   const { user, role, loading: authLoading } = useAuth()
