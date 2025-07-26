@@ -308,13 +308,24 @@ export default function LandingPage() {
             
             {!user && (
               <div className="flex items-center space-x-4">
-                <Button variant="ghost" className="text-white hover:text-blue-400 hover:bg-white/10">
+                <Button 
+                  variant="ghost" 
+                  className="text-white hover:text-blue-400 hover:bg-white/10"
+                  onClick={() => router.push('/about')}
+                >
                   About
                 </Button>
-                <Button variant="ghost" className="text-white hover:text-blue-400 hover:bg-white/10">
+                <Button 
+                  variant="ghost" 
+                  className="text-white hover:text-blue-400 hover:bg-white/10"
+                  onClick={() => router.push('/pricing')}
+                >
                   Pricing
                 </Button>
-                <Button className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white border-0">
+                <Button 
+                  className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white border-0"
+                  onClick={() => setShowRoleSelection(true)}
+                >
                   Get Started
                 </Button>
               </div>
