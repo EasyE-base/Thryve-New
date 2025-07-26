@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Building2, Users, Calendar, DollarSign, Plus, BarChart3, Settings, LogOut, User, TrendingUp } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import Link from 'next/link'
 
 export default function MerchantDashboard() {
   const { user, role, loading: authLoading } = useAuth()
