@@ -450,13 +450,13 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Firebase AuthProvider Integration"
-    - "Customer Dashboard Access"
+    - "API Infrastructure Issues - External URL Routing"
+    - "Kubernetes Ingress Configuration"
   stuck_tasks:
-    - "Firebase AuthProvider Integration"
-    - "API Infrastructure Issues"
+    - "API Infrastructure Issues - External URL Routing"
+    - "All Dashboard Backend APIs blocked by 502 errors"
   test_all: false
-  test_priority: "infrastructure_first"
+  test_priority: "infrastructure_critical"
 
 agent_communication:
     - agent: "testing"
