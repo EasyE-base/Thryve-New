@@ -154,35 +154,49 @@ export default function CustomerDashboard() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-400 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-white text-xl font-light">Loading Dashboard...</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-black/20 backdrop-blur-md shadow-xl border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center">
-              <Dumbbell className="h-8 w-8 text-blue-600 mr-3" />
-              <h1 className="text-2xl font-bold text-gray-900">Thryve</h1>
+          <div className="flex justify-between items-center py-6">
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center">
+                <Dumbbell className="h-7 w-7 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-white">Thryve</h1>
+                <p className="text-blue-200 text-sm">Customer Dashboard</p>
+              </div>
             </div>
             
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <Avatar>
-                  <AvatarFallback>
-                    <User className="h-4 w-4" />
+            <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-3">
+                <Avatar className="h-10 w-10 ring-2 ring-blue-400/50">
+                  <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white">
+                    <User className="h-5 w-5" />
                   </AvatarFallback>
                 </Avatar>
-                <span className="text-sm font-medium text-gray-700">
-                  {user?.email}
-                </span>
+                <div className="hidden sm:block">
+                  <span className="text-white font-medium">Welcome back!</span>
+                  <p className="text-blue-200 text-sm">{user?.email}</p>
+                </div>
               </div>
-              <Button variant="ghost" size="sm" onClick={handleSignOut}>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleSignOut}
+                className="text-white hover:text-blue-400 hover:bg-white/10 border border-white/20"
+              >
                 <LogOut className="h-4 w-4 mr-2" />
                 Sign Out
               </Button>
