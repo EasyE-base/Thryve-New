@@ -24,6 +24,25 @@ export default function MerchantDashboard() {
       return
     }
 
+    // Check if user completed onboarding locally due to API issues
+    if (typeof window !== 'undefined') {
+      const onboardingComplete = localStorage.getItem('onboardingComplete')
+      if (onboardingComplete) {
+        try {
+          const data = JSON.parse(onboardingComplete)
+          if (data.uid === user.uid && data.role === 'merchant') {
+            console.log('🔥 Using locally stored onboarding data for merchant dashboard')
+            // Display a message that data will sync when server is available
+            setTimeout(() => {
+              toast.info('Welcome! Your profile data will sync with the server once it\'s fully available.')
+            }, 1000)
+          }
+        } catch (e) {
+          console.error('Failed to parse localStorage onboarding data:', e)
+        }
+      }
+    }
+
     if (role && role !== 'merchant') {
       router.push(`/dashboard/${role}`)
       return
