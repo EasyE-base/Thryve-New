@@ -62,9 +62,16 @@ export default function InstructorOnboarding() {
       return
     }
 
-    if (role && role !== 'instructor') {
-      router.push(`/onboarding/${role}`)
-      return
+    // Only redirect if we have a definitive role that doesn't match AND it's not loading
+    // This prevents redirect loops when role data is still being loaded or updated
+    if (role && role !== 'instructor' && !authLoading) {
+      // Add a small delay to ensure this isn't a race condition
+      const redirectTimer = setTimeout(() => {
+        console.log('🔄 Instructor onboarding: Redirecting user with role', role, 'to correct onboarding')
+        router.push(`/onboarding/${role}`)
+      }, 500)
+
+      return () => clearTimeout(redirectTimer)
     }
   }, [user, role, authLoading, router])
 
