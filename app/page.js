@@ -355,6 +355,7 @@ export default function LandingPage() {
                 <Button 
                   size="lg" 
                   className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white border-0 px-8 py-4 text-lg font-semibold rounded-xl"
+                  onClick={() => setShowRoleSelection(true)}
                 >
                   Start Your Journey
                   <ArrowRight className="ml-2 h-5 w-5" />
