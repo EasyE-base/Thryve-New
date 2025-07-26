@@ -417,6 +417,224 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Features Section */}
+      <section className="py-20 px-4">
+        <div className="container mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-5xl font-bold text-white mb-6">
+              Why Choose <span className="bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">Thryve</span>
+            </h2>
+            <p className="text-xl text-blue-200 max-w-3xl mx-auto">
+              Experience the future of fitness with cutting-edge technology and unmatched convenience
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20">
+            <div className="group text-center">
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
+                <Globe className="h-10 w-10 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-4">Global Network</h3>
+              <p className="text-blue-200">Connect with premium studios and certified instructors worldwide</p>
+            </div>
+
+            <div className="group text-center">
+              <div className="w-20 h-20 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
+                <Zap className="h-10 w-10 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-4">Instant Booking</h3>
+              <p className="text-blue-200">Book classes instantly with our lightning-fast platform</p>
+            </div>
+
+            <div className="group text-center">
+              <div className="w-20 h-20 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
+                <Shield className="h-10 w-10 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-4">Secure & Trusted</h3>
+              <p className="text-blue-200">Bank-level security with 100% payment protection</p>
+            </div>
+          </div>
+
+          <div className="bg-white/5 backdrop-blur-sm rounded-3xl p-12 border border-white/10">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              <div>
+                <h3 className="text-4xl font-bold text-white mb-6">
+                  Transform Your Fitness Journey
+                </h3>
+                <p className="text-blue-200 mb-8 text-lg leading-relaxed">
+                  Join thousands of fitness enthusiasts who have discovered their perfect workout routine through our intelligent matching system.
+                </p>
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-4">
+                    <CheckCircle className="h-6 w-6 text-green-400" />
+                    <span className="text-white">Personalized class recommendations</span>
+                  </div>
+                  <div className="flex items-center space-x-4">
+                    <CheckCircle className="h-6 w-6 text-green-400" />
+                    <span className="text-white">Progress tracking and analytics</span>
+                  </div>
+                  <div className="flex items-center space-x-4">
+                    <CheckCircle className="h-6 w-6 text-green-400" />
+                    <span className="text-white">Community challenges and rewards</span>
+                  </div>
+                </div>
+              </div>
+              <div className="relative">
+                <div className="rounded-2xl overflow-hidden shadow-2xl">
+                  <Image
+                    src="https://images.unsplash.com/photo-1488345979593-09db0f85545f"
+                    alt="Wellness Experience"
+                    width={500}
+                    height={400}
+                    className="object-cover w-full h-full"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="py-20 px-4">
+        <div className="container mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div className="text-center">
+              <div className="text-5xl font-bold text-white mb-2">50K+</div>
+              <div className="text-blue-200">Active Members</div>
+            </div>
+            <div className="text-center">
+              <div className="text-5xl font-bold text-white mb-2">10K+</div>
+              <div className="text-blue-200">Expert Instructors</div>
+            </div>
+            <div className="text-center">
+              <div className="text-5xl font-bold text-white mb-2">500+</div>
+              <div className="text-blue-200">Partner Studios</div>
+            </div>
+            <div className="text-center">
+              <div className="text-5xl font-bold text-white mb-2">1M+</div>
+              <div className="text-blue-200">Classes Booked</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 px-4">
+        <div className="container mx-auto">
+          <div className="bg-gradient-to-r from-blue-500/20 to-purple-600/20 backdrop-blur-sm rounded-3xl p-12 border border-white/10 text-center">
+            <h2 className="text-5xl font-bold text-white mb-6">
+              Ready to Start Your Journey?
+            </h2>
+            <p className="text-xl text-blue-200 mb-8 max-w-2xl mx-auto">
+              Join the fitness revolution and discover what makes Thryve the #1 choice for fitness enthusiasts worldwide.
+            </p>
+            <Button 
+              size="lg" 
+              className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white border-0 px-12 py-4 text-xl font-semibold rounded-xl"
+              onClick={() => setShowRoleSelection(true)}
+            >
+              Get Started Free
+              <ArrowRight className="ml-2 h-6 w-6" />
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Authentication Modal */}
+      {!user && showRoleSelection && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white/10 backdrop-blur-md rounded-3xl p-8 max-w-md w-full border border-white/20">
+            <div className="text-center mb-6">
+              <h3 className="text-2xl font-bold text-white mb-2">Join Thryve Today</h3>
+              <p className="text-blue-200">Create your account to get started</p>
+            </div>
+
+            <Tabs defaultValue="signup" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-6 bg-white/10">
+                <TabsTrigger value="signup" className="text-white data-[state=active]:bg-blue-500 data-[state=active]:text-white">Sign Up</TabsTrigger>
+                <TabsTrigger value="signin" className="text-white data-[state=active]:bg-blue-500 data-[state=active]:text-white">Sign In</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="signup">
+                <form onSubmit={handleSignUp} className="space-y-4">
+                  <div>
+                    <Label htmlFor="signup-email" className="text-white">Email</Label>
+                    <Input
+                      id="signup-email"
+                      name="email"
+                      type="email"
+                      required
+                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                      placeholder="Enter your email"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="signup-password" className="text-white">Password</Label>
+                    <Input
+                      id="signup-password"
+                      name="password"
+                      type="password"
+                      required
+                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                      placeholder="Create a password"
+                    />
+                  </div>
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white border-0"
+                    disabled={authLoading}
+                  >
+                    {authLoading ? 'Creating Account...' : 'Create Account'}
+                  </Button>
+                </form>
+              </TabsContent>
+
+              <TabsContent value="signin">
+                <form onSubmit={handleSignIn} className="space-y-4">
+                  <div>
+                    <Label htmlFor="signin-email" className="text-white">Email</Label>
+                    <Input
+                      id="signin-email"
+                      name="email"
+                      type="email"
+                      required
+                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                      placeholder="Enter your email"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="signin-password" className="text-white">Password</Label>
+                    <Input
+                      id="signin-password"
+                      name="password"
+                      type="password"
+                      required
+                      className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+                      placeholder="Enter your password"
+                    />
+                  </div>
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white border-0"
+                    disabled={authLoading}
+                  >
+                    {authLoading ? 'Signing In...' : 'Sign In'}
+                  </Button>
+                </form>
+              </TabsContent>
+            </Tabs>
+
+            <Button 
+              variant="ghost" 
+              className="w-full mt-4 text-white hover:bg-white/10"
+              onClick={() => setShowRoleSelection(false)}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
