@@ -324,6 +324,9 @@ frontend:
         - working: true
           agent: "testing"
           comment: "TESTED: Role selection flow working perfectly. After successful signup, users are presented with role selection screen showing Customer, Instructor, and Studio Owner options. Role selection triggers proper API calls to update user role in MongoDB. Navigation to appropriate onboarding page works correctly."
+        - working: true
+          agent: "testing"
+          comment: "🎉 CRITICAL BUG FIX VALIDATED: Role selection routing bug has been completely resolved! ✅ Customer role selection now correctly redirects to /onboarding/customer (previously was redirecting to instructor onboarding). ✅ Instructor role selection correctly redirects to /onboarding/instructor. ✅ Studio Owner role selection correctly redirects to /onboarding/merchant. Comprehensive testing with multiple user accounts confirms all three role selection flows are working correctly. LocalStorage cleanup, loading states, and timeout delays are properly implemented to prevent race conditions. The application gracefully handles API 502 errors using localStorage fallback mechanisms."
 
   - task: "Customer Onboarding Flow"
     implemented: true
