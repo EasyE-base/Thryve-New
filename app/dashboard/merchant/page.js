@@ -207,10 +207,12 @@ export default function MerchantDashboard() {
                 <p className="text-gray-600 mb-4">
                   Invite qualified instructors to join your studio and start offering classes.
                 </p>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Invite Instructor
-                </Button>
+                <Link href="/dashboard/merchant/staff">
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Invite Instructor
+                  </Button>
+                </Link>
               </div>
             </CardContent>
           </Card>
