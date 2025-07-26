@@ -42,12 +42,23 @@ export default function AuthProvider({ children }) {
             if (tempUserData) {
               try {
                 const parsedData = JSON.parse(tempUserData)
-                if (parsedData.uid === firebaseUser.uid) {
+                // Check if the data is for the current user and not too old (1 hour)
+                const isCurrentUser = parsedData.uid === firebaseUser.uid
+                const isRecent = parsedData.timestamp && (Date.now() - parsedData.timestamp) < 3600000 // 1 hour
+                
+                if (isCurrentUser && (!parsedData.timestamp || isRecent)) {
                   userRole = parsedData.role
                   console.log('🔥 AuthProvider: Using localStorage fallback role:', userRole)
+                } else if (!isRecent) {
+                  console.log('🔥 AuthProvider: Clearing stale localStorage data')
+                  localStorage.removeItem('tempUserData')
+                  localStorage.removeItem('selectedRole')
                 }
               } catch (e) {
                 console.error('Failed to parse localStorage data:', e)
+                // Clean up corrupted data
+                localStorage.removeItem('tempUserData')
+                localStorage.removeItem('selectedRole')
               }
             }
           }
