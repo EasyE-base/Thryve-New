@@ -164,6 +164,13 @@ export default function LandingPage() {
     setSelectedRole(role)
 
     try {
+      // Clear any existing role data to prevent conflicts
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('tempUserData')
+        localStorage.removeItem('selectedRole')
+        localStorage.removeItem('onboardingComplete')
+      }
+
       // Try to update role via API first
       await updateUserRole(user, role)
       toast.success(`Role selected: ${roles.find(r => r.id === role)?.title}`)
@@ -183,15 +190,16 @@ export default function LandingPage() {
         localStorage.setItem('tempUserData', JSON.stringify({
           uid: user.uid,
           email: user.email,
-          role: role
+          role: role,
+          timestamp: Date.now() // Add timestamp to detect stale data
         }))
         
-        toast.error(`API routing issue detected. We've temporarily saved your role selection. Please proceed to onboarding - your selection will be saved once the server is fully available.`)
+        toast.success(`Role selected: ${roles.find(r => r.id === role)?.title}. Proceeding to onboarding...`)
         
         // Still allow them to proceed to onboarding
         setTimeout(() => {
           router.push(`/onboarding/${role}`)
-        }, 2000)
+        }, 1000)
       } else {
         toast.error(`Failed to select role: ${error.message}`)
         setSelectedRole(null)
