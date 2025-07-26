@@ -3,7 +3,7 @@
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ArrowLeft, Dumbbell, Users, Target, Award, Heart, Globe, CheckCircle } from 'lucide-react'
+import { Dumbbell, Users, Target, Award, Heart, Globe, CheckCircle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
