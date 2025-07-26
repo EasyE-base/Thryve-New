@@ -225,75 +225,68 @@ export default function LandingPage() {
   // Show role selection after successful signup or if user has no role
   if (showRoleSelection && user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12">
-            <h1 className="text-4xl font-bold text-gray-900 sm:text-5xl">
-              Welcome to Thryve! 🎉
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+        <div className="container mx-auto px-4 py-16">
+          <div className="text-center mb-16">
+            <h1 className="text-5xl md:text-7xl font-bold text-white mb-6">
+              Choose Your Path
             </h1>
-            <p className="mt-4 text-xl text-gray-600">
-              Hi {user.email}! Please choose your role to get started
+            <p className="text-xl text-blue-200 max-w-2xl mx-auto">
+              Select your role to unlock a personalized fitness experience designed for your goals
             </p>
           </div>
 
-          <div className="grid gap-8 md:grid-cols-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
             {roles.map((role) => {
               const Icon = role.icon
-
               return (
                 <Card
                   key={role.id}
-                  className="relative cursor-pointer transition-all duration-200 hover:shadow-lg"
+                  className="group relative cursor-pointer bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/20 transition-all duration-500 transform hover:scale-105 hover:shadow-2xl"
                   onClick={() => selectRole(role.id)}
                 >
                   <CardHeader className="text-center pb-4">
-                    <div className="mx-auto w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mb-4">
-                      <Icon className="h-8 w-8 text-indigo-600" />
+                    <div className="mx-auto w-20 h-20 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                      <Icon className="h-10 w-10 text-white" />
                     </div>
-                    <CardTitle className="text-2xl font-bold text-gray-900">
+                    <CardTitle className="text-3xl font-bold text-white mb-2">
                       {role.title}
                     </CardTitle>
-                    <CardDescription className="text-gray-600">
+                    <CardDescription className="text-blue-200 text-lg">
                       {role.description}
                     </CardDescription>
                   </CardHeader>
 
-                  <CardContent className="pt-0">
-                    <ul className="space-y-3 mb-6">
+                  <CardContent>
+                    <ul className="space-y-3">
                       {role.features.map((feature, index) => (
-                        <li key={index} className="flex items-center text-sm text-gray-600">
-                          <div className="w-2 h-2 bg-indigo-500 rounded-full mr-3 flex-shrink-0"></div>
-                          {feature}
+                        <li key={index} className="flex items-center text-white/90">
+                          <CheckCircle className="h-5 w-5 text-blue-400 mr-3 flex-shrink-0" />
+                          <span className="text-sm">{feature}</span>
                         </li>
                       ))}
                     </ul>
-
-                    <Button
-                      className="w-full"
-                      disabled={roleLoading}
+                    
+                    <Button 
+                      className="w-full mt-6 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 border-0 text-white font-semibold py-3 group-hover:shadow-lg transition-all duration-300"
+                      disabled={roleLoading && selectedRole === role.id}
                     >
                       {roleLoading && selectedRole === role.id ? (
                         <div className="flex items-center">
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
                           Selecting...
                         </div>
                       ) : (
-                        <div className="flex items-center">
-                          Choose {role.title}
-                          <ArrowRight className="ml-2 h-4 w-4" />
-                        </div>
+                        <>
+                          Get Started
+                          <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform duration-300" />
+                        </>
                       )}
                     </Button>
                   </CardContent>
                 </Card>
               )
             })}
-          </div>
-
-          <div className="mt-12 text-center">
-            <p className="text-sm text-gray-500">
-              Don't worry, you can always change your role later in your account settings.
-            </p>
           </div>
         </div>
       </div>
