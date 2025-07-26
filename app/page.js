@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge'
 import { Dumbbell, Users, Building2, Star, Calendar, CreditCard, ArrowRight, CheckCircle, Globe, Award, Zap } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import Image from 'next/image'
 
 export default function LandingPage() {
   const [user, loading, error] = useAuthState(auth)
