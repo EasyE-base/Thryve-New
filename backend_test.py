@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
 """
-Backend API Testing for Thryve Fitness Platform
-Tests all core API endpoints for the fitness class booking system
+Backend API Testing for Thryve Fitness Platform - Dashboard Functionality
+Tests dashboard-related backend APIs and Firebase authentication endpoints
 """
 
 import requests
 import json
 import time
 import uuid
+import os
 from datetime import datetime, timedelta
 
-# Configuration
-BASE_URL = "http://localhost:3000"
+# Configuration - Use external URL for testing
+BASE_URL = "https://f4081b14-bbee-41e0-9a4b-518e4e2baab0.preview.emergentagent.com"
 API_BASE = f"{BASE_URL}/api"
 
 class ThryveAPITester:
