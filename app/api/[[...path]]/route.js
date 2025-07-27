@@ -116,6 +116,9 @@ async function handleGET(request) {
         }
         return await getUserBookings(user.id)
       
+      case '/booking/by-session':
+        return await getBookingBySession(url.searchParams.get('sessionId'))
+      
       case '/instructor/classes':
         if (!user) {
           return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
