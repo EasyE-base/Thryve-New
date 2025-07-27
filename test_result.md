@@ -1154,9 +1154,19 @@ metadata:
 
 test_plan:
   current_focus:
-    - "File Upload, Notification, and Analytics Systems Frontend Testing Completed Successfully"
-    - "All three parallel systems (FileUploadComponent, NotificationInbox, StudioAnalyticsDashboard) fully validated and working"
-    - "System Integration Test Page provides comprehensive testing interface for all systems"
+    - "POST /server-api/staffing/request-swap - Shift Swap Request System"
+    - "POST /server-api/staffing/accept-swap - Swap Acceptance System"
+    - "POST /server-api/staffing/approve-swap - Studio Approval Workflow"
+    - "GET /server-api/staffing/swap-requests - Fetch User Swap Requests"
+    - "POST /server-api/staffing/request-coverage - Coverage Request System"
+    - "POST /server-api/staffing/apply-coverage - Coverage Application System"
+    - "GET /server-api/staffing/coverage-pool - Coverage Pool Retrieval"
+    - "GET /server-api/staffing/schedule - Instructor Schedule Management"
+    - "GET /server-api/staffing/dashboard - Studio Staffing Dashboard"
+    - "POST /server-api/staffing/chat - Staffing Chat System (Send Messages)"
+    - "GET /server-api/staffing/chat - Staffing Chat System (Retrieve Messages)"
+    - "GET /server-api/staffing/settings - Studio Staffing Settings Retrieval"
+    - "POST /server-api/staffing/settings - Studio Staffing Settings Management"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
