@@ -803,66 +803,99 @@ export default function InstructorDashboard() {
                   </Button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {instructorData.upcomingClasses.map((classItem) => (
-                    <Card key={classItem.id} className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
-                      <CardContent className="p-6">
-                        <div className="flex items-center justify-between mb-4">
-                          <Badge className={`${
-                            classItem.type === 'Yoga' ? 'bg-green-500/20 text-green-200' :
-                            classItem.type === 'HIIT' ? 'bg-red-500/20 text-red-200' :
-                            'bg-blue-500/20 text-blue-200'
-                          }`}>
-                            {classItem.type}
-                          </Badge>
-                          <div className="flex space-x-1">
-                            <Button size="sm" variant="outline" className="border-white/20 text-white hover:bg-white/10">
-                              <Edit className="h-4 w-4" />
+                {instructorClasses.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {instructorClasses.map((classItem) => (
+                      <Card key={classItem.id} className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
+                        <CardContent className="p-6">
+                          <div className="flex items-center justify-between mb-4">
+                            <Badge className={`${
+                              classItem.type === 'Yoga' ? 'bg-green-500/20 text-green-200' :
+                              classItem.type === 'HIIT' ? 'bg-red-500/20 text-red-200' :
+                              classItem.type === 'Pilates' ? 'bg-purple-500/20 text-purple-200' :
+                              classItem.type === 'Strength Training' ? 'bg-orange-500/20 text-orange-200' :
+                              'bg-blue-500/20 text-blue-200'
+                            }`}>
+                              {classItem.type}
+                            </Badge>
+                            <div className="flex space-x-1">
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="border-white/20 text-white hover:bg-white/10"
+                                onClick={() => toast.info('Edit functionality coming soon!')}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="border-white/20 text-white hover:bg-white/10"
+                                onClick={() => toast.info('View details functionality coming soon!')}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                          
+                          <h4 className="text-lg font-semibold text-white mb-2">{classItem.title}</h4>
+                          
+                          <div className="space-y-2 mb-4">
+                            <div className="flex items-center text-blue-200 text-sm">
+                              <MapPin className="h-4 w-4 mr-2" />
+                              {classItem.location}
+                            </div>
+                            <div className="flex items-center text-blue-200 text-sm">
+                              <Clock className="h-4 w-4 mr-2" />
+                              {classItem.date} at {classItem.time}
+                            </div>
+                            <div className="flex items-center text-blue-200 text-sm">
+                              <Users className="h-4 w-4 mr-2" />
+                              {classItem.enrolled || 0}/{classItem.capacity} enrolled
+                            </div>
+                            <div className="flex items-center text-green-200 text-sm">
+                              <DollarSign className="h-4 w-4 mr-2" />
+                              ${classItem.price}
+                            </div>
+                          </div>
+                          
+                          <div className="flex space-x-2">
+                            <Button 
+                              size="sm" 
+                              className="bg-blue-500 hover:bg-blue-600 text-white flex-1"
+                              onClick={() => toast.info('View roster functionality coming soon!')}
+                            >
+                              View Roster
                             </Button>
-                            <Button size="sm" variant="outline" className="border-white/20 text-white hover:bg-white/10">
-                              <Eye className="h-4 w-4" />
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="border-white/20 text-white hover:bg-white/10"
+                              onClick={() => toast.info('Attendance functionality coming soon!')}
+                            >
+                              Attendance
                             </Button>
                           </div>
-                        </div>
-                        
-                        <h4 className="text-lg font-semibold text-white mb-2">{classItem.name}</h4>
-                        
-                        <div className="space-y-2 mb-4">
-                          <div className="flex items-center text-blue-200 text-sm">
-                            <MapPin className="h-4 w-4 mr-2" />
-                            {classItem.location}
-                          </div>
-                          <div className="flex items-center text-blue-200 text-sm">
-                            <Clock className="h-4 w-4 mr-2" />
-                            {classItem.time}
-                          </div>
-                          <div className="flex items-center text-blue-200 text-sm">
-                            <Users className="h-4 w-4 mr-2" />
-                            {classItem.booked}/{classItem.capacity} booked
-                          </div>
-                        </div>
-                        
-                        <div className="flex space-x-2">
-                          <Button 
-                            size="sm" 
-                            className="bg-blue-500 hover:bg-blue-600 text-white flex-1"
-                            onClick={() => toast.success('Viewing roster...')}
-                          >
-                            View Roster
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            className="border-white/20 text-white hover:bg-white/10"
-                            onClick={() => toast.success('Marking attendance...')}
-                          >
-                            Attendance
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <CalendarIcon className="h-16 w-16 text-blue-400 mx-auto mb-4 opacity-50" />
+                    <h3 className="text-xl font-semibold text-white mb-2">No Classes Yet</h3>
+                    <p className="text-blue-200 mb-6">
+                      Start by creating your first class to begin teaching and earning.
+                    </p>
+                    <Button 
+                      className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                      onClick={() => router.push('/instructor/create-class')}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Your First Class
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
 
