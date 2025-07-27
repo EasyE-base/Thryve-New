@@ -628,10 +628,8 @@ metadata:
 
 test_plan:
   current_focus:
-    - "POST /server-api/instructor/classes - Create classes for instructors"
-    - "GET /server-api/instructor/classes - Fetch instructor's classes"
-    - "Complete End-to-End User Journey Testing"
-    - "Authentication Flow Validation"
+    - "Studio-centric Class Management System Testing Completed"
+    - "All new endpoints validated and working"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
