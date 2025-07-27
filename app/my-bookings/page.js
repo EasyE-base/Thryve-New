@@ -228,7 +228,7 @@ export default function MyBookingsPage() {
     }
 
     fetchBookings()
-  }, [user, role, loading, router])
+  }, [user, role, authLoading, router])
 
   const upcomingBookings = bookings.filter(booking => 
     !isPast(new Date(`${format(booking.date, 'yyyy-MM-dd')} ${booking.endTime}`)) && 
