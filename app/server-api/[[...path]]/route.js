@@ -607,6 +607,357 @@ async function handleGET(request) {
       }
     }
 
+    // ========================================
+    // INSTRUCTOR STAFFING & SCHEDULE MANAGEMENT SYSTEM - GET ENDPOINTS
+    // ========================================
+
+    // Get instructor schedule with swap and coverage info
+    if (path === '/staffing/schedule') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const url = new URL(request.url)
+        const startDate = url.searchParams.get('startDate') || new Date().toISOString().split('T')[0]
+        const endDate = url.searchParams.get('endDate') || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+
+        // Get assigned classes
+        const classes = await database.collection('studio_classes').find({
+          assignedInstructorId: firebaseUser.uid,
+          startTime: {
+            $gte: new Date(startDate),
+            $lte: new Date(endDate)
+          }
+        }).sort({ startTime: 1 }).toArray()
+
+        // Get swap requests for these classes
+        const classIds = classes.map(c => c.id)
+        const swapRequests = await database.collection('swap_requests').find({
+          $or: [
+            { classId: { $in: classIds } },
+            { initiatorId: firebaseUser.uid },
+            { recipientId: firebaseUser.uid }
+          ]
+        }).toArray()
+
+        // Get coverage requests
+        const coverageRequests = await database.collection('coverage_requests').find({
+          classId: { $in: classIds }
+        }).toArray()
+
+        // Enhance classes with swap and coverage info
+        const enhancedClasses = classes.map(classItem => {
+          const swapInfo = swapRequests.find(swap => swap.classId === classItem.id)
+          const coverageInfo = coverageRequests.find(cov => cov.classId === classItem.id)
+
+          return {
+            ...classItem,
+            swapRequest: swapInfo || null,
+            coverageRequest: coverageInfo || null,
+            canRequestSwap: !swapInfo || swapInfo.status === 'rejected',
+            canRequestCoverage: !coverageInfo || coverageInfo.status === 'cancelled'
+          }
+        })
+
+        return NextResponse.json({
+          classes: enhancedClasses,
+          totalClasses: enhancedClasses.length,
+          dateRange: { startDate, endDate }
+        })
+      } catch (error) {
+        console.error('Schedule fetch error:', error)
+        return NextResponse.json({ error: 'Failed to fetch schedule' }, { status: 500 })
+      }
+    }
+
+    // Get coverage pool (open classes needing coverage)
+    if (path === '/staffing/coverage-pool') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        // Get open coverage requests
+        const openCoverageRequests = await database.collection('coverage_requests').find({
+          status: 'open'
+        }).toArray()
+
+        // Get class details for each coverage request
+        const classIds = openCoverageRequests.map(req => req.classId)
+        const classes = await database.collection('studio_classes').find({
+          id: { $in: classIds }
+        }).toArray()
+
+        // Combine coverage requests with class details
+        const coveragePool = openCoverageRequests.map(request => {
+          const classData = classes.find(c => c.id === request.classId)
+          const userApplication = request.applicants.find(app => app.instructorId === firebaseUser.uid)
+
+          return {
+            ...request,
+            classData: classData,
+            userHasApplied: !!userApplication,
+            applicationStatus: userApplication?.status || null,
+            applicantCount: request.applicants.length
+          }
+        }).filter(item => item.classData) // Only include items with valid class data
+
+        // Sort by urgency and date
+        coveragePool.sort((a, b) => {
+          if (a.urgent && !b.urgent) return -1
+          if (!a.urgent && b.urgent) return 1
+          return new Date(a.classData.startTime) - new Date(b.classData.startTime)
+        })
+
+        return NextResponse.json({
+          coveragePool: coveragePool,
+          totalOpen: coveragePool.length,
+          urgentCount: coveragePool.filter(item => item.urgent).length
+        })
+      } catch (error) {
+        console.error('Coverage pool fetch error:', error)
+        return NextResponse.json({ error: 'Failed to fetch coverage pool' }, { status: 500 })
+      }
+    }
+
+    // Get studio staffing dashboard
+    if (path === '/staffing/dashboard') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        // Verify user is studio owner/merchant
+        const userProfile = await database.collection('profiles').findOne({ 
+          userId: firebaseUser.uid,
+          role: 'merchant'
+        })
+
+        if (!userProfile) {
+          return NextResponse.json({ error: 'Access denied: Merchant role required' }, { status: 403 })
+        }
+
+        const url = new URL(request.url)
+        const startDate = url.searchParams.get('startDate') || new Date().toISOString().split('T')[0]
+        const endDate = url.searchParams.get('endDate') || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+
+        // Get all studio classes in date range
+        const classes = await database.collection('studio_classes').find({
+          studioId: firebaseUser.uid,
+          startTime: {
+            $gte: new Date(startDate),
+            $lte: new Date(endDate)
+          }
+        }).sort({ startTime: 1 }).toArray()
+
+        // Get all instructors associated with the studio
+        const instructors = await database.collection('profiles').find({
+          role: 'instructor'
+          // Add studio association filtering when available
+        }).toArray()
+
+        // Get pending swap requests requiring approval
+        const pendingSwaps = await database.collection('swap_requests').find({
+          studioId: firebaseUser.uid,
+          status: 'awaiting_approval'
+        }).toArray()
+
+        // Get open coverage requests
+        const openCoverage = await database.collection('coverage_requests').find({
+          studioId: firebaseUser.uid,
+          status: 'open'
+        }).toArray()
+
+        // Enhance classes with additional info
+        const enhancedClasses = classes.map(classItem => ({
+          ...classItem,
+          needsCoverage: classItem.needsCoverage || false,
+          hasAssignedInstructor: !!classItem.assignedInstructorId,
+          instructorName: classItem.assignedInstructorName || 'Unassigned'
+        }))
+
+        // Calculate statistics
+        const stats = {
+          totalClasses: classes.length,
+          assignedClasses: classes.filter(c => c.assignedInstructorId).length,
+          unassignedClasses: classes.filter(c => !c.assignedInstructorId).length,
+          needingCoverage: classes.filter(c => c.needsCoverage).length,
+          pendingSwaps: pendingSwaps.length,
+          openCoverageRequests: openCoverage.length
+        }
+
+        return NextResponse.json({
+          classes: enhancedClasses,
+          instructors: instructors,
+          pendingSwaps: pendingSwaps,
+          openCoverage: openCoverage,
+          stats: stats,
+          dateRange: { startDate, endDate }
+        })
+      } catch (error) {
+        console.error('Staffing dashboard error:', error)
+        return NextResponse.json({ error: 'Failed to fetch staffing dashboard' }, { status: 500 })
+      }
+    }
+
+    // Get staffing chat messages
+    if (path.startsWith('/staffing/chat')) {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const url = new URL(request.url)
+        const studioId = url.searchParams.get('studioId')
+        const limit = parseInt(url.searchParams.get('limit')) || 50
+
+        if (!studioId) {
+          return NextResponse.json({ error: 'Studio ID is required' }, { status: 400 })
+        }
+
+        // Get chat messages for the studio
+        const messages = await database.collection('staffing_chat').find({
+          studioId: studioId
+        }).sort({ timestamp: -1 }).limit(limit).toArray()
+
+        // Reverse to show oldest first
+        messages.reverse()
+
+        return NextResponse.json({
+          messages: messages,
+          messageCount: messages.length,
+          studioId: studioId
+        })
+      } catch (error) {
+        console.error('Chat messages fetch error:', error)
+        return NextResponse.json({ error: 'Failed to fetch chat messages' }, { status: 500 })
+      }
+    }
+
+    // Get studio staffing settings
+    if (path === '/staffing/settings') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        // Verify user is studio owner/merchant
+        const userProfile = await database.collection('profiles').findOne({ 
+          userId: firebaseUser.uid,
+          role: 'merchant'
+        })
+
+        if (!userProfile) {
+          return NextResponse.json({ error: 'Access denied: Merchant role required' }, { status: 403 })
+        }
+
+        // Get studio staffing settings
+        let settings = await database.collection('studio_staffing_settings').findOne({
+          studioId: firebaseUser.uid
+        })
+
+        // If no settings exist, create default settings
+        if (!settings) {
+          settings = {
+            studioId: firebaseUser.uid,
+            requireApproval: false,
+            maxWeeklyHours: 40,
+            minHoursBetweenClasses: 1,
+            allowSelfSwap: true,
+            allowCoverageRequest: true,
+            notifyOnSwapRequest: true,
+            notifyOnCoverageRequest: true,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }
+
+          await database.collection('studio_staffing_settings').insertOne(settings)
+        }
+
+        return NextResponse.json({
+          settings: settings
+        })
+      } catch (error) {
+        console.error('Staffing settings fetch error:', error)
+        return NextResponse.json({ error: 'Failed to fetch staffing settings' }, { status: 500 })
+      }
+    }
+
+    // Get swap requests for user
+    if (path === '/staffing/swap-requests') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const url = new URL(request.url)
+        const type = url.searchParams.get('type') || 'all' // 'sent', 'received', 'all'
+        
+        let query = {}
+        if (type === 'sent') {
+          query = { initiatorId: firebaseUser.uid }
+        } else if (type === 'received') {
+          query = { recipientId: firebaseUser.uid }
+        } else {
+          query = { 
+            $or: [
+              { initiatorId: firebaseUser.uid },
+              { recipientId: firebaseUser.uid }
+            ]
+          }
+        }
+
+        const swapRequests = await database.collection('swap_requests').find(query)
+          .sort({ createdAt: -1 }).toArray()
+
+        // Get class details for each swap request
+        const classIds = swapRequests.map(req => req.classId)
+        const classes = await database.collection('studio_classes').find({
+          id: { $in: classIds }
+        }).toArray()
+
+        // Get user profiles for participants
+        const userIds = [...new Set([
+          ...swapRequests.map(req => req.initiatorId),
+          ...swapRequests.map(req => req.recipientId)
+        ])]
+        const users = await database.collection('profiles').find({
+          userId: { $in: userIds }
+        }).toArray()
+
+        // Enhance swap requests with additional data
+        const enhancedSwapRequests = swapRequests.map(request => {
+          const classData = classes.find(c => c.id === request.classId)
+          const initiator = users.find(u => u.userId === request.initiatorId)
+          const recipient = users.find(u => u.userId === request.recipientId)
+
+          return {
+            ...request,
+            classData: classData,
+            initiatorName: initiator?.name || 'Unknown',
+            recipientName: recipient?.name || 'Unknown',
+            userRole: request.initiatorId === firebaseUser.uid ? 'initiator' : 'recipient'
+          }
+        })
+
+        return NextResponse.json({
+          swapRequests: enhancedSwapRequests,
+          totalRequests: enhancedSwapRequests.length,
+          pendingRequests: enhancedSwapRequests.filter(req => req.status === 'pending').length
+        })
+      } catch (error) {
+        console.error('Swap requests fetch error:', error)
+        return NextResponse.json({ error: 'Failed to fetch swap requests' }, { status: 500 })
+      }
+    }
+
     return NextResponse.json({ error: 'Endpoint not found' }, { status: 404 })
   } catch (error) {
     console.error('GET Error:', error)
