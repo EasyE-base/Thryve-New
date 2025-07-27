@@ -135,8 +135,13 @@ const instructorData = {
 }
 
 export default function InstructorDashboard() {
-  const { user, role, loading: authLoading } = useAuth()
+  const { user, role } = useAuth()
+  const router = useRouter()
+  const [activeTab, setActiveTab] = useState('overview')
+  const [instructor, setInstructor] = useState(null)
+  const [payouts, setPayouts] = useState([])
   const [loading, setLoading] = useState(true)
+  const [stripeConnectSuccess, setStripeConnectSuccess] = useState(false)
   const [activeSection, setActiveSection] = useState('dashboard')
   const [calendarView, setCalendarView] = useState('week')
   const [selectedDate, setSelectedDate] = useState(new Date())
