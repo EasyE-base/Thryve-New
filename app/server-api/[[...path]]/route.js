@@ -1205,6 +1205,168 @@ async function handlePOST(request) {
       }
     }
     
+    // Mark notification as read
+    if (path === '/notifications/mark-read') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { notificationId } = body
+
+        await database.collection('notifications').updateOne(
+          { 
+            id: notificationId,
+            recipients: firebaseUser.uid
+          },
+          { 
+            $set: { 
+              readAt: new Date(),
+              status: 'read'
+            }
+          }
+        )
+
+        return NextResponse.json({
+          message: 'Notification marked as read'
+        })
+      } catch (error) {
+        console.error('Mark notification read error:', error)
+        return NextResponse.json({ error: 'Failed to mark notification as read' }, { status: 500 })
+      }
+    }
+
+    // Trigger automated notifications (internal system use)
+    if (path === '/notifications/trigger') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { trigger, entityId, userId, data } = body
+
+        let notification = null
+
+        switch (trigger) {
+          case 'booking_confirmed':
+            notification = {
+              id: `notification-${Date.now()}`,
+              senderId: 'system',
+              recipients: [userId],
+              type: 'in_app',
+              subject: 'Booking Confirmed',
+              message: `Your booking for ${data.className} has been confirmed for ${data.date} at ${data.time}`,
+              templateId: 'booking_confirmed',
+              templateData: data,
+              status: 'delivered',
+              sentAt: new Date(),
+              createdAt: new Date()
+            }
+            break
+
+          case 'class_cancelled':
+            notification = {
+              id: `notification-${Date.now()}`,
+              senderId: 'system',
+              recipients: [userId],
+              type: 'in_app',
+              subject: 'Class Cancelled',
+              message: `Your class ${data.className} on ${data.date} has been cancelled. You will be refunded.`,
+              templateId: 'class_cancelled',
+              templateData: data,
+              status: 'delivered',
+              sentAt: new Date(),
+              createdAt: new Date()
+            }
+            break
+
+          case 'no_show_penalty':
+            notification = {
+              id: `notification-${Date.now()}`,
+              senderId: 'system',
+              recipients: [userId],
+              type: 'in_app',
+              subject: 'No-Show Penalty Applied',
+              message: `You missed your class. ${data.creditDeducted ? '1 credit has been deducted and' : ''} a cancellation fee of $${data.feeAmount} has been charged.`,
+              templateId: 'no_show_penalty',
+              templateData: data,
+              status: 'delivered',
+              sentAt: new Date(),
+              createdAt: new Date()
+            }
+            break
+
+          case 'low_credits':
+            notification = {
+              id: `notification-${Date.now()}`,
+              senderId: 'system',
+              recipients: [userId],
+              type: 'in_app',
+              subject: 'Low Credit Balance',
+              message: `Low balance: only ${data.creditsRemaining} class${data.creditsRemaining === 1 ? '' : 'es'} remaining in your pack`,
+              templateId: 'low_credits',
+              templateData: data,
+              status: 'delivered',
+              sentAt: new Date(),
+              createdAt: new Date()
+            }
+            break
+
+          default:
+            return NextResponse.json({ error: 'Unknown notification trigger' }, { status: 400 })
+        }
+
+        if (notification) {
+          await database.collection('notifications').insertOne(notification)
+        }
+
+        return NextResponse.json({
+          message: 'Notification triggered successfully',
+          notificationId: notification.id
+        })
+      } catch (error) {
+        console.error('Trigger notification error:', error)
+        return NextResponse.json({ error: 'Failed to trigger notification' }, { status: 500 })
+      }
+    }
+
+    // Record analytics event
+    if (path === '/analytics/event') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { eventType, entityId, data } = body
+
+        const analyticsEvent = {
+          id: `event-${Date.now()}`,
+          userId: firebaseUser.uid,
+          eventType: eventType,
+          entityId: entityId,
+          data: data || {},
+          timestamp: new Date(),
+          createdAt: new Date()
+        }
+
+        await database.collection('analytics_events').insertOne(analyticsEvent)
+
+        return NextResponse.json({
+          message: 'Analytics event recorded',
+          eventId: analyticsEvent.id
+        })
+      } catch (error) {
+        console.error('Analytics event error:', error)
+        return NextResponse.json({ error: 'Failed to record analytics event' }, { status: 500 })
+      }
+    }
+
     return NextResponse.json({ error: 'Endpoint not found' }, { status: 404 })
   } catch (error) {
     console.error('POST Error:', error)
