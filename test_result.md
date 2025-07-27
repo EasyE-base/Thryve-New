@@ -360,7 +360,7 @@ backend:
           agent: "testing"
           comment: "COMPREHENSIVE TESTING COMPLETED: Firebase user lookup API is working correctly with proper validation and error handling. ✅ PARAMETER VALIDATION: Missing UID parameter correctly returns 400 Bad Request with 'UID is required' error message. ✅ ERROR HANDLING: Non-existent user UIDs correctly return 404 Not Found with 'User not found' error message. ✅ RESPONSE STRUCTURE: When user exists, API returns proper structure with uid, email, role, onboarding_complete, and full profile data. ✅ MONGODB INTEGRATION: Successfully queries profiles collection using Firebase UID as userId field. ✅ PROPER HTTP STATUS CODES: Correct status codes for all scenarios (400 for missing params, 404 for not found, 200 for success). API endpoint is fully functional and ready for production use. External URL has 502 infrastructure issues but localhost API is fully functional."
 
-  - task: "POST /server-api/instructor/classes - Create classes for instructors"
+  - task: "POST /server-api/studio/classes - Studios create classes and assign instructors"
     implemented: true
     working: true
     file: "app/server-api/[[...path]]/route.js"
@@ -370,12 +370,12 @@ backend:
     status_history:
         - working: "unknown"
           agent: "main"
-          comment: "NEW ENDPOINT: Implemented class creation functionality for instructors. Accepts class data including title, description, type, level, duration, price, capacity, location, date, time, recurring, requirements, and amenities. Validates required fields, checks instructor role, and saves to instructor_classes collection in MongoDB. Returns created class data with generated ID."
+          comment: "CORRECTED BUSINESS MODEL: Implemented studio-centric class creation where studios (merchants) create classes and optionally assign instructors. Validates merchant role, accepts instructor assignment data, and stores classes in studio_classes collection with proper studio and instructor relationship data."
         - working: true
           agent: "testing"
-          comment: "COMPREHENSIVE CLASS MANAGEMENT SYSTEM TESTING COMPLETED SUCCESSFULLY: Extensive testing of POST /server-api/instructor/classes endpoint completed with EXCELLENT RESULTS (90% success rate, 27/30 tests passed). ✅ AUTHENTICATION TESTING: Correctly returns 401 for unauthenticated requests and requires Firebase authentication with instructor role validation. ✅ CLASS CREATION TESTING: Successfully creates classes with all required fields (title, description, type, location, date, time) and optional fields (level, duration, price, capacity, requirements, amenities). Proper validation returns 400 for missing required fields. ✅ DATA STRUCTURE VALIDATION: All class data properly stored in instructor_classes collection with correct instructor association (instructorId, instructorName, instructorEmail). Response includes created class data with generated ID and success message. ✅ DEFAULT VALUES: Correctly applies defaults (level='All Levels', duration=60, price=25, capacity=15) for optional fields. ✅ AUTOMATIC FIELDS: Properly generates id, enrolled=0, status='scheduled', enrolledStudents=[], createdAt, updatedAt. ✅ DATA TYPE HANDLING: Converts invalid data types to appropriate defaults. ✅ ERROR HANDLING: Proper handling of malformed JSON, empty requests, and long field values. ✅ INTEGRATION: Create-then-retrieve workflow working correctly with proper database persistence. The Class Management System for instructors is production-ready and fully functional."
+          comment: "🎉 STUDIO-CENTRIC CLASS MANAGEMENT SYSTEM TESTING COMPLETED SUCCESSFULLY: Comprehensive testing of the corrected business model where studios create classes and assign instructors. ✅ STUDIO CLASS CREATION: Studios can successfully create classes with and without instructor assignment. Classes stored in studio_classes collection with proper studioId, studioName, studioEmail fields. ✅ INSTRUCTOR ASSIGNMENT: Optional instructor assignment working correctly with assignedInstructorId, assignedInstructorName, and instructorAssigned boolean flag. ✅ AUTHENTICATION & ROLE VALIDATION: Properly requires merchant role for class creation (403 for non-merchants). ✅ DATA STRUCTURE: All required fields validated including studio ownership, instructor assignment, automatic fields (enrolled=0, status='scheduled', enrolledStudents=[], createdAt, updatedAt). ✅ VALIDATION: Missing required fields properly rejected with 400 status. ✅ BUSINESS LOGIC: Studios control class creation and instructor assignment, matching real fitness studio operations. The corrected studio-centric class management system is production-ready and fully functional."
 
-  - task: "GET /server-api/instructor/classes - Fetch instructor's classes"
+  - task: "GET /server-api/studio/classes - Studios view their created classes"
     implemented: true
     working: true
     file: "app/server-api/[[...path]]/route.js"
@@ -385,10 +385,40 @@ backend:
     status_history:
         - working: "unknown"
           agent: "main"
-          comment: "NEW ENDPOINT: Implemented class retrieval functionality for instructors. Fetches all classes for authenticated instructor from instructor_classes collection, sorted by creation date (newest first). Returns classes array with proper authentication and role validation."
+          comment: "CORRECTED BUSINESS MODEL: Implemented studio class retrieval where studios view all classes they've created from studio_classes collection. Validates merchant role and filters by studioId."
         - working: true
           agent: "testing"
-          comment: "COMPREHENSIVE CLASS RETRIEVAL TESTING COMPLETED SUCCESSFULLY: Extensive testing of GET /server-api/instructor/classes endpoint completed with EXCELLENT RESULTS. ✅ AUTHENTICATION PROTECTION: Correctly returns 401 for unauthenticated requests and requires Firebase authentication with instructor role validation. ✅ DATA RETRIEVAL: Successfully fetches all classes for authenticated instructor from instructor_classes collection. Returns proper JSON structure with 'classes' array. ✅ RESPONSE STRUCTURE: Classes returned as array with all required fields (id, title, description, instructorId, createdAt) present in class objects. ✅ SORTING VALIDATION: Classes properly sorted by creation date (newest first) as confirmed by multiple class creation and retrieval testing. ✅ EMPTY STATE HANDLING: Returns empty array when instructor has no classes, maintaining consistent API structure. ✅ ROLE VALIDATION: Properly restricts access to instructor role only. ✅ DATABASE INTEGRATION: Successfully queries instructor_classes collection with proper MongoDB integration. The class retrieval functionality is production-ready and working correctly with comprehensive data validation and proper error handling."
+          comment: "✅ STUDIO CLASS RETRIEVAL TESTING COMPLETED SUCCESSFULLY: Studios can successfully view all classes they've created. ✅ AUTHENTICATION PROTECTION: Correctly returns 401 for unauthenticated requests and requires merchant role (404 for non-merchants). ✅ DATA RETRIEVAL: Successfully fetches classes from studio_classes collection filtered by studioId. ✅ RESPONSE STRUCTURE: Returns proper JSON structure with 'classes' array containing all studio-created classes. ✅ SORTING: Classes properly sorted by creation date (newest first). ✅ ROLE VALIDATION: Properly restricts access to merchant/studio role only. The studio class retrieval functionality is working correctly and production-ready."
+
+  - task: "GET /server-api/studio/instructors - Studios view available instructors for assignment"
+    implemented: true
+    working: true
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "NEW ENDPOINT: Implemented instructor marketplace for studios. Studios can view all available instructors with relevant information for assignment decisions including payment status."
+        - working: true
+          agent: "testing"
+          comment: "✅ STUDIO INSTRUCTOR MARKETPLACE TESTING COMPLETED SUCCESSFULLY: Studios can successfully view available instructors for assignment. ✅ AUTHENTICATION PROTECTION: Correctly returns 401 for unauthenticated requests and requires merchant role (403 for non-merchants). ✅ DATA RETRIEVAL: Successfully fetches all instructors from profiles collection with role='instructor'. ✅ RESPONSE STRUCTURE: Returns proper JSON structure with 'instructors' array containing instructor profiles. ✅ INSTRUCTOR DATA: Includes relevant fields for assignment decisions (userId, name, email, stripeAccountStatus). ✅ ROLE VALIDATION: Properly restricts access to merchant/studio role only. The instructor marketplace functionality is working correctly and production-ready."
+
+  - task: "GET /server-api/instructor/classes - Instructors view classes assigned to them (UPDATED BEHAVIOR)"
+    implemented: true
+    working: true
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "CORRECTED BUSINESS MODEL: Updated instructor class retrieval to show only classes assigned to them by studios. Queries studio_classes collection where assignedInstructorId matches instructor's UID."
+        - working: true
+          agent: "testing"
+          comment: "✅ INSTRUCTOR ASSIGNED CLASSES TESTING COMPLETED SUCCESSFULLY: Instructors can successfully view classes assigned to them by studios. ✅ AUTHENTICATION PROTECTION: Correctly returns 401 for unauthenticated requests and requires instructor role (404 for non-instructors). ✅ DATA RETRIEVAL: Successfully fetches assigned classes from studio_classes collection filtered by assignedInstructorId. ✅ RESPONSE STRUCTURE: Returns proper JSON structure with 'classes' array containing only studio-assigned classes. ✅ BUSINESS LOGIC VALIDATION: Instructors see classes assigned by studios, not classes they created (corrected from previous instructor-creates model). ✅ STUDIO RELATIONSHIP: Classes include studio information showing which studio assigned them. ✅ ROLE VALIDATION: Properly restricts access to instructor role only. The corrected instructor assigned classes functionality is working correctly and production-ready."
 
 frontend:
   - task: "Firebase Authentication Main Page Integration"
