@@ -186,7 +186,7 @@ export default function StudioCreateClassPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="type" className="text-white">Class Type *</Label>
-                  <Select onValueChange={(value) => handleInputChange('type', value)} required>
+                  <Select onValueChange={(value) => handleInputChange('type', value)} value={formData.type}>
                     <SelectTrigger className="bg-white/10 border-white/20 text-white">
                       <SelectValue placeholder="Select class type" />
                     </SelectTrigger>
