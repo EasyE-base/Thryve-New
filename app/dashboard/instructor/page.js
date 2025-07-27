@@ -279,7 +279,8 @@ export default function InstructorDashboard() {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Activity },
     { id: 'schedule', label: 'Schedule', icon: CalendarIcon },
-    { id: 'classes', label: 'Classes', icon: Users },
+    { id: 'staffing', label: 'Staffing', icon: Users },
+    { id: 'classes', label: 'Classes', icon: Building2 },
     { id: 'performance', label: 'Performance', icon: BarChart3 },
     { id: 'messages', label: 'Messages', icon: MessageSquare },
     { id: 'earnings', label: 'Earnings', icon: DollarSign },
