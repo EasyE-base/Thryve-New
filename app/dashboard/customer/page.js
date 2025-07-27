@@ -82,14 +82,10 @@ const sampleData = {
 
 export default function CustomerDashboard() {
   const { user, role, loading: authLoading } = useAuth()
-  const [classes, setClasses] = useState([])
-  const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
-  const [bookingLoading, setBookingLoading] = useState(false)
-  const [selectedClass, setSelectedClass] = useState(null)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [filterType, setFilterType] = useState('all')
-  
+  const [activeTab, setActiveTab] = useState('overview')
+  const [calendarView, setCalendarView] = useState('month')
+  const [selectedDate, setSelectedDate] = useState(new Date())
   const router = useRouter()
 
   useEffect(() => {
@@ -105,34 +101,11 @@ export default function CustomerDashboard() {
       return
     }
 
-    if (user) {
-      loadDashboardData()
-    }
-  }, [user, role, authLoading, router])
-
-  const loadDashboardData = async () => {
-    try {
-      const [classesRes, bookingsRes] = await Promise.all([
-        fetch('/api/classes'),
-        fetch('/api/bookings')
-      ])
-
-      if (classesRes.ok) {
-        const classesData = await classesRes.json()
-        setClasses(classesData.classes || [])
-      }
-
-      if (bookingsRes.ok) {
-        const bookingsData = await bookingsRes.json()
-        setBookings(bookingsData.bookings || [])
-      }
-    } catch (error) {
-      console.error('Failed to load dashboard data:', error)
-      toast.error('Failed to load dashboard data')
-    } finally {
+    // Simulate loading
+    setTimeout(() => {
       setLoading(false)
-    }
-  }
+    }, 1000)
+  }, [user, role, authLoading, router])
 
   const handleSignOut = async () => {
     try {
@@ -144,78 +117,27 @@ export default function CustomerDashboard() {
     }
   }
 
-  const handleBookClass = async (classItem) => {
-    if (bookingLoading) return
-
-    setBookingLoading(true)
-
-    try {
-      // Create payment intent
-      const paymentRes = await fetch('/api/stripe/create-payment-intent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ classId: classItem.id })
-      })
-
-      if (!paymentRes.ok) {
-        throw new Error('Failed to create payment intent')
+  const eventStyleGetter = (event, start, end, isSelected) => {
+    const typeColors = {
+      'Yoga': '#8B5CF6',
+      'HIIT': '#EF4444',
+      'Pilates': '#10B981',
+      'Strength': '#F59E0B'
+    }
+    
+    const backgroundColor = typeColors[event.resource?.type] || '#3B82F6'
+    
+    return {
+      style: {
+        backgroundColor,
+        borderRadius: '6px',
+        opacity: 0.8,
+        color: 'white',
+        border: '0px',
+        display: 'block'
       }
-
-      const { clientSecret } = await paymentRes.json()
-      
-      // Initialize Stripe
-      const stripe = await getStripe()
-      
-      // Confirm payment
-      const { error: paymentError, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
-        payment_method: {
-          card: {
-            // For demo purposes, using test card
-            number: '4242424242424242',
-            exp_month: 12,
-            exp_year: 2025,
-            cvc: '123'
-          }
-        }
-      })
-
-      if (paymentError) {
-        throw new Error(paymentError.message)
-      }
-
-      // Create booking
-      const bookingRes = await fetch('/api/bookings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          classId: classItem.id,
-          paymentIntentId: paymentIntent.id
-        })
-      })
-
-      if (!bookingRes.ok) {
-        throw new Error('Failed to create booking')
-      }
-
-      toast.success('Class booked successfully!')
-      setSelectedClass(null)
-      await loadDashboardData() // Refresh data
-    } catch (error) {
-      toast.error(error.message || 'Failed to book class')
-    } finally {
-      setBookingLoading(false)
     }
   }
-
-  const filteredClasses = classes.filter(classItem => {
-    const matchesSearch = classItem.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         classItem.description?.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesFilter = filterType === 'all' || classItem.type === filterType
-
-    return matchesSearch && matchesFilter
-  })
-
-  const classTypes = [...new Set(classes.map(c => c.type))].filter(Boolean)
 
   if (authLoading || loading) {
     return (
@@ -271,288 +193,351 @@ export default function CustomerDashboard() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Welcome Section */}
-        <div className="mb-12">
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-            Ready to <span className="bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">Thryve?</span> 💪
-          </h2>
-          <p className="text-xl text-blue-200">
-            Discover amazing fitness classes and connect with world-class instructors
-          </p>
-        </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-4 mb-8 bg-white/10 backdrop-blur-md">
+            <TabsTrigger value="overview" className="text-white data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+              <Activity className="h-4 w-4 mr-2" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="calendar" className="text-white data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+              <CalendarIcon className="h-4 w-4 mr-2" />
+              Calendar
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="text-white data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Analytics
+            </TabsTrigger>
+            <TabsTrigger value="favorites" className="text-white data-[state=active]:bg-blue-500 data-[state=active]:text-white">
+              <Heart className="h-4 w-4 mr-2" />
+              Favorites
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="w-14 h-14 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center">
-                  <Calendar className="h-7 w-7 text-white" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-blue-200 font-medium">Classes Booked</p>
-                  <p className="text-3xl font-bold text-white">{bookings.length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="w-14 h-14 bg-gradient-to-br from-purple-400 to-purple-600 rounded-xl flex items-center justify-center">
-                  <Star className="h-7 w-7 text-white" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-blue-200 font-medium">Favorite Type</p>
-                  <p className="text-3xl font-bold text-white">Yoga</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="w-14 h-14 bg-gradient-to-br from-green-400 to-green-600 rounded-xl flex items-center justify-center">
-                  <Dumbbell className="h-7 w-7 text-white" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-blue-200 font-medium">This Month</p>
-                  <p className="text-3xl font-bold text-white">
-                    {bookings.filter(b => new Date(b.createdAt).getMonth() === new Date().getMonth()).length}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Search and Filter */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <Input
-              placeholder="Search classes..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <select
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">All Types</option>
-            {classTypes.map(type => (
-              <option key={type} value={type}>{type}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Available Classes */}
-        <div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-4">
-            Available Classes ({filteredClasses.length})
-          </h3>
-
-          {filteredClasses.length === 0 ? (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <Dumbbell className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No classes found</h3>
-                <p className="text-gray-600">
-                  {searchTerm || filterType !== 'all' 
-                    ? 'Try adjusting your search or filter criteria.'
-                    : 'Check back later for new classes.'}
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredClasses.map((classItem) => {
-                const isBooked = bookings.some(b => b.classId === classItem.id)
-                const isFull = classItem.bookings?.length >= classItem.capacity
-
-                return (
-                  <Card key={classItem.id} className="hover:shadow-lg transition-shadow">
-                    <CardHeader>
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <CardTitle className="text-lg">{classItem.title}</CardTitle>
-                          {classItem.type && (
-                            <Badge variant="secondary" className="mt-1">
-                              {classItem.type}
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="text-right">
-                          <p className="text-lg font-bold text-blue-600">
-                            {formatPrice(classItem.price)}
-                          </p>
-                        </div>
-                      </div>
-                    </CardHeader>
-
-                    <CardContent>
-                      <div className="space-y-3">
-                        {classItem.description && (
-                          <p className="text-sm text-gray-600 line-clamp-2">
-                            {classItem.description}
-                          </p>
-                        )}
-
-                        <div className="flex items-center text-sm text-gray-600">
-                          <Calendar className="h-4 w-4 mr-2" />
-                          {format(new Date(classItem.schedule), 'MMM dd, yyyy')}
-                        </div>
-
-                        <div className="flex items-center text-sm text-gray-600">
-                          <Clock className="h-4 w-4 mr-2" />
-                          {format(new Date(classItem.schedule), 'h:mm a')}
-                          {classItem.duration && ` (${classItem.duration} min)`}
-                        </div>
-
-                        {classItem.location && (
-                          <div className="flex items-center text-sm text-gray-600">
-                            <MapPin className="h-4 w-4 mr-2" />
-                            {classItem.location}
-                          </div>
-                        )}
-
-                        <div className="flex items-center text-sm text-gray-600">
-                          <Users className="h-4 w-4 mr-2" />
-                          {classItem.bookings?.length || 0} / {classItem.capacity} spots
-                        </div>
-
-                        <div className="pt-2">
-                          {isBooked ? (
-                            <Button disabled className="w-full">
-                              Already Booked ✓
-                            </Button>
-                          ) : isFull ? (
-                            <Button disabled variant="secondary" className="w-full">
-                              Class Full
-                            </Button>
-                          ) : (
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button className="w-full" onClick={() => setSelectedClass(classItem)}>
-                                  <CreditCard className="h-4 w-4 mr-2" />
-                                  Book Class
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent>
-                                <DialogHeader>
-                                  <DialogTitle>Book {classItem.title}</DialogTitle>
-                                  <DialogDescription>
-                                    Confirm your booking for this class.
-                                  </DialogDescription>
-                                </DialogHeader>
-
-                                <div className="space-y-4">
-                                  <div className="bg-gray-50 p-4 rounded-lg">
-                                    <h4 className="font-medium mb-2">{classItem.title}</h4>
-                                    <div className="space-y-1 text-sm text-gray-600">
-                                      <div className="flex items-center">
-                                        <Calendar className="h-4 w-4 mr-2" />
-                                        {format(new Date(classItem.schedule), 'EEEE, MMM dd, yyyy')}
-                                      </div>
-                                      <div className="flex items-center">
-                                        <Clock className="h-4 w-4 mr-2" />
-                                        {format(new Date(classItem.schedule), 'h:mm a')}
-                                      </div>
-                                      {classItem.location && (
-                                        <div className="flex items-center">
-                                          <MapPin className="h-4 w-4 mr-2" />
-                                          {classItem.location}
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-
-                                  <div className="flex justify-between items-center text-lg font-semibold">
-                                    <span>Total:</span>
-                                    <span className="text-blue-600">{formatPrice(classItem.price)}</span>
-                                  </div>
-
-                                  <div className="flex gap-3">
-                                    <Button 
-                                      variant="outline" 
-                                      className="flex-1"
-                                      onClick={() => setSelectedClass(null)}
-                                    >
-                                      Cancel
-                                    </Button>
-                                    <Button 
-                                      className="flex-1"
-                                      onClick={() => handleBookClass(classItem)}
-                                      disabled={bookingLoading}
-                                    >
-                                      {bookingLoading ? (
-                                        <div className="flex items-center">
-                                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                          Booking...
-                                        </div>
-                                      ) : (
-                                        <>
-                                          <CreditCard className="h-4 w-4 mr-2" />
-                                          Confirm Booking
-                                        </>
-                                      )}
-                                    </Button>
-                                  </div>
-
-                                  <p className="text-xs text-gray-500 text-center">
-                                    Payment will be processed securely via Stripe
-                                  </p>
-                                </div>
-                              </DialogContent>
-                            </Dialog>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )
-              })}
+          {/* Overview Tab */}
+          <TabsContent value="overview" className="space-y-8">
+            {/* Welcome Section */}
+            <div className="mb-8">
+              <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
+                Ready to <span className="bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">Thryve?</span> 💪
+              </h2>
+              <p className="text-xl text-blue-200">
+                Your fitness journey continues! Here's what's happening today.
+              </p>
             </div>
-          )}
-        </div>
 
-        {/* Recent Bookings */}
-        {bookings.length > 0 && (
-          <div className="mt-12">
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">
-              Recent Bookings
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {bookings.slice(0, 3).map((booking) => (
-                <Card key={booking.id}>
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <h4 className="font-medium">{booking.class?.title}</h4>
-                      <Badge variant={booking.status === 'confirmed' ? 'default' : 'secondary'}>
-                        {booking.status}
+            {/* Overview Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-blue-200 font-medium">This Week</p>
+                      <p className="text-3xl font-bold text-white">5</p>
+                      <p className="text-sm text-blue-300">Classes Booked</p>
+                    </div>
+                    <div className="w-14 h-14 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center">
+                      <BookOpen className="h-7 w-7 text-white" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-blue-200 font-medium">Total Attended</p>
+                      <p className="text-3xl font-bold text-white">28</p>
+                      <p className="text-sm text-blue-300">Classes</p>
+                    </div>
+                    <div className="w-14 h-14 bg-gradient-to-br from-green-400 to-green-600 rounded-xl flex items-center justify-center">
+                      <Trophy className="h-7 w-7 text-white" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-blue-200 font-medium">Loyalty Points</p>
+                      <p className="text-3xl font-bold text-white">1,240</p>
+                      <p className="text-sm text-blue-300">+50 this week</p>
+                    </div>
+                    <div className="w-14 h-14 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-xl flex items-center justify-center">
+                      <Award className="h-7 w-7 text-white" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-blue-200 font-medium">Streak</p>
+                      <p className="text-3xl font-bold text-white">7</p>
+                      <p className="text-sm text-blue-300">Days active</p>
+                    </div>
+                    <div className="w-14 h-14 bg-gradient-to-br from-red-400 to-red-600 rounded-xl flex items-center justify-center">
+                      <Flame className="h-7 w-7 text-white" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Upcoming Classes */}
+            <Card className="bg-white/10 backdrop-blur-md border-white/20">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center">
+                  <CalendarDays className="h-5 w-5 mr-2" />
+                  Upcoming Classes
+                </CardTitle>
+                <CardDescription className="text-blue-200">
+                  Your next 3 scheduled classes
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {sampleData.events.slice(0, 3).map((event, index) => (
+                    <div key={event.id} className="flex items-center justify-between p-4 bg-white/5 rounded-xl">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-purple-600 rounded-lg flex items-center justify-center">
+                          <Dumbbell className="h-6 w-6 text-white" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-white">{event.title}</h4>
+                          <p className="text-sm text-blue-200">{event.resource?.instructor}</p>
+                          <p className="text-xs text-blue-300">{format(event.start, 'MMM dd, h:mm a')}</p>
+                        </div>
+                      </div>
+                      <Badge className="bg-purple-500/20 text-purple-200">
+                        {event.resource?.type}
                       </Badge>
                     </div>
-                    <div className="space-y-1 text-sm text-gray-600">
-                      <div className="flex items-center">
-                        <Calendar className="h-4 w-4 mr-2" />
-                        {booking.class?.schedule && format(new Date(booking.class.schedule), 'MMM dd, h:mm a')}
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Notifications */}
+            <Card className="bg-white/10 backdrop-blur-md border-white/20">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center">
+                  <Bell className="h-5 w-5 mr-2" />
+                  Notifications
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {sampleData.notifications.map((notification) => (
+                    <div key={notification.id} className="flex items-start space-x-3 p-3 bg-white/5 rounded-lg">
+                      <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
+                      <div className="flex-1">
+                        <p className="text-white text-sm">{notification.message}</p>
+                        <p className="text-blue-300 text-xs mt-1">{notification.time}</p>
                       </div>
-                      <div className="flex items-center">
-                        <CreditCard className="h-4 w-4 mr-2" />
-                        {formatPrice(booking.amount)}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Calendar Tab */}
+          <TabsContent value="calendar" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-3xl font-bold text-white">Class Calendar</h2>
+              <div className="flex items-center space-x-4">
+                <div className="flex bg-white/10 backdrop-blur-md rounded-lg p-1">
+                  <button
+                    onClick={() => setCalendarView('month')}
+                    className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                      calendarView === 'month' 
+                        ? 'bg-blue-500 text-white' 
+                        : 'text-blue-200 hover:text-white'
+                    }`}
+                  >
+                    Month
+                  </button>
+                  <button
+                    onClick={() => setCalendarView('week')}
+                    className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                      calendarView === 'week' 
+                        ? 'bg-blue-500 text-white' 
+                        : 'text-blue-200 hover:text-white'
+                    }`}
+                  >
+                    Week
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <Card className="bg-white/10 backdrop-blur-md border-white/20">
+              <CardContent className="p-6">
+                <div className="h-96">
+                  <Calendar
+                    localizer={localizer}
+                    events={sampleData.events}
+                    startAccessor="start"
+                    endAccessor="end"
+                    style={{ height: '100%' }}
+                    view={calendarView}
+                    onView={setCalendarView}
+                    eventPropGetter={eventStyleGetter}
+                    onSelectEvent={(event) => {
+                      toast.info(`Selected: ${event.title} with ${event.resource?.instructor}`)
+                    }}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Analytics Tab */}
+          <TabsContent value="analytics" className="space-y-6">
+            <h2 className="text-3xl font-bold text-white mb-6">Activity Analytics</h2>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Weekly Attendance */}
+              <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                <CardHeader>
+                  <CardTitle className="text-white">Weekly Attendance</CardTitle>
+                  <CardDescription className="text-blue-200">
+                    Classes attended this week
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={sampleData.weeklyAttendance}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                        <XAxis dataKey="day" stroke="#9CA3AF" />
+                        <YAxis stroke="#9CA3AF" />
+                        <Tooltip 
+                          contentStyle={{
+                            backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                            border: '1px solid rgba(59, 130, 246, 0.2)',
+                            borderRadius: '8px',
+                            color: 'white'
+                          }}
+                        />
+                        <Bar dataKey="classes" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Class Types */}
+              <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                <CardHeader>
+                  <CardTitle className="text-white">Class Types</CardTitle>
+                  <CardDescription className="text-blue-200">
+                    Distribution of classes booked
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={sampleData.classTypes}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                        >
+                          {sampleData.classTypes.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Attendance Trend */}
+            <Card className="bg-white/10 backdrop-blur-md border-white/20">
+              <CardHeader>
+                <CardTitle className="text-white">Attendance Trend</CardTitle>
+                <CardDescription className="text-blue-200">
+                  Your progress over the past 6 months
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={sampleData.attendanceTrend}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                      <XAxis dataKey="month" stroke="#9CA3AF" />
+                      <YAxis stroke="#9CA3AF" />
+                      <Tooltip 
+                        contentStyle={{
+                          backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                          border: '1px solid rgba(59, 130, 246, 0.2)',
+                          borderRadius: '8px',
+                          color: 'white'
+                        }}
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="classes" 
+                        stroke="#10B981" 
+                        strokeWidth={3}
+                        dot={{ fill: '#10B981', strokeWidth: 2, r: 4 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Favorites Tab */}
+          <TabsContent value="favorites" className="space-y-6">
+            <h2 className="text-3xl font-bold text-white mb-6">My Favorites</h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {sampleData.favorites.map((favorite) => (
+                <Card key={favorite.id} className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
+                  <CardContent className="p-6">
+                    <div className="text-center">
+                      <div className="w-16 h-16 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        {favorite.type === 'studio' ? (
+                          <MapPin className="h-8 w-8 text-white" />
+                        ) : (
+                          <User className="h-8 w-8 text-white" />
+                        )}
                       </div>
+                      <h3 className="text-lg font-semibold text-white mb-2">{favorite.name}</h3>
+                      <div className="flex items-center justify-center mb-4">
+                        <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                        <span className="text-blue-200 ml-1">{favorite.rating}</span>
+                      </div>
+                      <Button 
+                        size="sm" 
+                        className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white w-full"
+                        onClick={() => toast.success('Booking feature coming soon!')}
+                      >
+                        Book Again
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
-          </div>
-        )}
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   )
