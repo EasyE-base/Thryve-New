@@ -158,7 +158,7 @@ export default function MyBookingsPage() {
       }
 
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/bookings`, {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/server-api/bookings`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
