@@ -420,6 +420,96 @@ backend:
           agent: "testing"
           comment: "✅ INSTRUCTOR ASSIGNED CLASSES TESTING COMPLETED SUCCESSFULLY: Instructors can successfully view classes assigned to them by studios. ✅ AUTHENTICATION PROTECTION: Correctly returns 401 for unauthenticated requests and requires instructor role (404 for non-instructors). ✅ DATA RETRIEVAL: Successfully fetches assigned classes from studio_classes collection filtered by assignedInstructorId. ✅ RESPONSE STRUCTURE: Returns proper JSON structure with 'classes' array containing only studio-assigned classes. ✅ BUSINESS LOGIC VALIDATION: Instructors see classes assigned by studios, not classes they created (corrected from previous instructor-creates model). ✅ STUDIO RELATIONSHIP: Classes include studio information showing which studio assigned them. ✅ ROLE VALIDATION: Properly restricts access to instructor role only. The corrected instructor assigned classes functionality is working correctly and production-ready."
 
+  - task: "GET /server-api/user/memberships - Retrieve user's active memberships, class packs, and X Pass credits"
+    implemented: true
+    working: true
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "NEW BUSINESS LOGIC ENDPOINT: Implemented comprehensive user membership and payment method retrieval. Returns user's active memberships, class packs, X Pass credits, and total credit count. Essential for determining no-show penalty logic and payment method validation."
+        - working: true
+          agent: "testing"
+          comment: "✅ USER MEMBERSHIPS ENDPOINT TESTING COMPLETED SUCCESSFULLY: Comprehensive testing validates all business logic functionality. ✅ AUTHENTICATION PROTECTION: Correctly returns 401 for unauthenticated requests. ✅ DATA STRUCTURE: Returns proper JSON structure with memberships, classPacks, xPassCredits arrays and totalCredits count. ✅ BUSINESS LOGIC: Properly queries user_memberships, user_class_packs, and user_xpass_credits collections. ✅ CREDIT CALCULATION: Accurately calculates total available credits across all payment methods. ✅ DATABASE INTEGRATION: Successfully integrates with MongoDB collections for comprehensive user payment method tracking. The endpoint is production-ready and essential for no-show penalty processing and payment method determination."
+
+  - task: "GET /server-api/user/transactions - Fetch user's transaction history (purchases, fees, penalties)"
+    implemented: true
+    working: true
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "NEW BUSINESS LOGIC ENDPOINT: Implemented comprehensive user transaction history retrieval. Shows all business transactions including X Pass purchases, no-show fees, platform fees, and penalty records. Essential for transparent billing and audit trail."
+        - working: true
+          agent: "testing"
+          comment: "✅ USER TRANSACTIONS ENDPOINT TESTING COMPLETED SUCCESSFULLY: Comprehensive testing validates transaction history functionality. ✅ AUTHENTICATION PROTECTION: Correctly returns 401 for unauthenticated requests. ✅ DATA STRUCTURE: Returns proper JSON structure with transactions array containing complete transaction records. ✅ TRANSACTION TYPES: Successfully handles all transaction types (xpass_purchase, no_show_fee, platform_fee, etc.). ✅ SORTING: Transactions properly sorted by creation date (newest first, limit 50). ✅ DATABASE INTEGRATION: Successfully queries user_transactions collection with proper filtering by userId. The endpoint provides complete transaction transparency and is production-ready."
+
+  - task: "POST /server-api/user/purchase-xpass - Handle X Pass credit pack purchases (5/10/15 credit packages)"
+    implemented: true
+    working: true
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "NEW BUSINESS LOGIC ENDPOINT: Implemented X Pass credit pack purchase system with proper pricing (Basic: 5 credits/$75, Standard: 10 credits/$140, Premium: 15 credits/$195). Creates credit packs with 1-year expiry and transaction records. Essential for X Pass revenue model."
+        - working: true
+          agent: "testing"
+          comment: "✅ X PASS PURCHASE ENDPOINT TESTING COMPLETED SUCCESSFULLY: All three package types working perfectly with proper pricing and business logic. ✅ PACKAGE VALIDATION: Basic ($75/5 credits), Standard ($140/10 credits), Premium ($195/15 credits) all validated. ✅ AUTHENTICATION PROTECTION: Correctly returns 401 for unauthenticated requests. ✅ CREDIT PACK CREATION: Successfully creates X Pass credit packs in user_xpass_credits collection with proper expiry (1 year). ✅ TRANSACTION LOGGING: Creates transaction records in user_transactions collection for audit trail. ✅ BUSINESS LOGIC: Proper package validation, pricing enforcement, and credit allocation. ✅ DATABASE INTEGRATION: Successfully integrates with MongoDB for credit pack and transaction storage. The X Pass purchase system is production-ready and implements the complete revenue model."
+
+  - task: "GET /server-api/studio/xpass-settings - Retrieve studio's X Pass participation settings"
+    implemented: true
+    working: true
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "NEW BUSINESS LOGIC ENDPOINT: Implemented studio X Pass settings retrieval for business configuration. Returns cancellation policies, fees, accepted class types, and X Pass participation status. Essential for studio revenue optimization."
+        - working: true
+          agent: "testing"
+          comment: "✅ STUDIO X PASS SETTINGS RETRIEVAL TESTING COMPLETED SUCCESSFULLY: Studio business configuration endpoint working perfectly. ✅ AUTHENTICATION PROTECTION: Correctly returns 401 for unauthenticated requests and requires merchant role (403 for non-merchants). ✅ DATA STRUCTURE: Returns proper JSON structure with xpassEnabled, acceptedClassTypes, cancellationWindow, noShowFee, lateCancelFee fields. ✅ DEFAULT SETTINGS: Provides sensible defaults (2h cancellation window, $15 no-show fee, $10 late cancel fee). ✅ BUSINESS LOGIC: Properly queries studio_xpass_settings collection with studio-specific filtering. ✅ DATABASE INTEGRATION: Successfully integrates with MongoDB for studio business configuration storage. The endpoint enables studios to configure their X Pass participation and fee structure."
+
+  - task: "POST /server-api/studio/xpass-settings - Update studio's X Pass participation and fee settings"
+    implemented: true
+    working: true
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "NEW BUSINESS LOGIC ENDPOINT: Implemented studio X Pass settings update for business configuration. Allows studios to configure cancellation windows, fees, eligible class types, and X Pass participation. Includes 5% platform fee rate for X Pass redemptions."
+        - working: true
+          agent: "testing"
+          comment: "✅ STUDIO X PASS SETTINGS UPDATE TESTING COMPLETED SUCCESSFULLY: Studio business configuration update working perfectly with platform revenue model. ✅ AUTHENTICATION PROTECTION: Correctly returns 401 for unauthenticated requests and requires merchant role (403 for non-merchants). ✅ SETTINGS UPDATE: Successfully updates xpassEnabled, acceptedClassTypes, cancellationWindow, noShowFee, lateCancelFee. ✅ PLATFORM REVENUE MODEL: Correctly implements 5% platform fee rate for X Pass redemptions. ✅ VALIDATION: Proper validation of settings data and business rules. ✅ DATABASE INTEGRATION: Successfully updates studio_xpass_settings collection with upsert functionality. The endpoint enables studios to optimize their revenue through X Pass participation configuration."
+
+  - task: "POST /server-api/admin/process-noshow - Process no-show penalties with different logic for packs vs unlimited"
+    implemented: true
+    working: true
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "NEW BUSINESS LOGIC ENDPOINT: Implemented comprehensive no-show penalty processing with different logic based on payment method. Class pack/X Pass users: credit deduction + fee. Unlimited members: fee only. Creates penalty and transaction records."
+        - working: true
+          agent: "testing"
+          comment: "✅ NO-SHOW PENALTY PROCESSING TESTING COMPLETED SUCCESSFULLY: Advanced business logic working correctly with proper validation. ✅ AUTHENTICATION PROTECTION: Correctly returns 401 for unauthenticated requests. ✅ BUSINESS LOGIC VALIDATION: Properly validates booking and class existence before processing penalties. ✅ PAYMENT METHOD LOGIC: Implements different penalty logic (class pack/X Pass: credit deduction + fee, unlimited: fee only). ✅ PENALTY RECORDS: Creates penalty records in user_penalties collection with proper metadata. ✅ TRANSACTION LOGGING: Creates transaction records for fees in user_transactions collection. ✅ CREDIT MANAGEMENT: Properly deducts credits from user_class_packs or user_xpass_credits collections. ✅ DATABASE INTEGRATION: Successfully integrates with multiple collections for comprehensive penalty processing. The no-show penalty system implements the complete business logic as specified."
+
 frontend:
   - task: "Studio-centric Class Management System Frontend Integration"
     implemented: true
