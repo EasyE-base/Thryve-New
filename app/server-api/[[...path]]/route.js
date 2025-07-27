@@ -2347,6 +2347,63 @@ async function handlePOST(request) {
       }
     }
 
+    // Update studio staffing settings
+    if (path === '/staffing/settings') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        // Verify user is studio owner/merchant
+        const userProfile = await database.collection('profiles').findOne({ 
+          userId: firebaseUser.uid,
+          role: 'merchant'
+        })
+
+        if (!userProfile) {
+          return NextResponse.json({ error: 'Access denied: Merchant role required' }, { status: 403 })
+        }
+
+        const body = await request.json()
+        const { 
+          requireApproval, 
+          maxWeeklyHours, 
+          minHoursBetweenClasses, 
+          allowSelfSwap, 
+          allowCoverageRequest,
+          notifyOnSwapRequest,
+          notifyOnCoverageRequest
+        } = body
+
+        const updatedSettings = {
+          studioId: firebaseUser.uid,
+          requireApproval: requireApproval ?? false,
+          maxWeeklyHours: maxWeeklyHours ?? 40,
+          minHoursBetweenClasses: minHoursBetweenClasses ?? 1,
+          allowSelfSwap: allowSelfSwap ?? true,
+          allowCoverageRequest: allowCoverageRequest ?? true,
+          notifyOnSwapRequest: notifyOnSwapRequest ?? true,
+          notifyOnCoverageRequest: notifyOnCoverageRequest ?? true,
+          updatedAt: new Date()
+        }
+
+        await database.collection('studio_staffing_settings').updateOne(
+          { studioId: firebaseUser.uid },
+          { $set: updatedSettings },
+          { upsert: true }
+        )
+
+        return NextResponse.json({
+          message: 'Staffing settings updated successfully',
+          settings: updatedSettings
+        })
+      } catch (error) {
+        console.error('Staffing settings update error:', error)
+        return NextResponse.json({ error: 'Failed to update staffing settings' }, { status: 500 })
+      }
+    }
+
     return NextResponse.json({ error: 'Endpoint not found' }, { status: 404 })
   } catch (error) {
     console.error('POST Error:', error)
