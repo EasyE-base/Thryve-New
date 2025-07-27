@@ -598,7 +598,8 @@ metadata:
 
 test_plan:
   current_focus:
-    - "Stripe Connect Integration for Instructor Payouts"
+    - "POST /server-api/instructor/classes - Create classes for instructors"
+    - "GET /server-api/instructor/classes - Fetch instructor's classes"
     - "Complete End-to-End User Journey Testing"
     - "Authentication Flow Validation"
   stuck_tasks: []
