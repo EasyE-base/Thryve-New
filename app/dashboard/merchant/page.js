@@ -245,6 +245,7 @@ export default function MerchantDashboard() {
               <div>
                 <h1 className="text-3xl font-bold text-white">
                   {activeSection === 'dashboard' && 'Dashboard Overview'}
+                  {activeSection === 'classes' && 'Class Management'}
                   {activeSection === 'calendar' && 'Calendar & Scheduling'}
                   {activeSection === 'analytics' && 'Advanced Analytics'}
                   {activeSection === 'clients' && 'Client Management'}
