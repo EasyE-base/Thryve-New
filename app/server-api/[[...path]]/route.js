@@ -225,6 +225,32 @@ async function handleGET(request) {
       }
     }
 
+    // Instructor classes endpoint - GET all classes for instructor
+    if (path === '/instructor/classes') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const instructor = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        
+        if (!instructor || instructor.role !== 'instructor') {
+          return NextResponse.json({ error: 'Instructor profile not found' }, { status: 404 })
+        }
+
+        // Get classes for this instructor
+        const classes = await database.collection('instructor_classes').find({ 
+          instructorId: firebaseUser.uid 
+        }).sort({ createdAt: -1 }).toArray()
+
+        return NextResponse.json({ classes })
+      } catch (error) {
+        console.error('Instructor classes fetch error:', error)
+        return NextResponse.json({ error: 'Failed to fetch instructor classes' }, { status: 500 })
+      }
+    }
+
     return NextResponse.json({ error: 'Endpoint not found' }, { status: 404 })
 
   } catch (error) {
