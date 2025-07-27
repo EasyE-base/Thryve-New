@@ -153,7 +153,7 @@ export default function MyBookingsPage() {
   useEffect(() => {
     const fetchBookings = async () => {
       // Wait for authentication to be fully loaded
-      if (loading) {
+      if (authLoading) {
         console.log('🔄 My Bookings: Waiting for auth to load...')
         return
       }
