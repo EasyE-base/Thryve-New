@@ -259,8 +259,10 @@ class StripePaymentFlowTester:
             
             if response.status_code == 200:
                 data = response.json()
+                # Check if response has 'class' wrapper
+                class_data = data.get('class', data)
                 required_fields = ['id', 'title', 'instructor', 'sessions']
-                missing_fields = [field for field in required_fields if field not in data]
+                missing_fields = [field for field in required_fields if field not in class_data]
                 
                 if not missing_fields:
                     self.log_result("Class Detail for Payment", True, 
