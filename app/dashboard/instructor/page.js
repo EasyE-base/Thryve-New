@@ -196,6 +196,19 @@ export default function InstructorDashboard() {
               setPayouts(payoutsData)
             }
           }
+
+          // Fetch instructor's classes
+          const classesResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/server-api/instructor/classes`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+          
+          if (classesResponse.ok) {
+            const classesData = await classesResponse.json()
+            setInstructorClasses(classesData.classes || [])
+          }
+
         } else if (profileResponse.status === 404) {
           toast.error('Instructor profile not found. Please complete your instructor onboarding.')
           router.push('/onboarding/instructor')
