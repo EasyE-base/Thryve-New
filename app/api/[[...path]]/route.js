@@ -194,6 +194,20 @@ async function handlePOST(request) {
         }
         return await createBooking(body, user.id)
       
+      case (path.match(/^\/bookings\/(.+)\/cancel$/) || {}).input:
+        if (!user) {
+          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+        const cancelBookingId = path.match(/^\/bookings\/(.+)\/cancel$/)[1]
+        return await cancelBooking(cancelBookingId, user.id)
+      
+      case (path.match(/^\/bookings\/(.+)\/checkin$/) || {}).input:
+        if (!user) {
+          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+        const checkinBookingId = path.match(/^\/bookings\/(.+)\/checkin$/)[1]
+        return await checkInBooking(checkinBookingId, user.id)
+      
       case '/onboarding/complete':
         // For onboarding completion, handle auth differently since user just went through role selection
         return await completeOnboarding(body, user?.id)
