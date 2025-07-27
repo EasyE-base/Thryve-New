@@ -400,50 +400,6 @@ async function handleGET(request) {
     }
     
     // NOTIFICATION SYSTEM ENDPOINTS
-    
-    // Send notification (email/SMS/in-app)
-    if (path === '/notifications/send') {
-      const firebaseUser = await getFirebaseUser(request)
-      if (!firebaseUser) {
-        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
-      }
-
-      try {
-        const body = await request.json()
-        const { type, recipients, subject, message, templateId, data } = body
-
-        // Create notification record
-        const notification = {
-          id: `notification-${Date.now()}`,
-          senderId: firebaseUser.uid,
-          type: type, // 'email', 'sms', 'in_app', 'push'
-          recipients: recipients, // array of user IDs or email/phone
-          subject: subject || '',
-          message: message,
-          templateId: templateId || null,
-          templateData: data || {},
-          status: 'pending',
-          sentAt: null,
-          deliveredAt: null,
-          readAt: null,
-          createdAt: new Date()
-        }
-
-        await database.collection('notifications').insertOne(notification)
-
-        // Process notification sending (mock implementation)
-        console.log('Notification queued:', notification.id)
-
-        return NextResponse.json({
-          message: 'Notification queued for delivery',
-          notificationId: notification.id,
-          status: 'queued'
-        })
-      } catch (error) {
-        console.error('Notification send error:', error)
-        return NextResponse.json({ error: 'Failed to send notification' }, { status: 500 })
-      }
-    }
 
     // Get user notifications
     if (path === '/notifications/inbox') {
