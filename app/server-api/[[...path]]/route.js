@@ -668,13 +668,221 @@ async function handlePOST(request) {
       }
     }
 
-    return NextResponse.json({ error: 'Endpoint not found' }, { status: 404 })
+    // Handle X Pass credit purchase
+    if (path === '/user/purchase-xpass') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
 
-  } catch (error) {
-    console.error('SERVER-API POST Error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-  }
-}
+      try {
+        const body = await request.json()
+        const { packageType, credits, price } = body
+
+        // Validate package options
+        const validPackages = {
+          'basic': { credits: 5, price: 75 },
+          'standard': { credits: 10, price: 140 },
+          'premium': { credits: 15, price: 195 }
+        }
+
+        if (!validPackages[packageType]) {
+          return NextResponse.json({ error: 'Invalid package type' }, { status: 400 })
+        }
+
+        const packageInfo = validPackages[packageType]
+
+        // Create X Pass credit pack
+        const xpassPack = {
+          id: `xpass-${Date.now()}`,
+          userId: firebaseUser.uid,
+          packageType,
+          creditsTotal: packageInfo.credits,
+          creditsRemaining: packageInfo.credits,
+          price: packageInfo.price,
+          purchaseDate: new Date(),
+          expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year expiry
+          status: 'active',
+          createdAt: new Date()
+        }
+
+        await database.collection('user_xpass_credits').insertOne(xpassPack)
+
+        // Record transaction
+        const transaction = {
+          id: `txn-${Date.now()}`,
+          userId: firebaseUser.uid,
+          type: 'xpass_purchase',
+          amount: packageInfo.price,
+          description: `X Pass ${packageType} package - ${packageInfo.credits} credits`,
+          status: 'completed',
+          createdAt: new Date()
+        }
+
+        await database.collection('user_transactions').insertOne(transaction)
+
+        return NextResponse.json({
+          message: 'X Pass credits purchased successfully',
+          pack: xpassPack,
+          transaction: transaction
+        })
+      } catch (error) {
+        console.error('X Pass purchase error:', error)
+        return NextResponse.json({ error: 'Failed to purchase X Pass credits' }, { status: 500 })
+      }
+    }
+
+    // Handle no-show penalty processing
+    if (path === '/admin/process-noshow') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { bookingId, classId, userId } = body
+
+        // Get booking details
+        const booking = await database.collection('bookings').findOne({ id: bookingId })
+        if (!booking) {
+          return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
+        }
+
+        // Get class details
+        const classData = await database.collection('studio_classes').findOne({ id: classId })
+        if (!classData) {
+          return NextResponse.json({ error: 'Class not found' }, { status: 404 })
+        }
+
+        // Get studio's cancellation settings
+        const studioSettings = await database.collection('studio_xpass_settings').findOne({ 
+          studioId: classData.studioId 
+        })
+        
+        const noShowFee = studioSettings?.noShowFee || 15
+        const lateCancelFee = studioSettings?.lateCancelFee || 10
+
+        // Process penalty based on payment method
+        let penaltyAmount = noShowFee
+        let creditDeducted = false
+
+        if (booking.paymentMethod === 'class_pack' || booking.paymentMethod === 'xpass') {
+          // Deduct credit AND apply fee for class packs/X Pass
+          if (booking.paymentMethod === 'class_pack') {
+            await database.collection('user_class_packs').updateOne(
+              { userId: userId, creditsRemaining: { $gt: 0 } },
+              { $inc: { creditsRemaining: -1 } }
+            )
+          } else if (booking.paymentMethod === 'xpass') {
+            await database.collection('user_xpass_credits').updateOne(
+              { userId: userId, creditsRemaining: { $gt: 0 } },
+              { $inc: { creditsRemaining: -1 } }
+            )
+          }
+          creditDeducted = true
+        }
+        
+        // Apply cancellation fee (for all payment methods)
+        const penalty = {
+          id: `penalty-${Date.now()}`,
+          userId: userId,
+          bookingId: bookingId,
+          classId: classId,
+          studioId: classData.studioId,
+          type: 'no_show',
+          feeAmount: penaltyAmount,
+          creditDeducted: creditDeducted,
+          reason: 'No-show for scheduled class',
+          status: 'applied',
+          createdAt: new Date()
+        }
+
+        await database.collection('user_penalties').insertOne(penalty)
+
+        // Update booking status
+        await database.collection('bookings').updateOne(
+          { id: bookingId },
+          { 
+            $set: { 
+              status: 'no_show',
+              penaltyApplied: true,
+              penaltyAmount: penaltyAmount,
+              updatedAt: new Date()
+            }
+          }
+        )
+
+        // Record transaction for fee
+        const transaction = {
+          id: `txn-${Date.now()}`,
+          userId: userId,
+          type: 'no_show_fee',
+          amount: penaltyAmount,
+          description: `No-show fee for ${classData.title}`,
+          status: 'pending_payment',
+          createdAt: new Date()
+        }
+
+        await database.collection('user_transactions').insertOne(transaction)
+
+        console.log('No-show penalty processed:', penalty.id)
+
+        return NextResponse.json({
+          message: 'No-show penalty applied successfully',
+          penalty: penalty,
+          creditDeducted: creditDeducted,
+          feeAmount: penaltyAmount
+        })
+      } catch (error) {
+        console.error('No-show processing error:', error)
+        return NextResponse.json({ error: 'Failed to process no-show penalty' }, { status: 500 })
+      }
+    }
+
+    // Update studio X Pass settings
+    if (path === '/studio/xpass-settings') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { xpassEnabled, acceptedClassTypes, cancellationWindow, noShowFee, lateCancelFee } = body
+
+        const studio = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        if (!studio || studio.role !== 'merchant') {
+          return NextResponse.json({ error: 'Studio access required' }, { status: 403 })
+        }
+
+        const settings = {
+          studioId: firebaseUser.uid,
+          studioName: studio.name || studio.email.split('@')[0],
+          xpassEnabled: xpassEnabled || false,
+          acceptedClassTypes: acceptedClassTypes || [],
+          cancellationWindow: cancellationWindow || 2,
+          noShowFee: noShowFee || 15,
+          lateCancelFee: lateCancelFee || 10,
+          platformFeeRate: 0.05, // 5% for X Pass redemptions
+          updatedAt: new Date()
+        }
+
+        await database.collection('studio_xpass_settings').updateOne(
+          { studioId: firebaseUser.uid },
+          { $set: settings },
+          { upsert: true }
+        )
+
+        return NextResponse.json({
+          message: 'X Pass settings updated successfully',
+          settings: settings
+        })
+      } catch (error) {
+        console.error('Studio X Pass settings update error:', error)
+        return NextResponse.json({ error: 'Failed to update X Pass settings' }, { status: 500 })
+      }
+    }
 
 async function handlePUT(request) {
   return NextResponse.json({ error: 'Method not implemented' }, { status: 501 })
