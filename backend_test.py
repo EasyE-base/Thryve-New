@@ -10,8 +10,22 @@ import sys
 from datetime import datetime
 
 # Configuration
-BASE_URL = "https://a0166285-5fbd-430a-a296-ff63ae399ac4.preview.emergentagent.com/api"
+EXTERNAL_URL = "https://a0166285-5fbd-430a-a296-ff63ae399ac4.preview.emergentagent.com/api"
+LOCALHOST_URL = "http://localhost:3000/api"
 TIMEOUT = 30
+
+# Test both external and localhost URLs
+def get_base_url():
+    """Try external URL first, fallback to localhost if 502 errors"""
+    try:
+        response = requests.get(f"{EXTERNAL_URL}/classes", timeout=5)
+        if response.status_code != 502:
+            return EXTERNAL_URL
+    except:
+        pass
+    return LOCALHOST_URL
+
+BASE_URL = get_base_url()
 
 def print_test_header(test_name):
     print(f"\n{'='*60}")
