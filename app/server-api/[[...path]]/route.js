@@ -451,8 +451,8 @@ async function handlePOST(request) {
       }
     }
 
-    // Handle class creation
-    if (path === '/instructor/classes') {
+    // Handle class creation (MERCHANT/STUDIO ONLY)
+    if (path === '/studio/classes') {
       const firebaseUser = await getFirebaseUser(request)
       if (!firebaseUser) {
         return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
@@ -462,7 +462,8 @@ async function handlePOST(request) {
         const body = await request.json()
         const { 
           title, description, type, level, duration, price, capacity, 
-          location, date, time, recurring, requirements, amenities 
+          location, date, time, recurring, requirements, amenities,
+          assignedInstructorId, assignedInstructorName
         } = body
 
         // Validate required fields
@@ -470,10 +471,10 @@ async function handlePOST(request) {
           return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
         }
 
-        // Check if user is instructor
+        // Check if user is merchant/studio owner
         const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
-        if (!userProfile || userProfile.role !== 'instructor') {
-          return NextResponse.json({ error: 'Only instructors can create classes' }, { status: 403 })
+        if (!userProfile || userProfile.role !== 'merchant') {
+          return NextResponse.json({ error: 'Only studio owners can create classes' }, { status: 403 })
         }
 
         // Create class data
@@ -492,9 +493,18 @@ async function handlePOST(request) {
           recurring: recurring || false,
           requirements: requirements || '',
           amenities: amenities || [],
-          instructorId: firebaseUser.uid,
-          instructorName: userProfile.name || firebaseUser.email.split('@')[0],
-          instructorEmail: firebaseUser.email,
+          
+          // Studio information
+          studioId: firebaseUser.uid,
+          studioName: userProfile.name || userProfile.email.split('@')[0],
+          studioEmail: firebaseUser.email,
+          
+          // Instructor assignment
+          assignedInstructorId: assignedInstructorId || null,
+          assignedInstructorName: assignedInstructorName || null,
+          instructorAssigned: assignedInstructorId ? true : false,
+          
+          // Class status
           enrolled: 0,
           enrolledStudents: [],
           status: 'scheduled',
@@ -503,9 +513,9 @@ async function handlePOST(request) {
         }
 
         // Save class to database
-        await database.collection('instructor_classes').insertOne(classData)
+        await database.collection('studio_classes').insertOne(classData)
 
-        console.log('Class created successfully for instructor:', firebaseUser.uid)
+        console.log('Class created successfully for studio:', firebaseUser.uid)
 
         return NextResponse.json({
           message: 'Class created successfully',
