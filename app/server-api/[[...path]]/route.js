@@ -302,13 +302,74 @@ async function handlePOST(request) {
       }
     }
 
-    return NextResponse.json({ error: 'Endpoint not found' }, { status: 404 })
+    // Handle Stripe Connect account creation
+    if (path === '/stripe/connect/account') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
 
-  } catch (error) {
-    console.error('SERVER-API POST Error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-  }
-}
+      try {
+        // Check if instructor profile exists in profiles collection
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        
+        if (!userProfile || userProfile.role !== 'instructor') {
+          return NextResponse.json({ error: 'Only instructors can create Stripe Connect accounts' }, { status: 403 })
+        }
+
+        // Check if instructor already has a Stripe account
+        if (userProfile.stripeAccountId) {
+          // Create account link for existing account
+          const accountLink = await stripe.accountLinks.create({
+            account: userProfile.stripeAccountId,
+            refresh_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/instructor?refresh=true`,
+            return_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/instructor?success=true`,
+            type: 'account_onboarding',
+          })
+          
+          return NextResponse.json({ url: accountLink.url })
+        }
+
+        // Create new Stripe Connect Express account
+        const account = await stripe.accounts.create({
+          type: 'express',
+          country: 'US',
+          email: firebaseUser.email,
+          capabilities: {
+            card_payments: { requested: true },
+            transfers: { requested: true },
+          },
+        })
+
+        // Save Stripe account ID to user profile
+        await database.collection('profiles').updateOne(
+          { userId: firebaseUser.uid },
+          {
+            $set: {
+              stripeAccountId: account.id,
+              stripeAccountStatus: 'onboarding',
+              commissionRate: 0.15, // 15% platform commission
+              updatedAt: new Date()
+            }
+          }
+        )
+
+        // Create account link for onboarding
+        const accountLink = await stripe.accountLinks.create({
+          account: account.id,
+          refresh_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/instructor?refresh=true`,
+          return_url: `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/instructor?success=true`,
+          type: 'account_onboarding',
+        })
+
+        console.log('Stripe Connect account created for instructor:', firebaseUser.uid)
+
+        return NextResponse.json({ url: accountLink.url })
+      } catch (error) {
+        console.error('Stripe Connect account creation error:', error)
+        return NextResponse.json({ error: 'Failed to create Stripe Connect account' }, { status: 500 })
+      }
+    }
 
 async function handlePUT(request) {
   return NextResponse.json({ error: 'Method not implemented' }, { status: 501 })
