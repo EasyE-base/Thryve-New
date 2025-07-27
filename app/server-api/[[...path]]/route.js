@@ -1379,7 +1379,67 @@ async function handlePUT(request) {
 }
 
 async function handleDELETE(request) {
-  return NextResponse.json({ error: 'Method not implemented' }, { status: 501 })
+  try {
+    const url = new URL(request.url)
+    const path = url.pathname.replace('/server-api', '')
+    const database = await connectDB()
+
+    console.log('SERVER-API DELETE Request:', path)
+
+    // Delete uploaded file
+    const fileIdMatch = path.match(/^\/files\/(.+)$/)
+    if (fileIdMatch) {
+      const fileId = fileIdMatch[1]
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        // Find and delete the file (only allow deletion by uploader)
+        const file = await database.collection('uploaded_files').findOne({
+          id: fileId,
+          uploaderId: firebaseUser.uid
+        })
+
+        if (!file) {
+          return NextResponse.json({ error: 'File not found or unauthorized' }, { status: 404 })
+        }
+
+        // Delete from database
+        await database.collection('uploaded_files').deleteOne({
+          id: fileId,
+          uploaderId: firebaseUser.uid
+        })
+
+        // Update related entities (remove file references)
+        if (file.fileType === 'profile') {
+          await database.collection('profiles').updateOne(
+            { userId: firebaseUser.uid },
+            { $unset: { profileImage: "" }, $set: { updatedAt: new Date() } }
+          )
+        } else if (file.fileType === 'class' && file.entityId) {
+          await database.collection('studio_classes').updateOne(
+            { id: file.entityId, studioId: firebaseUser.uid },
+            { $unset: { classImage: "" }, $set: { updatedAt: new Date() } }
+          )
+        }
+
+        return NextResponse.json({
+          message: 'File deleted successfully',
+          fileId: fileId
+        })
+      } catch (error) {
+        console.error('File deletion error:', error)
+        return NextResponse.json({ error: 'Failed to delete file' }, { status: 500 })
+      }
+    }
+
+    return NextResponse.json({ error: 'Endpoint not found' }, { status: 404 })
+  } catch (error) {
+    console.error('DELETE Error:', error)
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
 }
 
 // Helper function to create sample classes
