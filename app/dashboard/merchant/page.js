@@ -571,6 +571,13 @@ export default function MerchantDashboard() {
                 </div>
               </div>
             )}
+            
+            {/* Staffing Management */}
+            {activeSection === 'staffing' && (
+              <div className="space-y-6">
+                <StudioStaffingDashboard />
+              </div>
+            )}
 
             {/* Calendar Section */}
             {activeSection === 'calendar' && (
