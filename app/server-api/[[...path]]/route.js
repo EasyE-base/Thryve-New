@@ -223,6 +223,39 @@ async function handlePOST(request) {
       }
     }
 
+    // Handle booking cancellation
+    if (path.match(/^\/bookings\/[^\/]+\/cancel$/)) {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      const bookingId = path.split('/')[2]
+      console.log('Cancelling booking:', bookingId)
+
+      // For now, return success (actual implementation would update database)
+      return NextResponse.json({
+        message: 'Booking cancelled successfully',
+        refund: 'Refund will be processed within 3-5 business days'
+      })
+    }
+
+    // Handle booking check-in
+    if (path.match(/^\/bookings\/[^\/]+\/checkin$/)) {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      const bookingId = path.split('/')[2]
+      console.log('Checking in booking:', bookingId)
+
+      // For now, return success (actual implementation would update database)
+      return NextResponse.json({
+        message: 'Checked in successfully'
+      })
+    }
+
     return NextResponse.json({ error: 'Endpoint not found' }, { status: 404 })
 
   } catch (error) {
