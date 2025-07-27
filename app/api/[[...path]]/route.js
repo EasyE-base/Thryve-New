@@ -667,6 +667,107 @@ async function createPaymentIntent(body, userId) {
   })
 }
 
+async function createCheckoutSession(body) {
+  try {
+    const { 
+      classId, 
+      sessionId, 
+      className, 
+      sessionTime, 
+      amount, 
+      userId, 
+      instructorId 
+    } = body
+
+    // Validate required fields
+    if (!classId || !sessionId || !className || !amount || !userId) {
+      return NextResponse.json({ 
+        error: 'Missing required fields: classId, sessionId, className, amount, userId' 
+      }, { status: 400 })
+    }
+
+    // Validate class exists
+    const classDoc = await db.collection('classes').findOne({ id: classId })
+    if (!classDoc) {
+      return NextResponse.json({ error: 'Class not found' }, { status: 404 })
+    }
+
+    // Create preliminary booking record to track the transaction
+    const bookingId = uuidv4()
+    const prelimBooking = {
+      id: bookingId,
+      userId,
+      classId,
+      sessionId,
+      instructorId: instructorId || classDoc.instructor?.id,
+      className,
+      sessionTime,
+      amount,
+      status: 'pending',
+      paymentStatus: 'pending',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }
+
+    await db.collection('bookings').insertOne(prelimBooking)
+
+    // Create Stripe Checkout Session
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: className,
+              description: `Fitness Class Session - ${sessionTime}`,
+              images: [classDoc.heroImage].filter(Boolean),
+            },
+            unit_amount: Math.round(amount * 100), // Convert to cents
+          },
+          quantity: 1,
+        },
+      ],
+      mode: 'payment',
+      success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/booking/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/class/${classId}?booking=cancelled`,
+      metadata: {
+        bookingId,
+        userId,
+        classId,
+        sessionId,
+        instructorId: instructorId || classDoc.instructor?.id || 'unknown'
+      },
+      customer_email: null, // Let user enter email during checkout
+      billing_address_collection: 'auto',
+      shipping_address_collection: null,
+    })
+
+    // Update booking with Stripe session ID
+    await db.collection('bookings').updateOne(
+      { id: bookingId },
+      { 
+        $set: { 
+          stripeSessionId: session.id,
+          updatedAt: new Date()
+        } 
+      }
+    )
+
+    return NextResponse.json({ 
+      sessionId: session.id,
+      bookingId 
+    })
+
+  } catch (error) {
+    console.error('Error creating checkout session:', error)
+    return NextResponse.json(
+      { error: 'Failed to create checkout session: ' + error.message },
+      { status: 500 }
+    )
+  }
+}
+
 async function createConnectAccount(userId) {
   const account = await stripe.accounts.create({
     type: 'express',
