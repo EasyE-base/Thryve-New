@@ -2545,36 +2545,6 @@ async function handlePOST(request) {
       }
     }
 
-    // Get predictive analytics (Admin/Merchant only)
-    if (path === '/ai/analytics') {
-      const firebaseUser = await getFirebaseUser(request)
-      if (!firebaseUser) {
-        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
-      }
-
-      try {
-        // Verify user has analytics access (merchant or admin)
-        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
-        
-        if (!userProfile || !['merchant', 'admin'].includes(userProfile.role)) {
-          return NextResponse.json({ error: 'Access denied: Analytics access required' }, { status: 403 })
-        }
-
-        const { getPredictiveAnalytics } = await import('@/lib/ai-recommendations')
-        const analytics = await getPredictiveAnalytics()
-        
-        return NextResponse.json({
-          analytics: analytics,
-          aiPowered: true,
-          timestamp: new Date().toISOString(),
-          accessLevel: userProfile.role
-        })
-      } catch (error) {
-        console.error('Predictive analytics error:', error)
-        return NextResponse.json({ error: 'Failed to get predictive analytics' }, { status: 500 })
-      }
-    }
-
     return NextResponse.json({ error: 'Endpoint not found' }, { status: 404 })
   } catch (error) {
     console.error('POST Error:', error)
