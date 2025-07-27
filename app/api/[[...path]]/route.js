@@ -188,6 +188,9 @@ async function handlePOST(request) {
       case '/stripe/create-checkout-session':
         return await createCheckoutSession(body)
       
+      case '/stripe/webhooks':
+        return await handleStripeWebhook(request)
+      
       case '/stripe/connect/account':
         if (!user) {
           return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
