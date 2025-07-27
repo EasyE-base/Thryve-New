@@ -104,7 +104,7 @@ async function handleGET(request) {
   try {
     const url = new URL(request.url)
     const path = url.pathname.replace('/server-api', '')
-    await connectDB()
+    const database = await connectDB()
 
     console.log('SERVER-API GET Request:', path)
 
