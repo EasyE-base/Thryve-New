@@ -261,6 +261,47 @@ async function handlePOST(request) {
       })
     }
 
+    // Handle onboarding completion
+    if (path === '/onboarding/complete') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      const body = await request.json()
+      const { role, profileData } = body
+
+      if (!role) {
+        return NextResponse.json({ error: 'Role is required' }, { status: 400 })
+      }
+
+      try {
+        // Update user profile with onboarding completion
+        await db.collection('profiles').updateOne(
+          { userId: firebaseUser.uid },
+          {
+            $set: {
+              role,
+              profileData: profileData || {},
+              onboarding_complete: true,
+              updatedAt: new Date()
+            }
+          },
+          { upsert: true }
+        )
+
+        console.log('Onboarding completed for user:', firebaseUser.uid)
+
+        return NextResponse.json({
+          message: 'Onboarding completed successfully',
+          redirect: `/dashboard/${role}`
+        })
+      } catch (error) {
+        console.error('Onboarding completion error:', error)
+        return NextResponse.json({ error: 'Failed to complete onboarding' }, { status: 500 })
+      }
+    }
+
     return NextResponse.json({ error: 'Endpoint not found' }, { status: 404 })
 
   } catch (error) {
