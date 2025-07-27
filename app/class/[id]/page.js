@@ -289,12 +289,11 @@ export default function ClassDetailPage() {
     setBookingLoading(true)
     
     try {
-      // Create payment intent
+      // Create payment intent with real Stripe integration
       const paymentResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/stripe/create-payment-intent`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user.accessToken}`
         },
         body: JSON.stringify({
           classId: classData.id,
@@ -306,36 +305,52 @@ export default function ClassDetailPage() {
       if (paymentResponse.ok) {
         const { clientSecret } = await paymentResponse.json()
         
-        // In a real implementation, you would integrate with Stripe Elements here
-        // For now, we'll simulate successful payment
-        await new Promise(resolve => setTimeout(resolve, 2000))
+        // Redirect to Stripe checkout for payment processing
+        const { getStripe } = await import('@/lib/stripe')
+        const stripe = await getStripe()
         
-        // Create booking
-        const bookingResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/bookings`, {
+        if (!stripe) {
+          throw new Error('Stripe failed to initialize')
+        }
+
+        // Create checkout session for comprehensive payment flow
+        const checkoutResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/stripe/create-checkout-session`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${user.accessToken}`
           },
           body: JSON.stringify({
             classId: classData.id,
             sessionId: selectedSession.id,
-            paymentIntentId: 'pi_simulated_' + Date.now()
+            className: classData.title,
+            sessionTime: `${formatSessionDate(selectedSession.date)} at ${selectedSession.startTime}`,
+            amount: classData.price,
+            userId: user.uid,
+            instructorId: classData.instructor.id
           })
         })
 
-        if (bookingResponse.ok) {
-          setIsBooked(true)
-          toast.success('🎉 Class booked successfully! Check your email for confirmation.')
+        if (checkoutResponse.ok) {
+          const { sessionId } = await checkoutResponse.json()
+          
+          // Redirect to Stripe Checkout
+          const { error } = await stripe.redirectToCheckout({ sessionId })
+          
+          if (error) {
+            console.error('Stripe redirect error:', error)
+            throw new Error(error.message)
+          }
         } else {
-          throw new Error('Booking creation failed')
+          const errorData = await checkoutResponse.json()
+          throw new Error(errorData.error || 'Failed to create checkout session')
         }
       } else {
-        throw new Error('Payment processing failed')
+        const errorData = await paymentResponse.json()
+        throw new Error(errorData.error || 'Payment processing failed')
       }
     } catch (error) {
       console.error('Booking error:', error)
-      toast.error('Failed to book class. Please try again.')
+      toast.error(`Failed to process booking: ${error.message}`)
     } finally {
       setBookingLoading(false)
     }
