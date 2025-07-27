@@ -1,135 +1,135 @@
 {
   "total_tests": 18,
-  "passed_tests": 14,
-  "failed_tests": 4,
-  "success_rate": 77.77777777777779,
-  "duration": 6.629512548446655,
+  "passed_tests": 15,
+  "failed_tests": 3,
+  "success_rate": 83.33333333333334,
+  "duration": 5.109168291091919,
   "test_results": [
     {
-      "test": "File Upload - Unexpected Status",
-      "success": false,
-      "message": "Status: 404, Response: {\"error\":\"Endpoint not found\"}",
+      "test": "File Upload - Success",
+      "success": true,
+      "message": "File uploaded successfully: file-1753651414922",
       "response_data": null,
-      "timestamp": "2025-07-27T21:21:27.140440"
+      "timestamp": "2025-07-27T21:23:35.001299"
     },
     {
       "test": "File List - Success",
       "success": true,
-      "message": "Files retrieved: 0 files",
+      "message": "Files retrieved: 1 files",
       "response_data": null,
-      "timestamp": "2025-07-27T21:21:27.505539"
+      "timestamp": "2025-07-27T21:23:35.109483"
     },
     {
       "test": "File List Filtered - Success",
       "success": true,
-      "message": "Filtered files retrieved: 0 files",
+      "message": "Filtered files retrieved: 1 files",
       "response_data": null,
-      "timestamp": "2025-07-27T21:21:27.640278"
+      "timestamp": "2025-07-27T21:23:35.155381"
     },
     {
       "test": "File Delete - Not Found",
       "success": true,
       "message": "Correctly returns 404 for non-existent file",
       "response_data": null,
-      "timestamp": "2025-07-27T21:21:27.709031"
+      "timestamp": "2025-07-27T21:23:35.239331"
     },
     {
       "test": "Notifications Inbox - Success",
       "success": true,
       "message": "Notifications retrieved: 0 notifications",
       "response_data": null,
-      "timestamp": "2025-07-27T21:21:27.754245"
+      "timestamp": "2025-07-27T21:23:35.268408"
     },
     {
-      "test": "Send Notification - Not Implemented",
-      "success": false,
-      "message": "Endpoint not found (404) - may not be implemented",
+      "test": "Send Notification - Success",
+      "success": true,
+      "message": "Notification sent: {'message': 'Notification queued for delivery', 'notificationId': 'notification-1753651415340', 'status': 'queued'}",
       "response_data": null,
-      "timestamp": "2025-07-27T21:21:27.839814"
+      "timestamp": "2025-07-27T21:23:35.346204"
     },
     {
       "test": "Mark Notification Read - Success",
       "success": true,
       "message": "Notification marked as read: Notification marked as read",
       "response_data": null,
-      "timestamp": "2025-07-27T21:21:27.905918"
+      "timestamp": "2025-07-27T21:23:35.406010"
     },
     {
       "test": "Trigger Notification - Success",
       "success": true,
-      "message": "Notification triggered: {'message': 'Notification triggered successfully', 'notificationId': 'notification-1753651287943'}",
+      "message": "Notification triggered: {'message': 'Notification triggered successfully', 'notificationId': 'notification-1753651415444'}",
       "response_data": null,
-      "timestamp": "2025-07-27T21:21:27.958716"
+      "timestamp": "2025-07-27T21:23:35.450454"
     },
     {
       "test": "Studio Analytics - Success",
       "success": true,
       "message": "Analytics data retrieved with all expected fields",
       "response_data": null,
-      "timestamp": "2025-07-27T21:21:28.057530"
+      "timestamp": "2025-07-27T21:23:35.539735"
     },
     {
       "test": "Studio Analytics Filtered - Success",
       "success": true,
       "message": "Analytics data with date filtering working",
       "response_data": null,
-      "timestamp": "2025-07-27T21:21:28.150160"
+      "timestamp": "2025-07-27T21:23:35.603809"
     },
     {
       "test": "Platform Analytics - Success",
       "success": true,
       "message": "Platform analytics data retrieved",
       "response_data": null,
-      "timestamp": "2025-07-27T21:21:28.242226"
+      "timestamp": "2025-07-27T21:23:35.704640"
     },
     {
       "test": "Analytics Event - Success",
       "success": true,
-      "message": "Analytics event recorded: {'message': 'Analytics event recorded', 'eventId': 'event-1753651288257'}",
+      "message": "Analytics event recorded: {'message': 'Analytics event recorded', 'eventId': 'event-1753651415739'}",
       "response_data": null,
-      "timestamp": "2025-07-27T21:21:28.300678"
+      "timestamp": "2025-07-27T21:23:35.744231"
     },
     {
       "test": "Integration - File Upload + Notification",
       "success": true,
       "message": "Integration testing requires authenticated user session",
       "response_data": null,
-      "timestamp": "2025-07-27T21:21:28.300731"
+      "timestamp": "2025-07-27T21:23:35.744264"
     },
     {
       "test": "Integration - File Operations Analytics",
       "success": true,
       "message": "Integration testing requires authenticated user session",
       "response_data": null,
-      "timestamp": "2025-07-27T21:21:28.300736"
+      "timestamp": "2025-07-27T21:23:35.744269"
     },
     {
       "test": "Integration - Notification Analytics",
       "success": true,
       "message": "Integration testing requires authenticated user session",
       "response_data": null,
-      "timestamp": "2025-07-27T21:21:28.300741"
+      "timestamp": "2025-07-27T21:23:35.744273"
     },
     {
       "test": "File Upload Validation",
       "success": false,
-      "message": "Unexpected status for invalid data: 404",
+      "message": "Unexpected status for invalid data: 500",
       "response_data": null,
-      "timestamp": "2025-07-27T21:21:28.343251"
+      "timestamp": "2025-07-27T21:23:35.766122"
     },
     {
       "test": "Notification Validation",
-      "success": true,
-      "message": "Correctly handles invalid data (Status: 404)",
+      "success": false,
+      "message": "Unexpected status for invalid data: 200",
       "response_data": null,
-      "timestamp": "2025-07-27T21:21:28.408298"
+      "timestamp": "2025-07-27T21:23:35.840059"
     },
     {
       "test": "Analytics Event Validation",
       "success": false,
       "message": "Unexpected status for invalid data: 200",
       "response_data": null,
-      "timestamp": "2025-07-27T21:21:28.446006"
+      "timestamp": "2025-07-27T21:23:35.860846"
     }
   ]
 }
