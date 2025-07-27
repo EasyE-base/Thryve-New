@@ -1027,3 +1027,81 @@ async function getFirebaseUser(uid) {
     return NextResponse.json({ error: 'Failed to fetch user data' }, { status: 500 })
   }
 }
+
+async function handleRoleSelectionAPI(body, userId) {
+  const { role } = body
+  
+  console.log('=== ROLE SELECTION API ===')
+  console.log('User ID:', userId)
+  console.log('Selected role:', role)
+  
+  // If no userId passed, try to get it from the session directly
+  if (!userId) {
+    console.log('No userId provided, attempting to get from session...')
+    
+    const cookieStore = cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              )
+            } catch {
+              // Handle cookie setting errors
+            }
+          },
+        },
+      }
+    )
+    
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.user) {
+      console.log('No session found')
+      return NextResponse.json({ error: 'No active session found. Please log in again.' }, { status: 401 })
+    }
+    
+    userId = session.user.id
+    console.log('Got userId from session:', userId)
+  }
+  
+  // Validate role
+  const validRoles = ['customer', 'instructor', 'merchant']
+  if (!validRoles.includes(role)) {
+    return NextResponse.json({ error: `Invalid role: ${role}` }, { status: 400 })
+  }
+  
+  try {
+    // Store role selection in MongoDB
+    await db.collection('profiles').updateOne(
+      { userId },
+      { 
+        $set: { 
+          role,
+          onboarding_complete: false,
+          updatedAt: new Date()
+        } 
+      },
+      { upsert: true }
+    )
+    
+    console.log('Role stored in MongoDB successfully for user:', userId)
+    
+    return NextResponse.json({ 
+      message: 'Role selected successfully',
+      role,
+      redirect: `/onboarding/${role}`
+    })
+  } catch (error) {
+    console.error('MongoDB role storage error:', error)
+    return NextResponse.json({ 
+      error: 'Failed to store role selection'
+    }, { status: 500 })
+  }
+}
