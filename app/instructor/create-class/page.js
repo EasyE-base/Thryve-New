@@ -67,25 +67,31 @@ export default function CreateClassPage() {
         throw new Error('Please fill in all required fields')
       }
 
-      // In production, this would make an API call to create the class
-      const classData = {
-        ...formData,
-        id: Date.now(), // Temporary ID
-        instructorId: user.uid,
-        instructorName: user.displayName || user.email,
-        schedule: new Date(`${formData.date}T${formData.time}`).toISOString(),
-        enrolled: 0,
-        created: new Date().toISOString()
+      // Get Firebase ID token for authentication
+      const token = await user.getIdToken()
+
+      // Make API call to create the class
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/server-api/instructor/classes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(formData)
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to create class')
       }
 
-      // Store in localStorage for demo purposes
-      const existingClasses = JSON.parse(localStorage.getItem('instructorClasses') || '[]')
-      existingClasses.push(classData)
-      localStorage.setItem('instructorClasses', JSON.stringify(existingClasses))
+      const result = await response.json()
+      console.log('Class created:', result)
 
       toast.success('Class created successfully!')
       router.push('/dashboard/instructor')
     } catch (error) {
+      console.error('Class creation error:', error)
       toast.error(error.message || 'Failed to create class')
     } finally {
       setLoading(false)
