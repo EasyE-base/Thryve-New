@@ -202,7 +202,7 @@ async function handlePOST(request) {
       }
 
       try {
-        await db.collection('profiles').updateOne(
+        await database.collection('profiles').updateOne(
           { userId: uid },
           {
             $set: {
