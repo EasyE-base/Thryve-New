@@ -247,332 +247,754 @@ export default function CustomerDashboard() {
 
           {/* Content */}
           <div className="p-8 overflow-y-auto max-h-screen">
-
-          {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-8">
-            {/* Welcome Section */}
-            <div className="mb-8">
-              <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-                Ready to <span className="bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">Thryve?</span> 💪
-              </h2>
-              <p className="text-xl text-blue-200">
-                Your fitness journey continues! Here's what's happening today.
-              </p>
-            </div>
-
-            {/* Overview Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-blue-200 font-medium">This Week</p>
-                      <p className="text-3xl font-bold text-white">5</p>
-                      <p className="text-sm text-blue-300">Classes Booked</p>
-                    </div>
-                    <div className="w-14 h-14 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center">
-                      <BookOpen className="h-7 w-7 text-white" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-blue-200 font-medium">Total Attended</p>
-                      <p className="text-3xl font-bold text-white">28</p>
-                      <p className="text-sm text-blue-300">Classes</p>
-                    </div>
-                    <div className="w-14 h-14 bg-gradient-to-br from-green-400 to-green-600 rounded-xl flex items-center justify-center">
-                      <Trophy className="h-7 w-7 text-white" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-blue-200 font-medium">Loyalty Points</p>
-                      <p className="text-3xl font-bold text-white">1,240</p>
-                      <p className="text-sm text-blue-300">+50 this week</p>
-                    </div>
-                    <div className="w-14 h-14 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-xl flex items-center justify-center">
-                      <Award className="h-7 w-7 text-white" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-blue-200 font-medium">Streak</p>
-                      <p className="text-3xl font-bold text-white">7</p>
-                      <p className="text-sm text-blue-300">Days active</p>
-                    </div>
-                    <div className="w-14 h-14 bg-gradient-to-br from-red-400 to-red-600 rounded-xl flex items-center justify-center">
-                      <Flame className="h-7 w-7 text-white" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Upcoming Classes */}
-            <Card className="bg-white/10 backdrop-blur-md border-white/20">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center">
-                  <CalendarDays className="h-5 w-5 mr-2" />
-                  Upcoming Classes
-                </CardTitle>
-                <CardDescription className="text-blue-200">
-                  Your next 3 scheduled classes
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {sampleData.events.slice(0, 3).map((event, index) => (
-                    <div key={event.id} className="flex items-center justify-between p-4 bg-white/5 rounded-xl">
-                      <div className="flex items-center space-x-4">
-                        <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-purple-600 rounded-lg flex items-center justify-center">
-                          <Dumbbell className="h-6 w-6 text-white" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium text-white">{event.title}</h4>
-                          <p className="text-sm text-blue-200">{event.resource?.instructor}</p>
-                          <p className="text-xs text-blue-300">{format(event.start, 'MMM dd, h:mm a')}</p>
-                        </div>
-                      </div>
-                      <Badge className="bg-purple-500/20 text-purple-200">
-                        {event.resource?.type}
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Notifications */}
-            <Card className="bg-white/10 backdrop-blur-md border-white/20">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center">
-                  <Bell className="h-5 w-5 mr-2" />
-                  Notifications
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {sampleData.notifications.map((notification) => (
-                    <div key={notification.id} className="flex items-start space-x-3 p-3 bg-white/5 rounded-lg">
-                      <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
-                      <div className="flex-1">
-                        <p className="text-white text-sm">{notification.message}</p>
-                        <p className="text-blue-300 text-xs mt-1">{notification.time}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Calendar Tab */}
-          <TabsContent value="calendar" className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-3xl font-bold text-white">Class Calendar</h2>
-              <div className="flex items-center space-x-4">
-                <div className="flex bg-white/10 backdrop-blur-md rounded-lg p-1">
-                  <button
-                    onClick={() => setCalendarView('month')}
-                    className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                      calendarView === 'month' 
-                        ? 'bg-blue-500 text-white' 
-                        : 'text-blue-200 hover:text-white'
-                    }`}
-                  >
-                    Month
-                  </button>
-                  <button
-                    onClick={() => setCalendarView('week')}
-                    className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                      calendarView === 'week' 
-                        ? 'bg-blue-500 text-white' 
-                        : 'text-blue-200 hover:text-white'
-                    }`}
-                  >
-                    Week
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <Card className="bg-white/10 backdrop-blur-md border-white/20">
-              <CardContent className="p-6">
-                <div className="h-96">
-                  <Calendar
-                    localizer={localizer}
-                    events={sampleData.events}
-                    startAccessor="start"
-                    endAccessor="end"
-                    style={{ height: '100%' }}
-                    view={calendarView}
-                    onView={setCalendarView}
-                    eventPropGetter={eventStyleGetter}
-                    onSelectEvent={(event) => {
-                      toast.info(`Selected: ${event.title} with ${event.resource?.instructor}`)
-                    }}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Analytics Tab */}
-          <TabsContent value="analytics" className="space-y-6">
-            <h2 className="text-3xl font-bold text-white mb-6">Activity Analytics</h2>
             
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Weekly Attendance */}
-              <Card className="bg-white/10 backdrop-blur-md border-white/20">
-                <CardHeader>
-                  <CardTitle className="text-white">Weekly Attendance</CardTitle>
-                  <CardDescription className="text-blue-200">
-                    Classes attended this week
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={sampleData.weeklyAttendance}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                        <XAxis dataKey="day" stroke="#9CA3AF" />
-                        <YAxis stroke="#9CA3AF" />
-                        <Tooltip 
-                          contentStyle={{
-                            backgroundColor: 'rgba(30, 41, 59, 0.9)',
-                            border: '1px solid rgba(59, 130, 246, 0.2)',
-                            borderRadius: '8px',
-                            color: 'white'
+            {/* Overview Section */}
+            {activeSection === 'overview' && (
+              <div className="space-y-8">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-bold text-white">Overview</h2>
+                  <button className="text-blue-400 hover:text-blue-300 text-sm font-medium">
+                    View All →
+                  </button>
+                </div>
+
+                {/* Overview Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-blue-200 font-medium text-sm">Classes Booked This Week</p>
+                          <p className="text-3xl font-bold text-white">3</p>
+                        </div>
+                        <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                          <BookOpen className="h-6 w-6 text-blue-400" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-blue-200 font-medium text-sm">Upcoming Classes</p>
+                          <p className="text-3xl font-bold text-white">2</p>
+                        </div>
+                        <div className="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center">
+                          <CalendarDays className="h-6 w-6 text-green-400" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-blue-200 font-medium text-sm">Total Classes Attended</p>
+                          <p className="text-3xl font-bold text-white">42</p>
+                        </div>
+                        <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                          <Trophy className="h-6 w-6 text-purple-400" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-blue-200 font-medium text-sm">Loyalty Points</p>
+                          <p className="text-3xl font-bold text-white">320</p>
+                        </div>
+                        <div className="w-12 h-12 bg-yellow-500/20 rounded-lg flex items-center justify-center">
+                          <Award className="h-6 w-6 text-yellow-400" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Class Calendar */}
+                <div>
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xl font-semibold text-white">Class Calendar</h3>
+                    <div className="flex items-center space-x-4">
+                      <span className="text-blue-200 text-sm">June 2024</span>
+                      <div className="flex bg-white/10 backdrop-blur-md rounded-lg p-1">
+                        <button
+                          onClick={() => setCalendarView('month')}
+                          className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+                            calendarView === 'month' 
+                              ? 'bg-blue-500 text-white' 
+                              : 'text-blue-200 hover:text-white'
+                          }`}
+                        >
+                          Month
+                        </button>
+                        <button
+                          onClick={() => setCalendarView('week')}
+                          className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+                            calendarView === 'week' 
+                              ? 'bg-blue-500 text-white' 
+                              : 'text-blue-200 hover:text-white'
+                          }`}
+                        >
+                          Week
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                    <CardContent className="p-6">
+                      <div className="h-96">
+                        <Calendar
+                          localizer={localizer}
+                          events={sampleData.events}
+                          startAccessor="start"
+                          endAccessor="end"
+                          style={{ height: '100%' }}
+                          view={calendarView}
+                          onView={setCalendarView}
+                          eventPropGetter={eventStyleGetter}
+                          onSelectEvent={(event) => {
+                            toast.info(`Selected: ${event.title} with ${event.resource?.instructor}`)
                           }}
                         />
-                        <Bar dataKey="classes" fill="#3B82F6" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
 
-              {/* Class Types */}
-              <Card className="bg-white/10 backdrop-blur-md border-white/20">
-                <CardHeader>
-                  <CardTitle className="text-white">Class Types</CardTitle>
-                  <CardDescription className="text-blue-200">
-                    Distribution of classes booked
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={sampleData.classTypes}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {sampleData.classTypes.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.color} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
+                {/* Activity Analytics */}
+                <div>
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xl font-semibold text-white">Activity Analytics</h3>
+                    <button className="text-blue-400 hover:text-blue-300 text-sm font-medium">
+                      View Details →
+                    </button>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
+                  
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Weekly Attendance */}
+                    <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                      <CardHeader>
+                        <CardTitle className="text-white text-lg">Weekly Attendance</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="h-48">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={sampleData.weeklyAttendance}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                              <XAxis dataKey="day" stroke="#9CA3AF" />
+                              <YAxis stroke="#9CA3AF" />
+                              <Tooltip 
+                                contentStyle={{
+                                  backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                                  border: '1px solid rgba(59, 130, 246, 0.2)',
+                                  borderRadius: '8px',
+                                  color: 'white'
+                                }}
+                              />
+                              <Bar dataKey="classes" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </CardContent>
+                    </Card>
 
-            {/* Attendance Trend */}
-            <Card className="bg-white/10 backdrop-blur-md border-white/20">
-              <CardHeader>
-                <CardTitle className="text-white">Attendance Trend</CardTitle>
-                <CardDescription className="text-blue-200">
-                  Your progress over the past 6 months
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={sampleData.attendanceTrend}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                      <XAxis dataKey="month" stroke="#9CA3AF" />
-                      <YAxis stroke="#9CA3AF" />
-                      <Tooltip 
-                        contentStyle={{
-                          backgroundColor: 'rgba(30, 41, 59, 0.9)',
-                          border: '1px solid rgba(59, 130, 246, 0.2)',
-                          borderRadius: '8px',
-                          color: 'white'
+                    {/* Class Types */}
+                    <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                      <CardHeader>
+                        <CardTitle className="text-white text-lg">Class Types</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="h-48">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={sampleData.classTypes}
+                                cx="50%"
+                                cy="50%"
+                                labelLine={false}
+                                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                outerRadius={60}
+                                fill="#8884d8"
+                                dataKey="value"
+                              >
+                                {sampleData.classTypes.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={entry.color} />
+                                ))}
+                              </Pie>
+                              <Tooltip />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Attendance Trends */}
+                    <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                      <CardHeader>
+                        <CardTitle className="text-white text-lg">Attendance Trends</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="h-48">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={sampleData.attendanceTrend}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                              <XAxis dataKey="month" stroke="#9CA3AF" />
+                              <YAxis stroke="#9CA3AF" />
+                              <Tooltip 
+                                contentStyle={{
+                                  backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                                  border: '1px solid rgba(59, 130, 246, 0.2)',
+                                  borderRadius: '8px',
+                                  color: 'white'
+                                }}
+                              />
+                              <Line 
+                                type="monotone" 
+                                dataKey="classes" 
+                                stroke="#10B981" 
+                                strokeWidth={3}
+                                dot={{ fill: '#10B981', strokeWidth: 2, r: 4 }}
+                              />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+
+                {/* My Favorites */}
+                <div>
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xl font-semibold text-white">My Favorites</h3>
+                    <button className="text-blue-400 hover:text-blue-300 text-sm font-medium">
+                      View All →
+                    </button>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                    {sampleData.favorites.map((favorite) => (
+                      <Card key={favorite.id} className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
+                        <CardContent className="p-4">
+                          <div className="text-center">
+                            <div className="w-16 h-16 bg-gradient-to-br from-purple-400 to-purple-600 rounded-xl flex items-center justify-center mx-auto mb-3">
+                              {favorite.type === 'studio' ? (
+                                <MapPin className="h-8 w-8 text-white" />
+                              ) : (
+                                <User className="h-8 w-8 text-white" />
+                              )}
+                            </div>
+                            <h4 className="text-white font-semibold text-sm mb-1">{favorite.name}</h4>
+                            <div className="flex items-center justify-center mb-3">
+                              <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                              <span className="text-blue-200 ml-1 text-sm">{favorite.rating}</span>
+                            </div>
+                            <Button 
+                              size="sm" 
+                              className="bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white w-full text-xs"
+                              onClick={() => toast.success('Booking feature coming soon!')}
+                            >
+                              Book Again
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Notifications */}
+                <div>
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xl font-semibold text-white">Notifications</h3>
+                    <button className="text-blue-400 hover:text-blue-300 text-sm font-medium">
+                      Mark All as Read →
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                      <CardContent className="p-4">
+                        <div className="flex items-start space-x-4">
+                          <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+                            <Bell className="h-5 w-5 text-blue-400" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <p className="text-white font-medium">Upcoming Class Reminder</p>
+                                <p className="text-blue-200 text-sm">Your Spin class with Jessica is tomorrow at 6:30 PM. Don't forget to bring a water bottle!</p>
+                                <p className="text-blue-300 text-xs mt-1">3 hours ago</p>
+                              </div>
+                              <Button variant="outline" size="sm" className="border-white/20 text-white hover:bg-white/10">
+                                View
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                      <CardContent className="p-4">
+                        <div className="flex items-start space-x-4">
+                          <div className="w-10 h-10 bg-yellow-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+                            <Clock className="h-5 w-5 text-yellow-400" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <p className="text-white font-medium">Class Time Change</p>
+                                <p className="text-blue-200 text-sm">Your Morning Flow Yoga class on Friday has been moved from 7:00 AM to 7:30 AM.</p>
+                                <p className="text-blue-300 text-xs mt-1">1 day ago</p>
+                              </div>
+                              <Button variant="outline" size="sm" className="border-white/20 text-white hover:bg-white/10">
+                                View
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                      <CardContent className="p-4">
+                        <div className="flex items-start space-x-4">
+                          <div className="w-10 h-10 bg-green-500/20 rounded-full flex items-center justify-center flex-shrink-0">
+                            <Award className="h-5 w-5 text-green-400" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <p className="text-white font-medium">Loyalty Reward Earned!</p>
+                                <p className="text-blue-200 text-sm">Congratulations! You've earned 50 loyalty points for completing 10 classes this month.</p>
+                                <p className="text-blue-300 text-xs mt-1">2 days ago</p>
+                              </div>
+                              <Button variant="outline" size="sm" className="border-white/20 text-white hover:bg-white/10">
+                                Claim
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+
+                {/* Community Feed */}
+                <div>
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xl font-semibold text-white">Community Feed</h3>
+                    <button className="text-blue-400 hover:text-blue-300 text-sm font-medium">
+                      View All →
+                    </button>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                      <CardContent className="p-4">
+                        <div className="flex items-start space-x-4">
+                          <Avatar className="h-10 w-10 ring-2 ring-blue-400/50">
+                            <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white">
+                              SJ
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <p className="text-white font-medium">Sarah Johnson</p>
+                              <Badge className="bg-blue-500/20 text-blue-200 text-xs">Instructor</Badge>
+                            </div>
+                            <p className="text-blue-200 text-sm mb-3">
+                              Start your day with intention! Join my Morning Flow class tomorrow at 7AM for a gentle wake-up routine that will energize your whole day.
+                            </p>
+                            <div className="flex items-center space-x-6 text-blue-300 text-xs">
+                              <button className="flex items-center space-x-1 hover:text-white">
+                                <Heart className="h-4 w-4" />
+                                <span>24</span>
+                              </button>
+                              <button className="flex items-center space-x-1 hover:text-white">
+                                <Users className="h-4 w-4" />
+                                <span>8</span>
+                              </button>
+                              <button className="flex items-center space-x-1 hover:text-white">
+                                <span>Share</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                      <CardContent className="p-4">
+                        <div className="flex items-start space-x-4">
+                          <Avatar className="h-10 w-10 ring-2 ring-purple-400/50">
+                            <AvatarFallback className="bg-gradient-to-br from-purple-400 to-purple-600 text-white">
+                              MP
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <p className="text-white font-medium">Mike Peterson</p>
+                              <Badge className="bg-purple-500/20 text-purple-200 text-xs">Instructor</Badge>
+                            </div>
+                            <p className="text-blue-200 text-sm mb-3">
+                              Quick tip: Hydration is key for performance! Drink at least 16oz of water before your workout and keep sipping throughout your class.
+                            </p>
+                            <div className="flex items-center space-x-6 text-blue-300 text-xs">
+                              <button className="flex items-center space-x-1 hover:text-white">
+                                <Heart className="h-4 w-4" />
+                                <span>42</span>
+                              </button>
+                              <button className="flex items-center space-x-1 hover:text-white">
+                                <Users className="h-4 w-4" />
+                                <span>15</span>
+                              </button>
+                              <button className="flex items-center space-x-1 hover:text-white">
+                                <span>Share</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Calendar Section */}
+            {activeSection === 'calendar' && (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-3xl font-bold text-white">Class Calendar</h2>
+                  <div className="flex items-center space-x-4">
+                    <div className="flex bg-white/10 backdrop-blur-md rounded-lg p-1">
+                      <button
+                        onClick={() => setCalendarView('month')}
+                        className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                          calendarView === 'month' 
+                            ? 'bg-blue-500 text-white' 
+                            : 'text-blue-200 hover:text-white'
+                        }`}
+                      >
+                        Month
+                      </button>
+                      <button
+                        onClick={() => setCalendarView('week')}
+                        className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                          calendarView === 'week' 
+                            ? 'bg-blue-500 text-white' 
+                            : 'text-blue-200 hover:text-white'
+                        }`}
+                      >
+                        Week
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                  <CardContent className="p-6">
+                    <div className="h-96">
+                      <Calendar
+                        localizer={localizer}
+                        events={sampleData.events}
+                        startAccessor="start"
+                        endAccessor="end"
+                        style={{ height: '100%' }}
+                        view={calendarView}
+                        onView={setCalendarView}
+                        eventPropGetter={eventStyleGetter}
+                        onSelectEvent={(event) => {
+                          toast.info(`Selected: ${event.title} with ${event.resource?.instructor}`)
                         }}
                       />
-                      <Line 
-                        type="monotone" 
-                        dataKey="classes" 
-                        stroke="#10B981" 
-                        strokeWidth={3}
-                        dot={{ fill: '#10B981', strokeWidth: 2, r: 4 }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
 
-          {/* Favorites Tab */}
-          <TabsContent value="favorites" className="space-y-6">
-            <h2 className="text-3xl font-bold text-white mb-6">My Favorites</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {sampleData.favorites.map((favorite) => (
-                <Card key={favorite.id} className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
+            {/* Analytics Section */}
+            {activeSection === 'analytics' && (
+              <div className="space-y-6">
+                <h2 className="text-3xl font-bold text-white mb-6">Activity Analytics</h2>
+                
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Weekly Attendance */}
+                  <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                    <CardHeader>
+                      <CardTitle className="text-white">Weekly Attendance</CardTitle>
+                      <CardDescription className="text-blue-200">
+                        Classes attended this week
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={sampleData.weeklyAttendance}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                            <XAxis dataKey="day" stroke="#9CA3AF" />
+                            <YAxis stroke="#9CA3AF" />
+                            <Tooltip 
+                              contentStyle={{
+                                backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                                border: '1px solid rgba(59, 130, 246, 0.2)',
+                                borderRadius: '8px',
+                                color: 'white'
+                              }}
+                            />
+                            <Bar dataKey="classes" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Class Types */}
+                  <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                    <CardHeader>
+                      <CardTitle className="text-white">Class Types</CardTitle>
+                      <CardDescription className="text-blue-200">
+                        Distribution of classes booked
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={sampleData.classTypes}
+                              cx="50%"
+                              cy="50%"
+                              labelLine={false}
+                              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                              outerRadius={80}
+                              fill="#8884d8"
+                              dataKey="value"
+                            >
+                              {sampleData.classTypes.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} />
+                              ))}
+                            </Pie>
+                            <Tooltip />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Attendance Trend */}
+                <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                  <CardHeader>
+                    <CardTitle className="text-white">Attendance Trend</CardTitle>
+                    <CardDescription className="text-blue-200">
+                      Your progress over the past 6 months
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={sampleData.attendanceTrend}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                          <XAxis dataKey="month" stroke="#9CA3AF" />
+                          <YAxis stroke="#9CA3AF" />
+                          <Tooltip 
+                            contentStyle={{
+                              backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                              border: '1px solid rgba(59, 130, 246, 0.2)',
+                              borderRadius: '8px',
+                              color: 'white'
+                            }}
+                          />
+                          <Line 
+                            type="monotone" 
+                            dataKey="classes" 
+                            stroke="#10B981" 
+                            strokeWidth={3}
+                            dot={{ fill: '#10B981', strokeWidth: 2, r: 4 }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Favorites Section */}
+            {activeSection === 'favorites' && (
+              <div className="space-y-6">
+                <h2 className="text-3xl font-bold text-white mb-6">My Favorites</h2>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {sampleData.favorites.map((favorite) => (
+                    <Card key={favorite.id} className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
+                      <CardContent className="p-6">
+                        <div className="text-center">
+                          <div className="w-16 h-16 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                            {favorite.type === 'studio' ? (
+                              <MapPin className="h-8 w-8 text-white" />
+                            ) : (
+                              <User className="h-8 w-8 text-white" />
+                            )}
+                          </div>
+                          <h3 className="text-lg font-semibold text-white mb-2">{favorite.name}</h3>
+                          <div className="flex items-center justify-center mb-4">
+                            <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                            <span className="text-blue-200 ml-1">{favorite.rating}</span>
+                          </div>
+                          <Button 
+                            size="sm" 
+                            className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white w-full"
+                            onClick={() => toast.success('Booking feature coming soon!')}
+                          >
+                            Book Again
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Notifications Section */}
+            {activeSection === 'notifications' && (
+              <div className="space-y-6">
+                <h2 className="text-3xl font-bold text-white mb-6">Notifications</h2>
+                
+                <div className="space-y-4">
+                  {sampleData.notifications.map((notification) => (
+                    <Card key={notification.id} className="bg-white/10 backdrop-blur-md border-white/20">
+                      <CardContent className="p-4">
+                        <div className="flex items-start space-x-3">
+                          <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
+                          <div className="flex-1">
+                            <p className="text-white text-sm">{notification.message}</p>
+                            <p className="text-blue-300 text-xs mt-1">{notification.time}</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Community Section */}
+            {activeSection === 'community' && (
+              <div className="space-y-6">
+                <h2 className="text-3xl font-bold text-white mb-6">Community Feed</h2>
+                
+                <div className="space-y-4">
+                  <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                    <CardContent className="p-4">
+                      <div className="flex items-start space-x-4">
+                        <Avatar className="h-10 w-10 ring-2 ring-blue-400/50">
+                          <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white">
+                            SJ
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <p className="text-white font-medium">Sarah Johnson</p>
+                            <Badge className="bg-blue-500/20 text-blue-200 text-xs">Instructor</Badge>
+                          </div>
+                          <p className="text-blue-200 text-sm mb-3">
+                            Start your day with intention! Join my Morning Flow class tomorrow at 7AM for a gentle wake-up routine that will energize your whole day.
+                          </p>
+                          <div className="flex items-center space-x-6 text-blue-300 text-xs">
+                            <button className="flex items-center space-x-1 hover:text-white">
+                              <Heart className="h-4 w-4" />
+                              <span>24</span>
+                            </button>
+                            <button className="flex items-center space-x-1 hover:text-white">
+                              <Users className="h-4 w-4" />
+                              <span>8</span>
+                            </button>
+                            <button className="flex items-center space-x-1 hover:text-white">
+                              <span>Share</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                    <CardContent className="p-4">
+                      <div className="flex items-start space-x-4">
+                        <Avatar className="h-10 w-10 ring-2 ring-purple-400/50">
+                          <AvatarFallback className="bg-gradient-to-br from-purple-400 to-purple-600 text-white">
+                            MP
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <p className="text-white font-medium">Mike Peterson</p>
+                            <Badge className="bg-purple-500/20 text-purple-200 text-xs">Instructor</Badge>
+                          </div>
+                          <p className="text-blue-200 text-sm mb-3">
+                            Quick tip: Hydration is key for performance! Drink at least 16oz of water before your workout and keep sipping throughout your class.
+                          </p>
+                          <div className="flex items-center space-x-6 text-blue-300 text-xs">
+                            <button className="flex items-center space-x-1 hover:text-white">
+                              <Heart className="h-4 w-4" />
+                              <span>42</span>
+                            </button>
+                            <button className="flex items-center space-x-1 hover:text-white">
+                              <Users className="h-4 w-4" />
+                              <span>15</span>
+                            </button>
+                            <button className="flex items-center space-x-1 hover:text-white">
+                              <span>Share</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            )}
+
+            {/* Settings Section */}
+            {activeSection === 'settings' && (
+              <div className="space-y-6">
+                <h2 className="text-3xl font-bold text-white mb-6">Settings</h2>
+                
+                <Card className="bg-white/10 backdrop-blur-md border-white/20">
                   <CardContent className="p-6">
                     <div className="text-center">
-                      <div className="w-16 h-16 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                        {favorite.type === 'studio' ? (
-                          <MapPin className="h-8 w-8 text-white" />
-                        ) : (
-                          <User className="h-8 w-8 text-white" />
-                        )}
-                      </div>
-                      <h3 className="text-lg font-semibold text-white mb-2">{favorite.name}</h3>
-                      <div className="flex items-center justify-center mb-4">
-                        <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                        <span className="text-blue-200 ml-1">{favorite.rating}</span>
-                      </div>
+                      <User className="h-12 w-12 text-blue-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-white mb-2">Settings Coming Soon</h3>
+                      <p className="text-blue-200">
+                        Profile settings and preferences will be available here.
+                      </p>
                       <Button 
-                        size="sm" 
-                        className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white w-full"
-                        onClick={() => toast.success('Booking feature coming soon!')}
+                        className="mt-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                        onClick={() => router.push('/settings')}
                       >
-                        Book Again
+                        Go to Settings Page
                       </Button>
                     </div>
                   </CardContent>
                 </Card>
-              ))}
-            </div>
-          </TabsContent>
-        </Tabs>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   )
