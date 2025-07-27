@@ -204,7 +204,7 @@ backend:
     file: "app/api/[[...path]]/route.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: false
+    needs_retesting: true
     status_history:
         - working: true
           agent: "testing"
@@ -215,6 +215,21 @@ backend:
         - working: true
           agent: "testing"
           comment: "RETESTED AFTER SUPABASE FIX: API endpoint working perfectly. Returns proper JSON structure with classes array and total count. Query parameters (limit, type, location) working correctly. MongoDB connection confirmed. Sample data auto-creation working. Authentication protection verified for protected endpoints. CORS headers properly configured. Note: External routing via Kubernetes ingress has issues (502 errors), but API functionality is fully operational when accessed directly."
+        - working: "unknown"
+          agent: "main"
+          comment: "ENHANCED: Significantly upgraded class data structure with comprehensive sample data including heroImages, galleries, detailed instructor information, multiple sessions per class, amenities, requirements, reviews, FAQs, and enhanced metadata. Added support for class detail fetching by ID. Ready for retesting with new comprehensive class detail functionality."
+
+  - task: "GET /api/classes/{id} - Get detailed class information by ID"
+    implemented: true
+    working: "unknown"
+    file: "app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "NEW ENDPOINT: Implemented getClassById function to fetch detailed class information by ID. Supports lookup by custom ID and MongoDB _id. Returns comprehensive class data including instructor details, sessions, reviews, amenities, requirements, FAQs, benefits, and class structure. Enhanced error handling for non-existent classes. Auto-populates missing fields with sample data for development purposes. Ready for testing."
 
   - task: "POST /api/onboarding/complete - Complete user onboarding process"
     implemented: true
@@ -299,6 +314,18 @@ backend:
         - working: true
           agent: "testing"
           comment: "Error handling working correctly - returns 404 for invalid endpoints, handles malformed JSON appropriately. CORS headers properly configured with Access-Control-Allow-Origin, Methods, and Headers."
+
+  - task: "GET /api/auth/firebase-user - Firebase user lookup endpoint"
+    implemented: true
+    working: "unknown"
+    file: "app/api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "NEW ENDPOINT: Implemented Firebase user lookup functionality. Accepts UID parameter and retrieves user profile from MongoDB. Returns user data including uid, email, role, onboarding_complete status, and full profile information. Includes proper error handling for missing UID and non-existent users. Ready for testing."
 
 frontend:
   - task: "Firebase Authentication Main Page Integration"
