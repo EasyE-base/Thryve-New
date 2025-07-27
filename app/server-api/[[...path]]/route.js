@@ -398,6 +398,13 @@ async function handleGET(request) {
         return NextResponse.json({ error: 'Failed to fetch X Pass settings' }, { status: 500 })
       }
     }
+    
+    return NextResponse.json({ error: 'Endpoint not found' }, { status: 404 })
+  } catch (error) {
+    console.error('GET Error:', error)
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+}
 
 async function handlePOST(request) {
   try {
