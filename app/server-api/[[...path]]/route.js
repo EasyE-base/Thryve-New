@@ -1227,6 +1227,112 @@ async function handlePOST(request) {
         return NextResponse.json({ error: 'Failed to trigger notification' }, { status: 500 })
       }
     }
+    
+    // Send notification (email/SMS/in-app)
+    if (path === '/notifications/send') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { type, recipients, subject, message, templateId, data } = body
+
+        // Create notification record
+        const notification = {
+          id: `notification-${Date.now()}`,
+          senderId: firebaseUser.uid,
+          type: type, // 'email', 'sms', 'in_app', 'push'
+          recipients: recipients, // array of user IDs or email/phone
+          subject: subject || '',
+          message: message,
+          templateId: templateId || null,
+          templateData: data || {},
+          status: 'pending',
+          sentAt: null,
+          deliveredAt: null,
+          readAt: null,
+          createdAt: new Date()
+        }
+
+        await database.collection('notifications').insertOne(notification)
+
+        // Process notification sending (mock implementation)
+        console.log('Notification queued:', notification.id)
+
+        return NextResponse.json({
+          message: 'Notification queued for delivery',
+          notificationId: notification.id,
+          status: 'queued'
+        })
+      } catch (error) {
+        console.error('Notification send error:', error)
+        return NextResponse.json({ error: 'Failed to send notification' }, { status: 500 })
+      }
+    }
+    
+    // Upload file (images, documents)
+    if (path === '/files/upload') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.formData()
+        const file = body.get('file')
+        const fileType = body.get('type') // 'profile', 'class', 'studio'
+        const entityId = body.get('entityId')
+
+        if (!file) {
+          return NextResponse.json({ error: 'No file provided' }, { status: 400 })
+        }
+
+        // Convert file to base64 for storage (in production, use cloud storage)
+        const bytes = await file.arrayBuffer()
+        const buffer = Buffer.from(bytes)
+        const base64 = buffer.toString('base64')
+        const dataUrl = `data:${file.type};base64,${base64}`
+
+        // Create file record
+        const fileRecord = {
+          id: `file-${Date.now()}`,
+          uploaderId: firebaseUser.uid,
+          filename: file.name,
+          fileType: fileType,
+          entityId: entityId,
+          mimeType: file.type,
+          size: file.size,
+          dataUrl: dataUrl, // In production, this would be a cloud storage URL
+          uploadedAt: new Date()
+        }
+
+        await database.collection('uploaded_files').insertOne(fileRecord)
+
+        // Update entity with file reference
+        if (fileType === 'profile') {
+          await database.collection('profiles').updateOne(
+            { userId: firebaseUser.uid },
+            { $set: { profileImage: fileRecord.id, updatedAt: new Date() } }
+          )
+        } else if (fileType === 'class' && entityId) {
+          await database.collection('studio_classes').updateOne(
+            { id: entityId, studioId: firebaseUser.uid },
+            { $set: { classImage: fileRecord.id, updatedAt: new Date() } }
+          )
+        }
+
+        return NextResponse.json({
+          message: 'File uploaded successfully',
+          fileId: fileRecord.id,
+          url: dataUrl
+        })
+      } catch (error) {
+        console.error('File upload error:', error)
+        return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 })
+      }
+    }
 
     // Record analytics event
     if (path === '/analytics/event') {
