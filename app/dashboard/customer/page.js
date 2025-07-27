@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Calendar as CalendarIcon, Clock, MapPin, Users, Trophy, Bell, Heart, TrendingUp, Activity, Award, Star, Dumbbell, LogOut, User, CalendarDays, BarChart3, PieChart, Filter, Search, ChevronLeft, ChevronRight, BookOpen, Flame } from 'lucide-react'
+import { Calendar as CalendarIcon, Clock, MapPin, Users, Trophy, Bell, Heart, TrendingUp, Activity, Award, Star, Dumbbell, LogOut, User, CalendarDays, BarChart3, Filter, Search, ChevronLeft, ChevronRight, BookOpen, Flame } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { format, addDays, subDays, startOfWeek, endOfWeek, isSameDay, isToday, isSameMonth, addMonths, subMonths } from 'date-fns'
