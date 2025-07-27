@@ -363,7 +363,7 @@ async function createSampleClasses(database) {
 
   try {
     for (const classData of sampleClasses) {
-      await db.collection('classes').updateOne(
+      await database.collection('classes').updateOne(
         { id: classData.id },
         { $set: classData },
         { upsert: true }
