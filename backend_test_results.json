@@ -1,135 +1,100 @@
 {
-  "total_tests": 18,
-  "passed_tests": 15,
-  "failed_tests": 3,
-  "success_rate": 83.33333333333334,
-  "duration": 5.109168291091919,
+  "total_tests": 13,
+  "passed_tests": 11,
+  "failed_tests": 2,
+  "success_rate": 84.61538461538461,
+  "duration": 39.402973890304565,
   "test_results": [
     {
-      "test": "File Upload - Success",
+      "test": "Class Recommendations - Success",
       "success": true,
-      "message": "File uploaded successfully: file-1753651414922",
+      "message": "AI recommendations retrieved: 0 classes",
       "response_data": null,
-      "timestamp": "2025-07-27T21:23:35.001299"
+      "timestamp": "2025-07-27T23:58:33.417260"
     },
     {
-      "test": "File List - Success",
+      "test": "AI Search - Success",
       "success": true,
-      "message": "Files retrieved: 1 files",
+      "message": "AI search completed: 0 results found",
       "response_data": null,
-      "timestamp": "2025-07-27T21:23:35.109483"
+      "timestamp": "2025-07-27T23:58:35.152932"
     },
     {
-      "test": "File List Filtered - Success",
+      "test": "AI Search - Natural Language Processing",
       "success": true,
-      "message": "Filtered files retrieved: 1 files",
+      "message": "AI successfully parsed natural language query",
       "response_data": null,
-      "timestamp": "2025-07-27T21:23:35.155381"
+      "timestamp": "2025-07-27T23:58:35.152947"
     },
     {
-      "test": "File Delete - Not Found",
+      "test": "Instructor Matching - Success",
       "success": true,
-      "message": "Correctly returns 404 for non-existent file",
+      "message": "AI instructor matching completed: 0 matches",
       "response_data": null,
-      "timestamp": "2025-07-27T21:23:35.239331"
+      "timestamp": "2025-07-27T23:58:37.924267"
     },
     {
-      "test": "Notifications Inbox - Success",
-      "success": true,
-      "message": "Notifications retrieved: 0 notifications",
+      "test": "Instructor Matching - AI Analysis",
+      "success": false,
+      "message": "Missing AI matching analysis",
       "response_data": null,
-      "timestamp": "2025-07-27T21:23:35.268408"
+      "timestamp": "2025-07-27T23:58:37.924282"
     },
     {
-      "test": "Send Notification - Success",
+      "test": "Workout Plan Generation - Success",
       "success": true,
-      "message": "Notification sent: {'message': 'Notification queued for delivery', 'notificationId': 'notification-1753651415340', 'status': 'queued'}",
+      "message": "AI workout plan generated: 4 weeks",
       "response_data": null,
-      "timestamp": "2025-07-27T21:23:35.346204"
+      "timestamp": "2025-07-27T23:58:58.096286"
     },
     {
-      "test": "Mark Notification Read - Success",
+      "test": "Workout Plan Generation - AI Quality",
       "success": true,
-      "message": "Notification marked as read: Notification marked as read",
+      "message": "Comprehensive AI-generated workout plan with weekly breakdown",
       "response_data": null,
-      "timestamp": "2025-07-27T21:23:35.406010"
+      "timestamp": "2025-07-27T23:58:58.096301"
     },
     {
-      "test": "Trigger Notification - Success",
-      "success": true,
-      "message": "Notification triggered: {'message': 'Notification triggered successfully', 'notificationId': 'notification-1753651415444'}",
+      "test": "Predictive Analytics - Response Structure",
+      "success": false,
+      "message": "Missing expected analytics fields: {'analytics': {'emergingTrends': ['Morning yoga sessions', 'Beginner-friendly fitness classes', 'Integration of technology in fitness classes'], 'recommendedNewClasses': [{'title': \"Beginner's Morning Yoga\", 'description': 'A gentle morning yoga class designed specifically for beginners to ease into their practice.', 'reasoning': \"Given the search query for 'morning yoga for beginners' and the interest in morning classes, this class could attract new users.\"}, {'title': 'Yoga Integration Workshop', 'description': 'An interactive class focused on integrating yoga with mindfulness and technology for enhanced practice.', 'reasoning': \"The popularity of the 'Test Integration Class' suggests an interest in innovative classes that combine multiple elements.\"}], 'userRetentionStrategies': ['Implement a loyalty program offering discounts for repeat bookings.', 'Create a referral program encouraging current users to invite friends.', 'Send personalized follow-up emails to new users with class recommendations based on their interests.'], 'peakUsagePredictions': {'predictedBusyDays': ['Monday', 'Wednesday', 'Saturday'], 'predictedBusyTimes': ['7 AM - 9 AM', '6 PM - 8 PM']}, 'businessOpportunities': ['Introduce subscription packages for unlimited class access.', 'Offer premium classes with exclusive content or expert instructors.', 'Launch merchandise related to yoga and fitness, such as mats and apparel.'], 'marketInsights': ['The demand for beginner-friendly fitness options is on the rise as more people seek to start their fitness journey.', 'Morning classes are increasingly popular as people look to integrate fitness into their daily routines.', 'Technology-enhanced fitness experiences are becoming a key differentiator in the fitness industry.'], 'dataSnapshot': {'totalBookings': 8, 'totalSearches': 2, 'totalUsers': 7, 'analysisDate': '2025-07-27T23:59:03.930Z'}}, 'aiPowered': True, 'timestamp': '2025-07-27T23:59:03.930Z', 'accessLevel': 'merchant'}",
       "response_data": null,
-      "timestamp": "2025-07-27T21:23:35.450454"
+      "timestamp": "2025-07-27T23:59:03.934430"
     },
     {
-      "test": "Studio Analytics - Success",
+      "test": "OpenAI Complex Query Parsing",
       "success": true,
-      "message": "Analytics data retrieved with all expected fields",
+      "message": "AI correctly parsed complex natural language query",
       "response_data": null,
-      "timestamp": "2025-07-27T21:23:35.539735"
+      "timestamp": "2025-07-27T23:59:05.254235"
     },
     {
-      "test": "Studio Analytics Filtered - Success",
+      "test": "OpenAI Edge Case Handling",
       "success": true,
-      "message": "Analytics data with date filtering working",
+      "message": "AI handled invalid query gracefully",
       "response_data": null,
-      "timestamp": "2025-07-27T21:23:35.603809"
+      "timestamp": "2025-07-27T23:59:07.332813"
     },
     {
-      "test": "Platform Analytics - Success",
-      "success": true,
-      "message": "Platform analytics data retrieved",
-      "response_data": null,
-      "timestamp": "2025-07-27T21:23:35.704640"
-    },
-    {
-      "test": "Analytics Event - Success",
-      "success": true,
-      "message": "Analytics event recorded: {'message': 'Analytics event recorded', 'eventId': 'event-1753651415739'}",
-      "response_data": null,
-      "timestamp": "2025-07-27T21:23:35.744231"
-    },
-    {
-      "test": "Integration - File Upload + Notification",
+      "test": "AI Search to Recommendations",
       "success": true,
       "message": "Integration testing requires authenticated user session",
       "response_data": null,
-      "timestamp": "2025-07-27T21:23:35.744264"
+      "timestamp": "2025-07-27T23:59:07.332843"
     },
     {
-      "test": "Integration - File Operations Analytics",
+      "test": "AI Recommendations to Workout Plan",
       "success": true,
       "message": "Integration testing requires authenticated user session",
       "response_data": null,
-      "timestamp": "2025-07-27T21:23:35.744269"
+      "timestamp": "2025-07-27T23:59:07.332848"
     },
     {
-      "test": "Integration - Notification Analytics",
+      "test": "AI Analytics Feedback Loop",
       "success": true,
       "message": "Integration testing requires authenticated user session",
       "response_data": null,
-      "timestamp": "2025-07-27T21:23:35.744273"
-    },
-    {
-      "test": "File Upload Validation",
-      "success": false,
-      "message": "Unexpected status for invalid data: 500",
-      "response_data": null,
-      "timestamp": "2025-07-27T21:23:35.766122"
-    },
-    {
-      "test": "Notification Validation",
-      "success": false,
-      "message": "Unexpected status for invalid data: 200",
-      "response_data": null,
-      "timestamp": "2025-07-27T21:23:35.840059"
-    },
-    {
-      "test": "Analytics Event Validation",
-      "success": false,
-      "message": "Unexpected status for invalid data: 200",
-      "response_data": null,
-      "timestamp": "2025-07-27T21:23:35.860846"
+      "timestamp": "2025-07-27T23:59:07.332852"
     }
   ]
 }
