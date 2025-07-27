@@ -789,18 +789,17 @@ export default function InstructorDashboard() {
               </div>
             )}
 
-            {/* Class Management */}
+            {/* Class Management - ASSIGNED CLASSES ONLY */}
             {activeSection === 'classes' && (
               <div className="space-y-6">
                 <div className="flex justify-between items-center">
-                  <h3 className="text-xl font-semibold text-white">Class Management</h3>
-                  <Button 
-                    className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
-                    onClick={() => router.push('/instructor/create-class')}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Class
-                  </Button>
+                  <div>
+                    <h3 className="text-xl font-semibold text-white">My Assigned Classes</h3>
+                    <p className="text-blue-200 text-sm mt-1">Classes assigned to you by studios</p>
+                  </div>
+                  <div className="text-sm text-blue-300 bg-blue-500/10 px-3 py-2 rounded-lg border border-blue-400/20">
+                    💡 Studios create and assign classes to you
+                  </div>
                 </div>
 
                 {instructorClasses.length > 0 ? (
@@ -823,15 +822,7 @@ export default function InstructorDashboard() {
                                 size="sm" 
                                 variant="outline" 
                                 className="border-white/20 text-white hover:bg-white/10"
-                                onClick={() => toast.info('Edit functionality coming soon!')}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
-                                className="border-white/20 text-white hover:bg-white/10"
-                                onClick={() => toast.info('View details functionality coming soon!')}
+                                onClick={() => toast.info('Class details functionality coming soon!')}
                               >
                                 <Eye className="h-4 w-4" />
                               </Button>
@@ -857,21 +848,27 @@ export default function InstructorDashboard() {
                               <DollarSign className="h-4 w-4 mr-2" />
                               ${classItem.price}
                             </div>
+                            {classItem.studioName && (
+                              <div className="flex items-center text-purple-200 text-sm">
+                                <Building2 className="h-4 w-4 mr-2" />
+                                {classItem.studioName}
+                              </div>
+                            )}
                           </div>
                           
                           <div className="flex space-x-2">
                             <Button 
                               size="sm" 
                               className="bg-blue-500 hover:bg-blue-600 text-white flex-1"
-                              onClick={() => toast.info('View roster functionality coming soon!')}
+                              onClick={() => toast.info('Student roster functionality coming soon!')}
                             >
-                              View Roster
+                              View Students
                             </Button>
                             <Button 
                               size="sm" 
                               variant="outline"
                               className="border-white/20 text-white hover:bg-white/10"
-                              onClick={() => toast.info('Attendance functionality coming soon!')}
+                              onClick={() => toast.info('Attendance management coming soon!')}
                             >
                               Attendance
                             </Button>
@@ -883,17 +880,19 @@ export default function InstructorDashboard() {
                 ) : (
                   <div className="text-center py-12">
                     <CalendarIcon className="h-16 w-16 text-blue-400 mx-auto mb-4 opacity-50" />
-                    <h3 className="text-xl font-semibold text-white mb-2">No Classes Yet</h3>
-                    <p className="text-blue-200 mb-6">
-                      Start by creating your first class to begin teaching and earning.
+                    <h3 className="text-xl font-semibold text-white mb-2">No Classes Assigned</h3>
+                    <p className="text-blue-200 mb-6 max-w-md mx-auto">
+                      You haven't been assigned to any classes yet. Studios will assign you to classes they create.
                     </p>
-                    <Button 
-                      className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
-                      onClick={() => router.push('/instructor/create-class')}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Create Your First Class
-                    </Button>
+                    <div className="bg-blue-500/10 border border-blue-400/20 rounded-lg p-4 max-w-md mx-auto">
+                      <h4 className="text-blue-200 font-medium mb-2">How it works:</h4>
+                      <ul className="text-blue-300 text-sm space-y-1">
+                        <li>• Studios create classes</li>
+                        <li>• They assign instructors to teach</li>
+                        <li>• Assigned classes appear here</li>
+                        <li>• You manage attendance and earnings</li>
+                      </ul>
+                    </div>
                   </div>
                 )}
               </div>
