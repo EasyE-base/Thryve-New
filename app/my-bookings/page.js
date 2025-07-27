@@ -243,19 +243,33 @@ export default function MyBookingsPage() {
     setActionLoading(bookingId)
     
     try {
-      // In production, make API call
-      // await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/bookings/${bookingId}/cancel`, { method: 'POST' })
-      
-      // For now, simulate the cancellation
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      
-      setBookings(prev => prev.map(booking => 
-        booking.id === bookingId 
-          ? { ...booking, status: 'cancelled', canCancel: false, canReschedule: false }
-          : booking
-      ))
-      
-      toast.success('Class cancelled successfully!')
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/bookings/${bookingId}/cancel`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include'
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        
+        setBookings(prev => prev.map(booking => 
+          booking.id === bookingId 
+            ? { ...booking, status: 'cancelled', canCancel: false, canReschedule: false }
+            : booking
+        ))
+        
+        toast.success('✅ Class cancelled successfully!')
+        toast.info(data.refund || 'Refund will be processed within 3-5 business days')
+      } else if (response.status === 400) {
+        const errorData = await response.json()
+        toast.error(errorData.error || 'Cannot cancel this booking')
+      } else if (response.status === 404) {
+        toast.error('Booking not found')
+      } else {
+        throw new Error('Failed to cancel booking')
+      }
     } catch (error) {
       console.error('Failed to cancel booking:', error)
       toast.error('Failed to cancel booking. Please try again.')
@@ -268,17 +282,34 @@ export default function MyBookingsPage() {
     setActionLoading(bookingId)
     
     try {
-      // In production, make API call
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      setBookings(prev => prev.map(booking => 
-        booking.id === bookingId 
-          ? { ...booking, checkedIn: true }
-          : booking
-      ))
-      
-      toast.success('🎉 Checked in successfully!')
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/bookings/${bookingId}/checkin`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include'
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        
+        setBookings(prev => prev.map(booking => 
+          booking.id === bookingId 
+            ? { ...booking, checkedIn: true, checkedInAt: new Date() }
+            : booking
+        ))
+        
+        toast.success('🎉 Checked in successfully!')
+      } else if (response.status === 400) {
+        const errorData = await response.json()
+        toast.error(errorData.error || 'Cannot check in at this time')
+      } else if (response.status === 404) {
+        toast.error('Booking not found')
+      } else {
+        throw new Error('Failed to check in')
+      }
     } catch (error) {
+      console.error('Failed to check in:', error)
       toast.error('Failed to check in. Please try again.')
     } finally {
       setActionLoading(null)
