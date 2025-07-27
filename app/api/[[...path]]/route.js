@@ -100,6 +100,10 @@ async function handleGET(request) {
       case '/classes':
         return await getClasses(url.searchParams)
       
+      case (path.match(/^\/classes\/(.+)$/) || {}).input:
+        const classId = path.match(/^\/classes\/(.+)$/)[1]
+        return await getClassById(classId)
+      
       case '/profile':
         if (!user) {
           return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -117,6 +121,9 @@ async function handleGET(request) {
           return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
         return await getInstructorClasses(user.id)
+      
+      case '/auth/firebase-user':
+        return await getFirebaseUser(url.searchParams.get('uid'))
       
       default:
         return NextResponse.json({ error: 'Endpoint not found' }, { status: 404 })
