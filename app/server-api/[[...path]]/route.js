@@ -319,7 +319,7 @@ async function handleDELETE(request) {
 }
 
 // Helper function to create sample classes
-async function createSampleClasses() {
+async function createSampleClasses(database) {
   const sampleClasses = [
     {
       id: 'morning-vinyasa-flow',
