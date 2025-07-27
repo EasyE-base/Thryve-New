@@ -355,7 +355,8 @@ export default function InstructorDashboard() {
                 <h1 className="text-3xl font-bold text-white">
                   {activeSection === 'dashboard' && `Hi ${instructorData.instructor.firstName}, ready to lead today?`}
                   {activeSection === 'schedule' && 'Schedule & Calendar'}
-                  {activeSection === 'classes' && 'Class Management'}
+                  {activeSection === 'staffing' && 'Staffing & Shift Management'}
+                  {activeSection === 'classes' && 'My Assigned Classes'}
                   {activeSection === 'performance' && 'Performance Dashboard'}
                   {activeSection === 'messages' && 'Messages & Communication'}
                   {activeSection === 'earnings' && 'Earnings Overview'}
