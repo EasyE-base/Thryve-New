@@ -745,7 +745,6 @@ async function createCheckoutSession(body) {
         instructorId: instructorId || classDoc.instructor?.id || 'unknown'
       },
       billing_address_collection: 'auto',
-      shipping_address_collection: null,
     })
 
     // Update booking with Stripe session ID
