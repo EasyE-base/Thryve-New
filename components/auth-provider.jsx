@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { auth } from '@/lib/firebase'
 import { onAuthStateChanged } from 'firebase/auth'
-import { getUserRole } from '@/lib/firebase-auth'
+import { getUserRole, signUp as firebaseSignUp, signIn as firebaseSignIn, signOut as firebaseSignOut } from '@/lib/firebase-auth'
 
 const AuthContext = createContext({})
 
@@ -125,11 +125,42 @@ export default function AuthProvider({ children }) {
     }
   }
 
+  // Auth functions
+  const signUp = async (email, password) => {
+    try {
+      const user = await firebaseSignUp(email, password)
+      return { success: true, user }
+    } catch (error) {
+      return { success: false, error: error.message }
+    }
+  }
+
+  const signIn = async (email, password) => {
+    try {
+      const user = await firebaseSignIn(email, password)
+      return { success: true, user }
+    } catch (error) {
+      return { success: false, error: error.message }
+    }
+  }
+
+  const signOut = async () => {
+    try {
+      await firebaseSignOut()
+      return { success: true }
+    } catch (error) {
+      return { success: false, error: error.message }
+    }
+  }
+
   const value = {
     user,
     role,
     loading,
-    refreshRole
+    refreshRole,
+    signUp,
+    signIn,
+    signOut
   }
 
   return (
