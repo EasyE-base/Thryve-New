@@ -225,7 +225,7 @@ async function handleGET(request) {
       }
     }
 
-    // Instructor classes endpoint - GET all classes for instructor
+    // Instructor classes endpoint - GET assigned classes for instructor
     if (path === '/instructor/classes') {
       const firebaseUser = await getFirebaseUser(request)
       if (!firebaseUser) {
@@ -239,15 +239,72 @@ async function handleGET(request) {
           return NextResponse.json({ error: 'Instructor profile not found' }, { status: 404 })
         }
 
-        // Get classes for this instructor
-        const classes = await database.collection('instructor_classes').find({ 
-          instructorId: firebaseUser.uid 
+        // Get classes assigned to this instructor
+        const classes = await database.collection('studio_classes').find({ 
+          assignedInstructorId: firebaseUser.uid 
         }).sort({ createdAt: -1 }).toArray()
 
         return NextResponse.json({ classes })
       } catch (error) {
-        console.error('Instructor classes fetch error:', error)
-        return NextResponse.json({ error: 'Failed to fetch instructor classes' }, { status: 500 })
+        console.error('Instructor assigned classes fetch error:', error)
+        return NextResponse.json({ error: 'Failed to fetch assigned classes' }, { status: 500 })
+      }
+    }
+
+    // Studio classes endpoint - GET all classes for studio
+    if (path === '/studio/classes') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const studio = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        
+        if (!studio || studio.role !== 'merchant') {
+          return NextResponse.json({ error: 'Studio profile not found' }, { status: 404 })
+        }
+
+        // Get classes created by this studio
+        const classes = await database.collection('studio_classes').find({ 
+          studioId: firebaseUser.uid 
+        }).sort({ createdAt: -1 }).toArray()
+
+        return NextResponse.json({ classes })
+      } catch (error) {
+        console.error('Studio classes fetch error:', error)
+        return NextResponse.json({ error: 'Failed to fetch studio classes' }, { status: 500 })
+      }
+    }
+
+    // Available instructors endpoint for studio assignment
+    if (path === '/studio/instructors') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const studio = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        
+        if (!studio || studio.role !== 'merchant') {
+          return NextResponse.json({ error: 'Studio access required' }, { status: 403 })
+        }
+
+        // Get all instructors for assignment
+        const instructors = await database.collection('profiles').find({ 
+          role: 'instructor' 
+        }).project({
+          userId: 1,
+          name: 1,
+          email: 1,
+          stripeAccountStatus: 1
+        }).toArray()
+
+        return NextResponse.json({ instructors })
+      } catch (error) {
+        console.error('Available instructors fetch error:', error)
+        return NextResponse.json({ error: 'Failed to fetch available instructors' }, { status: 500 })
       }
     }
 
