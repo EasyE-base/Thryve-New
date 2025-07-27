@@ -17,6 +17,7 @@ import { Calendar, momentLocalizer } from 'react-big-calendar'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, AreaChart, Area } from 'recharts'
 import moment from 'moment'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
+import StudioStaffingDashboard from '@/components/StudioStaffingDashboard'
 
 const localizer = momentLocalizer(moment)
 
