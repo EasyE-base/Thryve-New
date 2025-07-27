@@ -167,8 +167,62 @@ async function handleGET(request) {
         return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
       }
 
-      const bookings = await db.collection('bookings').find({ userId: firebaseUser.uid }).toArray()
+      const bookings = await database.collection('bookings').find({ userId: firebaseUser.uid }).toArray()
       return NextResponse.json({ bookings })
+    }
+
+    // Instructor profile endpoint
+    if (path === '/instructor/profile') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const instructor = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        
+        if (!instructor || instructor.role !== 'instructor') {
+          return NextResponse.json({ error: 'Instructor profile not found' }, { status: 404 })
+        }
+
+        return NextResponse.json({
+          _id: instructor._id,
+          name: instructor.name || instructor.email.split('@')[0],
+          email: instructor.email,
+          stripeAccountId: instructor.stripeAccountId,
+          stripeAccountStatus: instructor.stripeAccountStatus || 'pending',
+          commissionRate: instructor.commissionRate || 0.15
+        })
+      } catch (error) {
+        console.error('Instructor profile fetch error:', error)
+        return NextResponse.json({ error: 'Failed to fetch instructor profile' }, { status: 500 })
+      }
+    }
+
+    // Instructor payouts endpoint
+    if (path === '/instructor/payouts') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const instructor = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        
+        if (!instructor || instructor.role !== 'instructor') {
+          return NextResponse.json({ error: 'Instructor profile not found' }, { status: 404 })
+        }
+
+        // Get payouts for this instructor (using instructorId as userId for now)
+        const payouts = await database.collection('payouts').find({ 
+          instructorId: firebaseUser.uid 
+        }).sort({ createdAt: -1 }).limit(20).toArray()
+
+        return NextResponse.json(payouts)
+      } catch (error) {
+        console.error('Instructor payouts fetch error:', error)
+        return NextResponse.json({ error: 'Failed to fetch instructor payouts' }, { status: 500 })
+      }
     }
 
     return NextResponse.json({ error: 'Endpoint not found' }, { status: 404 })
