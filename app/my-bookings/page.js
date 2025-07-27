@@ -158,17 +158,29 @@ export default function MyBookingsPage() {
       }
 
       try {
-        // In production, fetch from API
-        // const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/bookings`)
-        // const data = await response.json()
-        
-        // For now, using mock data
-        await new Promise(resolve => setTimeout(resolve, 1000)) // Simulate API delay
-        setBookings(mockBookings)
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/bookings`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include'
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          setBookings(data.bookings || [])
+        } else if (response.status === 401) {
+          router.push('/?signin=true')
+          return
+        } else {
+          throw new Error('Failed to fetch bookings')
+        }
       } catch (error) {
         console.error('Failed to fetch bookings:', error)
         toast.error('Failed to load your bookings')
-        setBookings(mockBookings) // Fallback to mock data
+        // Fallback to mock data for development
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        setBookings(mockBookings)
       } finally {
         setLoading(false)
       }
