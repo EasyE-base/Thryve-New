@@ -512,14 +512,10 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus:
-    - "GET /api/classes/{id} - Get detailed class information by ID"
-    - "GET /api/auth/firebase-user - Firebase user lookup endpoint" 
-    - "Comprehensive Class Detail Pages with Booking Flow"
-    - "Marketplace Enhancement with Class Navigation"
+  current_focus: []
   stuck_tasks: []
   test_all: false
-  test_priority: "new_features_first"
+  test_priority: "high_first"
 
 agent_communication:
     - agent: "testing"
