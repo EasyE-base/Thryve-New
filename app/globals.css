@@ -186,7 +186,7 @@
   /* Modern Card Styles */
   .card-modern {
     @apply bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10;
-    @apply shadow-2xl hover:shadow-3xl transition-all duration-500 ease-out;
+    @apply shadow-2xl hover:shadow-modern-hover transition-all duration-500 ease-out;
     @apply hover:bg-white/8 hover:border-white/20 transform hover:-translate-y-1;
   }
 
