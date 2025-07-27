@@ -10,7 +10,7 @@ import time
 from datetime import datetime, timedelta
 
 # Configuration
-BASE_URL = "https://c114112e-8151-4a5e-b14f-b58ea49cf499.preview.emergentagent.com"
+BASE_URL = "https://07dbb15a-6291-46a7-941f-21934bb5cdb1.preview.emergentagent.com"
 SERVER_API_URL = f"{BASE_URL}/server-api"
 
 # Test data

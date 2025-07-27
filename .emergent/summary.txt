@@ -1,71 +1,80 @@
 <analysis>
-The previous AI engineer successfully transformed the Thryve fitness platform from an initial MVP into a feature-rich, visually stunning application. Key achievements include resolving critical authentication issues by migrating from Supabase/NextAuth.js to Firebase Auth, a comprehensive UI/UX overhaul to achieve a billion-dollar aesthetic with consistent gradients, glassmorphism, and rounded elements, and the robust implementation of Customer, Merchant, and Instructor dashboards. Significant milestones achieved in the trajectory include the development of a full-fledged Marketplace with advanced search and filtering, the creation of comprehensive Class Detail Pages with an integrated booking flow, and the complete implementation and successful testing of a real Stripe payment system. Most recently, the focus shifted to building the My Bookings management system, with backend functionality for booking retrieval, cancellation, and check-in successfully implemented and tested. The work demonstrates a strong emphasis on user experience, professional design, and robust frontend and backend architecture.
+The AI engineer successfully evolved the Thryve fitness platform from an MVP to a robust, feature-rich application. Initial efforts focused on resolving critical authentication issues by migrating to Firebase Auth and implementing a premium UI/UX. The development then progressed through comprehensive dashboard creation (Customer, Merchant, Instructor), a marketplace, class detail pages, and a functional Stripe payment system. A significant phase involved building and testing the My Bookings system, including backend APIs and frontend integration. Crucially, the engineer identified and resolved a Kubernetes ingress routing issue for  endpoints by implementing a  proxy. Following this, the business model for class creation was corrected, moving it from instructors to studios/merchants. The final major phase involved implementing advanced business logic for no-show fees, Thryve X Pass, and pricing models, along with core backend and initial frontend components. The engineer is currently working on a parallel implementation of notification, analytics, and file upload systems, demonstrating iterative development and adaptability to user feedback.
 </analysis>
 
 <product_requirements>
-The Thryve project is envisioned as a multi-role fitness platform for Customers, Instructors, and Merchants, aiming to provide a seamless experience from user discovery to class booking and payment. The core problem is to establish a robust, scalable platform with distinct user journeys for each role. The Aha Moment is defined as a customer signing up, selecting a role, onboarding, successfully booking and paying for a class via Stripe, and the instructor receiving payment. The application uses Next.js 14 (App Router), Tailwind CSS, and shadcn/ui. Historically, authentication stability was a major concern, leading to the adoption of Firebase Auth to resolve issues like black screens and redirect loops. The overarching goal has been to deliver a production-ready application with a premium, billion-dollar UI/UX. So far, Firebase integration is stable, all key dashboards, a marketplace, comprehensive class detail pages, and a full Stripe payment flow are implemented and functionally tested. The UI has undergone a significant overhaul to be mobile-first, rounded, and animated.
+The Thryve project aims to be a multi-role fitness platform (Customer, Instructor, Merchant) providing seamless user experience from discovery to booking and payment. The core problem was establishing a robust, scalable platform with distinct user journeys, with the Aha Moment being a customer successfully booking and paying via Stripe. The application uses Next.js 14 (App Router), Tailwind CSS, and shadcn/ui. Firebase Auth was adopted to resolve prior authentication stability issues. The UI/UX was revamped for a premium, mobile-first aesthetic with gradients and rounded elements.
+
+Key business logic includes:
+- **No-Show/Late Cancellation Fee Logic**: Deducting class credits and/or applying fees based on membership type (Class Pack vs. Unlimited Membership) for missed classes, with configurable admin settings (cancellation window, grace period, fee amount).
+- **Thryve X Pass System**: A multi-studio credit system where users purchase packs (5/10/15 credits) redeemable at any participating studio. Thryve takes a 5-10% flat booking fee at redemption. Studios can opt-in and tag eligible classes.
+- **Pricing Model Logic**: A 3.75% core platform transaction fee on all transactions, plus specific business plan tiers (Starter, Business+, Enterprise) and a Thryve Member+ model with a flat 5% fee for studios.
+- **Unlimited Product Billing Cycle Logic**: Allows bookings up to 30 days past the billing cycle for unlimited monthly auto-pay products to overcome typical booking restrictions.
 </product_requirements>
 
 <key_technical_concepts>
--   Next.js 14 (App Router, Server/Client Components, API Routes)
--   Firebase Auth (Authentication)
--   MongoDB (Database)
--   Stripe (Payments, Connect, Elements, Webhooks)
--   Tailwind CSS & shadcn/ui (Frontend styling, UI components)
--   React-Big-Calendar & Recharts (Data visualization, scheduling)
--   Role-Based Access Control (RBAC)
--   Mobile-First Design & Responsive UI
--   Animations & Gestures (Swipe technology)
+- Next.js 14 (App Router, Server/Client Components, API Routes)
+- Firebase Auth (Authentication)
+- MongoDB (Database)
+- Stripe (Payments, Connect, Elements, Webhooks)
+- Tailwind CSS & shadcn/ui (Styling, UI components)
+- Role-Based Access Control (RBAC)
+- Mobile-First Design & Responsive UI
+- Server-side API Proxy ()
 </key_technical_concepts>
 
 <code_architecture>
-The application utilizes a Next.js 14 App Router architecture, supporting multiple user roles and a modular feature set.
+The application uses a Next.js 14 App Router architecture, supporting multiple user roles and a modular feature set.
 
 
 
--   : The central landing page, previously refactored for Firebase authentication and redesigned for a premium aesthetic, including correct external navigation links and authentication modal triggers. Recently re-designed for a modern, mobile-first aesthetic with gradients and rounded elements.
--   : The instructor marketplace. This file was completely rewritten to implement a modern, mobile-first swipeable version, featuring a new search bar, advanced filter sidebar, and professional instructor preview cards with rounded buttons and enhanced UI/UX.
--   : The dynamic class detail page. This file was significantly enhanced to include comprehensive class features, real API integration for details, and the full booking flow with session selection, pricing display, and integration with Stripe checkout. It was updated multiple times for content and booking functionality.
--   : The primary Next.js API route handler. This file has undergone extensive modifications throughout the development.
-    -   It was updated to include GET endpoints for individual classes (e.g., ).
-    -   Firebase authentication functions (, ) were re-added/ensured to be present.
-    -   Crucially, new Stripe-related endpoints were added or enhanced:  for creating Stripe checkout sessions and  for fetching booking details post-payment.
-    -   The Stripe webhook handler was updated to process  events and mark bookings as completed.
-    -   Most recently, it was enhanced with  for fetching user-specific bookings,  for cancelling bookings, and  for managing check-ins, all integrated with MongoDB.
--   : Contains the Stripe client initialization and helper functions. It was updated to ensure correct usage of environment variables for Stripe keys (, ).
--   : A new page created to display booking confirmation details after a successful payment.
--   : A new page created to handle booking cancellations or payment failures.
--   : A newly created page to serve as the user's booking management dashboard, showing upcoming and past classes with options for cancellation and check-in. This file is currently being integrated with the new backend APIs.
--   : The global CSS file. It was completely replaced with modern, mobile-first styles to establish the new design language, including custom gradients, rounded elements, and animations.
+-   : The original primary Next.js API route handler. It has been extensively modified for various functionalities (Stripe, bookings). Its primary importance was as the central API, but it became problematic due to Kubernetes ingress routing issues for  prefix, leading to the creation of .
+-   : **NEW FILE**. Created as a server-side API proxy to bypass Kubernetes ingress issues causing 502 errors for  routes. This file now handles all backend API logic for authentication, bookings, Stripe Connect, instructor/studio class management, and advanced business logic (XPass, no-show fees). It's critical for the application's external functionality. Changes involved adding various GET and POST handlers for , , , , , , and business logic endpoints like , , , . Database connection issues were also resolved here.
+-   : Contains Firebase authentication helper functions. Modified to update API calls from  to  for  and  to ensure authentication functions work via the external URL.
+-   : The user's booking management dashboard. Initially created for displaying and managing bookings. Modified to fetch real booking data and handle user actions (cancel/check-in) using the new  endpoints. Also enhanced to improve authentication state persistence and loading indicators.
+-   : The customer onboarding page. Modified to use  for onboarding completion to resolve prior 502 errors and improve redirect logic and localStorage persistence for role data.
+-   : The instructor dashboard. Initially had placeholder coming soon content and incorrectly allowed instructors to create classes. Significantly modified to:
+    *   Integrate Stripe Connect functionality (earnings, payouts).
+    *   Remove class creation capability.
+    *   Show My Assigned Classes by studios using .
+    *   Resolved  variable errors.
+    *   Added  import for UI elements.
+-   : The merchant dashboard. Modified to include a Classes section in the navigation and integrate class management functionality, including studio-specific class creation.
+-   : **NEW FILE**. Created specifically for studios/merchants to create classes, aligning with the corrected business model. It includes a comprehensive class creation form with instructor assignment.
+-   : **NEW FILE**. A React component created to provide a button for instructors to connect their Stripe accounts.
+-   : **NEW FILE**. A React component for studios to manage their X Pass settings, cancellation policies, and view pricing model transparency.
+-   : **NEW FILE**. A React component for customers to purchase X Pass credits with different package options and displays credit balance.
+-   : **NEW FILE**. Placeholder component created for future analytics features.
+-   : **NEW FILE**. Placeholder component created for future notification features.
 </code_architecture>
 
 <pending_tasks>
--   Full Stripe Connect integration for instructor payouts and merchant accounts.
--   Advanced calendar integration (e.g., Google Calendar sync).
--   File upload functionality for user profiles and class images.
--   Full completion of the onboarding logic for all roles beyond basic profile updates.
--   Integration of Watch Demo button with actual video content.
--   Real Database Integration (currently using sample data for some parts).
--   Real-time Updates (notifications, calendar changes, data persistence).
--   Advanced Features: Push Notifications, Video Streaming, AI Recommendations, Advanced Search.
--   Platform Management: Admin Panel, Analytics Dashboard, Support System, Content Management.
--   Completion of My Bookings frontend integration and user profile management.
+- Advanced calendar integration (e.g., Google Calendar sync).
+- File upload functionality for user profiles and class images (currently in parallel implementation).
+- Full completion of the onboarding logic for all roles beyond basic profile updates (customer onboarding done, others pending).
+- Integration of Watch Demo button with actual video content.
+- Real-time Updates (notifications, calendar changes, data persistence - notifications in parallel implementation).
+- Advanced Features: Video Streaming, AI Recommendations, Advanced Search (AI recommendations in parallel implementation).
+- Platform Management: Admin Panel, Support System, Content Management (Admin Panel in proposed next steps).
+- Frontend integration and testing for File Upload system, Notification system, and Analytics dashboard (currently in progress).
 </pending_tasks>
 
 <current_work>
-Immediately before this summary request, the AI engineer was focused on implementing the My Bookings management system, which is part of the Complete the User Journey objective.
+Immediately before this summary request, the AI engineer was tasked with implementing advanced business features, specifically focusing on the full specification document provided by the user. This encompassed:
+1.  **No-Show / Late Cancellation Fee Logic**: Implementing rules for deducting credits and applying fees based on membership type (Class Pack vs. Unlimited) and studio-defined configurable settings.
+2.  **Thryve X Pass System**: Building the system for multi-studio class redemption where users purchase credit packs, studios opt-in, and Thryve collects a flat booking fee.
+3.  **Pricing Model Logic**: Incorporating a 3.75% core platform transaction fee, defining business plan tiers (Starter, Business+, Enterprise), and a Thryve Member+ model with a 5% studio fee.
+4.  **Unlimited Product Billing Cycle Logic**: Allowing bookings for unlimited auto-pay products up to 30 days past the billing cycle.
 
-The work currently in progress includes:
-1.  **My Bookings Page Creation**: A new page  was created to serve as the user's personal dashboard for managing their class bookings. This page is designed to display upcoming classes, booking history, and provide functionalities like cancellation and check-in.
-2.  **Backend API Enhancements for Bookings Management**: The main API route handler () has been significantly expanded to support the My Bookings features. This includes:
-    *   **GET /api/bookings**: An endpoint to fetch all bookings associated with a logged-in user.
-    *   **POST /api/bookings/cancel**: An endpoint to handle the cancellation of a specific booking, updating its status in the MongoDB database.
-    *   **POST /api/bookings/check-in**: An endpoint to record a user's check-in for a class, updating the booking status.
-    *   These backend functions are designed to interact with MongoDB collections for bookings and classes, ensuring data consistency and real-time updates for the user.
-3.  **Frontend Integration with Backend**: The  file is actively being updated to integrate with these newly created backend APIs. The frontend code is being modified to fetch real booking data and handle user actions (like cancelling or checking in) by making calls to the respective API endpoints.
-4.  **Backend Testing**: The last action taken was initiating the backend testing for the My Bookings system to ensure that the newly implemented API endpoints (, , ) are functioning correctly and interacting with the database as expected.
+The implementation involved creating core business models, adding new API endpoints to the  file for user payment/credit systems, X Pass purchases, no-show penalties, and studio business configuration. It also included creating new frontend components:
+-   : For studio management of X Pass and pricing.
+-   : For customer X Pass credit purchases.
+
+Backend testing for all these business logic APIs (, , , ) was successfully completed with 100% test pass rate. Frontend testing of  and  components was also completed successfully, confirming their functionality and integration.
+
+The current work context also includes the recent shift to a Full-Featured Parallel Implementation strategy for **Notification System**, **Analytics Dashboard**, and **File Upload System**. The engineer has already started this by modifying  for file upload handling and adding POST endpoints for notifications and analytics. New frontend components have been created: , , and the next step is creating the file upload component.
 </current_work>
 
 <optional_next_step>
-Test the frontend implementation of the My Bookings system.
+The next step is to create the File Upload component as part of the parallel implementation of notification, analytics, and file upload systems.
 </optional_next_step>
