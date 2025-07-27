@@ -58,7 +58,7 @@
 ##
 ## agent_communication:
 ##     -agent: "main"  # or "testing" or "user"
-##     -message: "Communication message between agents"
+##     -message: "STARTING FILE UPLOAD COMPONENT IMPLEMENTATION: The backend endpoints for file upload, notifications, and analytics are already implemented in server-api. StudioAnalyticsDashboard and NotificationInbox components are fully functional and ready for integration. Now implementing comprehensive FileUploadComponent with chunked uploads, progress indicators, and support for profile images, class images, and studio branding assets. Will also test all three systems (file upload, notifications, analytics) together for complete functionality."
 
 # Protocol Guidelines for Main agent
 #
