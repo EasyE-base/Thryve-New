@@ -142,6 +142,11 @@ async function handlePOST(request) {
     const url = new URL(request.url)
     const path = url.pathname.replace('/api', '')
     
+    // Handle webhook requests differently (they need raw body)
+    if (path === '/stripe/webhooks') {
+      return await handleStripeWebhook(request)
+    }
+    
     // Handle requests that might not have a body
     let body = {}
     try {
@@ -187,9 +192,6 @@ async function handlePOST(request) {
       
       case '/stripe/create-checkout-session':
         return await createCheckoutSession(body)
-      
-      case '/stripe/webhooks':
-        return await handleStripeWebhook(request)
       
       case '/stripe/connect/account':
         if (!user) {
