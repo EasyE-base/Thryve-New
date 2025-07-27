@@ -190,7 +190,7 @@ export default function LandingPage() {
     setRoleSelecting(true)
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/auth/firebase-role`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/server-api/auth/firebase-role`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
