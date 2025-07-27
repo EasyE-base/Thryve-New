@@ -270,53 +270,190 @@ async function getClasses(searchParams) {
   if (type) filter.type = type
   if (location) filter.location = new RegExp(location, 'i')
   
-  // Add some sample classes if none exist
+  // Add comprehensive sample classes if none exist
   const existingCount = await db.collection('classes').countDocuments({})
   if (existingCount === 0) {
     const sampleClasses = [
       {
-        id: uuidv4(),
-        instructorId: 'sample-instructor-1',
-        title: 'Morning Yoga Flow',
-        description: 'Start your day with energizing yoga poses and breathing exercises.',
+        id: 'morning-vinyasa-flow',
+        instructorId: 'sarah-johnson',
+        title: 'Morning Vinyasa Flow - Mindful Movement',
+        slug: 'morning-vinyasa-flow-mindful-movement',
+        heroImage: 'https://images.unsplash.com/photo-1588286840104-8957b019727f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzl8MHwxfHNlYXJjaHwxfHxmaXRuZXNzJTIwY2xhc3N8ZW58MHx8fHwxNzUzNjE2MTkxfDA&ixlib=rb-4.1.0&q=85',
+        gallery: [
+          'https://images.unsplash.com/photo-1549576490-b0b4831ef60a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzl8MHwxfHNlYXJjaHw0fHxmaXRuZXNzJTIwY2xhc3N8ZW58MHx8fHwxNzUzNjE2MTkxfDA&ixlib=rb-4.1.0&q=85',
+          'https://images.unsplash.com/photo-1591258370814-01609b341790?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzl8MHwxfHNlYXJjaHwzfHxmaXRuZXNzJTIwY2xhc3N8ZW58MHx8fHwxNzUzNjE2MTkxfDA&ixlib=rb-4.1.0&q=85',
+          'https://images.unsplash.com/photo-1651077837628-52b3247550ae?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NjZ8MHwxfHNlYXJjaHwzfHx5b2dhJTIwc3R1ZGlvfGVufDB8fHx8MTc1MzYxNjE5N3ww&ixlib=rb-4.1.0&q=85'
+        ],
+        description: 'Begin your day with intention and movement in this energizing 75-minute vinyasa flow. This thoughtfully sequenced class weaves together breath-synchronized movement, mindful transitions, and moments of stillness to awaken both body and spirit.\n\nPerfect for practitioners seeking to deepen their yoga journey, this class offers modifications for all levels while maintaining the integrity of a strong vinyasa practice.',
         type: 'Yoga',
-        schedule: new Date(Date.now() + 24 * 60 * 60 * 1000), // Tomorrow
-        duration: 60,
-        capacity: 15,
-        price: 25.00,
-        location: 'Studio A, Downtown',
-        status: 'active',
-        bookings: [],
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        id: uuidv4(),
-        instructorId: 'sample-instructor-2',
-        title: 'HIIT Cardio Blast',
-        description: 'High-intensity interval training to boost your metabolism.',
-        type: 'HIIT',
-        schedule: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // Day after tomorrow
-        duration: 45,
-        capacity: 12,
-        price: 30.00,
-        location: 'Studio B, Midtown',
-        status: 'active',
-        bookings: [],
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        id: uuidv4(),
-        instructorId: 'sample-instructor-3',
-        title: 'Strength Training Basics',
-        description: 'Learn proper form and build strength with guided weight training.',
-        type: 'Strength',
-        schedule: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // In 3 days
-        duration: 50,
-        capacity: 10,
+        category: 'Vinyasa',
+        level: 'All Levels',
+        intensity: 'Moderate',
+        duration: 75,
         price: 35.00,
-        location: 'Gym Floor, Westside',
+        originalPrice: 45.00,
+        rating: 4.8,
+        reviewCount: 89,
+        totalBookings: 234,
+        location: {
+          name: 'Harmony Yoga Studio',
+          address: '456 Wellness Ave, Downtown',
+          city: 'San Francisco',
+          state: 'CA',
+          isVirtual: false
+        },
+        instructor: {
+          id: 'sarah-johnson',
+          name: 'Sarah Johnson',
+          bio: 'Certified yoga instructor with 8+ years of experience in vinyasa, hatha, and restorative yoga.',
+          specialties: ['Vinyasa Yoga', 'Mindfulness', 'Breathwork', 'Alignment'],
+          rating: 4.9,
+          reviewCount: 127,
+          totalClasses: 340,
+          experience: '8+ years',
+          certifications: ['RYT-500', 'Yin Yoga', 'Prenatal Yoga'],
+          languages: ['English', 'Spanish']
+        },
+        schedule: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        sessions: [
+          {
+            id: 'session-1',
+            date: new Date(Date.now() + 24 * 60 * 60 * 1000),
+            startTime: '08:00',
+            endTime: '09:15',
+            spotsTotal: 20,
+            spotsBooked: 12
+          },
+          {
+            id: 'session-2', 
+            date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
+            startTime: '08:00',
+            endTime: '09:15',
+            spotsTotal: 20,
+            spotsBooked: 8
+          }
+        ],
+        capacity: 20,
+        amenities: [
+          'Premium yoga mats provided',
+          'Props and blocks available',
+          'Filtered water station',
+          'Essential oil aromatherapy',
+          'Heated studio space'
+        ],
+        requirements: [
+          'Comfortable, stretchy clothing',
+          'Water bottle (BPA-free preferred)',
+          'Towel for perspiration',
+          'Open mind and positive energy'
+        ],
+        highlights: [
+          'Breath-centered movement',
+          'Mindful sequencing',
+          'All-level modifications',
+          'Meditation integration'
+        ],
+        tags: ['Morning', 'Energizing', 'Mindful', 'Breath Work'],
+        cancellationPolicy: 'Free cancellation up to 4 hours before class start time. Late cancellations will result in a 50% credit.',
+        status: 'active',
+        bookings: [],
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: 'hiit-cardio-blast',
+        instructorId: 'michael-rodriguez',
+        title: 'HIIT Cardio Blast - High Energy Workout',
+        slug: 'hiit-cardio-blast-high-energy',
+        heroImage: 'https://images.unsplash.com/photo-1549576490-b0b4831ef60a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzl8MHwxfHNlYXJjaHw0fHxmaXRuZXNzJTIwY2xhc3N8ZW58MHx8fHwxNzUzNjE2MTkxfDA&ixlib=rb-4.1.0&q=85',
+        description: 'High-intensity interval training to boost your metabolism and build cardiovascular endurance. Perfect for those looking to maximize their workout in minimal time.',
+        type: 'HIIT',
+        category: 'Cardio',
+        level: 'Intermediate',
+        intensity: 'High',
+        duration: 45,
+        price: 30.00,
+        rating: 4.7,
+        reviewCount: 156,
+        totalBookings: 189,
+        location: {
+          name: 'FitCore Studio',
+          address: '789 Fitness Blvd, Midtown',
+          city: 'San Francisco',
+          state: 'CA',
+          isVirtual: false
+        },
+        instructor: {
+          id: 'michael-rodriguez',
+          name: 'Michael Rodriguez',
+          bio: 'HIIT specialist with 6+ years of experience in high-intensity training and functional fitness.',
+          specialties: ['HIIT', 'Strength Training', 'Functional Movement'],
+          rating: 4.7,
+          reviewCount: 89,
+          experience: '6+ years'
+        },
+        schedule: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
+        sessions: [
+          {
+            id: 'session-hiit-1',
+            date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
+            startTime: '18:00',
+            endTime: '18:45',
+            spotsTotal: 15,
+            spotsBooked: 10
+          }
+        ],
+        capacity: 15,
+        status: 'active',
+        bookings: [],
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        id: 'strength-training-basics',
+        instructorId: 'david-wilson',
+        title: 'Strength Training Basics - Build Foundation',
+        slug: 'strength-training-basics-foundation',
+        heroImage: 'https://images.unsplash.com/photo-1591258370814-01609b341790?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzl8MHwxfHNlYXJjaHwzfHxmaXRuZXNzJTIwY2xhc3N8ZW58MHx8fHwxNzUzNjE2MTkxfDA&ixlib=rb-4.1.0&q=85',
+        description: 'Learn proper form and build strength with guided weight training. Perfect for beginners looking to start their strength journey safely.',
+        type: 'Strength',
+        category: 'Weight Training',
+        level: 'Beginner',
+        intensity: 'Moderate',
+        duration: 50,
+        price: 35.00,
+        rating: 4.6,
+        reviewCount: 78,
+        totalBookings: 134,
+        location: {
+          name: 'Iron Works Gym',
+          address: '321 Power Ave, Westside',
+          city: 'San Francisco', 
+          state: 'CA',
+          isVirtual: false
+        },
+        instructor: {
+          id: 'david-wilson',
+          name: 'David Wilson',
+          bio: 'Certified strength coach with 8+ years helping beginners build confidence and strength.',
+          specialties: ['Strength Training', 'Form Correction', 'Progressive Overload'],
+          rating: 4.8,
+          reviewCount: 203,
+          experience: '8+ years'
+        },
+        schedule: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+        sessions: [
+          {
+            id: 'session-strength-1',
+            date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+            startTime: '10:00',
+            endTime: '10:50',
+            spotsTotal: 12,
+            spotsBooked: 7
+          }
+        ],
+        capacity: 12,
         status: 'active',
         bookings: [],
         createdAt: new Date(),
@@ -337,6 +474,92 @@ async function getClasses(searchParams) {
   const total = await db.collection('classes').countDocuments(filter)
   
   return NextResponse.json({ classes, total })
+}
+
+async function getClassById(classId) {
+  try {
+    // First try to find by ID
+    let classDoc = await db.collection('classes').findOne({ id: classId })
+    
+    // If not found by id, try by MongoDB _id
+    if (!classDoc) {
+      try {
+        classDoc = await db.collection('classes').findOne({ _id: classId })
+      } catch (error) {
+        // Invalid ObjectId, continue
+      }
+    }
+    
+    if (!classDoc) {
+      return NextResponse.json({ error: 'Class not found' }, { status: 404 })
+    }
+
+    // Add comprehensive sample data for enhanced class details if needed
+    if (!classDoc.reviews) {
+      classDoc.reviews = [
+        {
+          id: 1,
+          userId: 'user-1',
+          userName: 'Emma Rodriguez',
+          rating: 5,
+          date: '2 days ago',
+          comment: 'Amazing class! The instructor creates such a welcoming atmosphere and the workout is perfectly balanced.',
+          helpful: 12,
+          verified: true,
+          attendance: 15
+        },
+        {
+          id: 2,
+          userId: 'user-2',
+          userName: 'Michael Chen',
+          rating: 5,
+          date: '1 week ago',
+          comment: 'Great for beginners like myself. Clear instructions and modifications offered throughout.',
+          helpful: 8,
+          verified: true,
+          attendance: 6
+        }
+      ]
+    }
+
+    if (!classDoc.benefits) {
+      classDoc.benefits = [
+        'Increased flexibility and strength',
+        'Improved mental clarity and focus',
+        'Stress reduction and relaxation',
+        'Better posture and alignment',
+        'Enhanced mind-body connection'
+      ]
+    }
+
+    if (!classDoc.whatToExpect) {
+      classDoc.whatToExpected = [
+        'Welcome and intention setting (5 min)',
+        'Dynamic warm-up sequence (10 min)',
+        'Main workout/flow (30+ min)',
+        'Cool-down and stretching (10 min)',
+        'Final relaxation (5 min)'
+      ]
+    }
+
+    if (!classDoc.faqs) {
+      classDoc.faqs = [
+        {
+          question: 'What if I\'m a complete beginner?',
+          answer: 'This class welcomes all levels! The instructor provides clear modifications and alternatives.'
+        },
+        {
+          question: 'Do I need to bring equipment?',
+          answer: 'All necessary equipment is provided, but you\'re welcome to bring your own if you prefer.'
+        }
+      ]
+    }
+    
+    return NextResponse.json({ class: classDoc })
+  } catch (error) {
+    console.error('Error fetching class:', error)
+    return NextResponse.json({ error: 'Failed to fetch class details' }, { status: 500 })
+  }
 }
 
 async function createClass(body, userId) {
