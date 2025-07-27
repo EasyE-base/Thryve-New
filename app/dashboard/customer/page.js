@@ -83,7 +83,7 @@ const sampleData = {
 export default function CustomerDashboard() {
   const { user, role, loading: authLoading } = useAuth()
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('overview')
+  const [activeSection, setActiveSection] = useState('overview')
   const [calendarView, setCalendarView] = useState('month')
   const [selectedDate, setSelectedDate] = useState(new Date())
   const router = useRouter()
@@ -150,68 +150,103 @@ export default function CustomerDashboard() {
     )
   }
 
+  const navItems = [
+    { id: 'overview', label: 'Dashboard', icon: Activity },
+    { id: 'calendar', label: 'Calendar', icon: CalendarIcon },
+    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+    { id: 'favorites', label: 'Favorites', icon: Heart },
+    { id: 'notifications', label: 'Notifications', icon: Bell },
+    { id: 'community', label: 'Community', icon: Users },
+    { id: 'settings', label: 'Settings', icon: User }
+  ]
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-      {/* Header */}
-      <header className="bg-black/20 backdrop-blur-md shadow-xl border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center">
-                <Dumbbell className="h-7 w-7 text-white" />
+      <div className="flex">
+        {/* Sidebar */}
+        <div className="w-64 bg-black/20 backdrop-blur-md border-r border-white/10 min-h-screen">
+          <div className="p-6">
+            <div className="flex items-center space-x-3 mb-8">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center">
+                <Dumbbell className="h-6 w-6 text-white" />
               </div>
-              <div>
-                <h1 className="text-2xl font-bold text-white">Thryve</h1>
-                <p className="text-blue-200 text-sm">Customer Dashboard</p>
-              </div>
+              <span className="text-xl font-bold text-white">Thryve</span>
             </div>
             
-            <div className="flex items-center space-x-6">
-              <div className="flex items-center space-x-3">
-                <Avatar className="h-10 w-10 ring-2 ring-blue-400/50">
-                  <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white">
-                    <User className="h-5 w-5" />
-                  </AvatarFallback>
-                </Avatar>
-                <div className="hidden sm:block">
-                  <span className="text-white font-medium">Welcome back!</span>
-                  <p className="text-blue-200 text-sm">{user?.email}</p>
-                </div>
+            <nav className="space-y-2">
+              {navItems.map((item) => {
+                const Icon = item.icon
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveSection(item.id)}
+                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                      activeSection === item.id
+                        ? 'bg-blue-500/20 text-blue-200 border-l-2 border-blue-400'
+                        : 'text-white/70 hover:text-white hover:bg-white/10'
+                    }`}
+                  >
+                    <Icon className="h-5 w-5" />
+                    <span className="font-medium">{item.label}</span>
+                  </button>
+                )
+              })}
+            </nav>
+          </div>
+          
+          {/* User Profile in Sidebar */}
+          <div className="absolute bottom-0 w-64 p-6 border-t border-white/10 bg-black/10">
+            <div className="flex items-center space-x-3 mb-4">
+              <Avatar className="h-10 w-10 ring-2 ring-blue-400/50">
+                <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white">
+                  <User className="h-5 w-5" />
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <p className="text-white font-medium text-sm">John Smith</p>
+                <p className="text-blue-200 text-xs">Premium Member</p>
               </div>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handleSignOut}
-                className="text-white hover:text-blue-400 hover:bg-white/10 border border-white/20"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
-              </Button>
             </div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleSignOut}
+              className="w-full text-white hover:text-blue-400 hover:bg-white/10 border border-white/20"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out
+            </Button>
           </div>
         </div>
-      </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-8 bg-white/10 backdrop-blur-md">
-            <TabsTrigger value="overview" className="text-white data-[state=active]:bg-blue-500 data-[state=active]:text-white">
-              <Activity className="h-4 w-4 mr-2" />
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="calendar" className="text-white data-[state=active]:bg-blue-500 data-[state=active]:text-white">
-              <CalendarIcon className="h-4 w-4 mr-2" />
-              Calendar
-            </TabsTrigger>
-            <TabsTrigger value="analytics" className="text-white data-[state=active]:bg-blue-500 data-[state=active]:text-white">
-              <BarChart3 className="h-4 w-4 mr-2" />
-              Analytics
-            </TabsTrigger>
-            <TabsTrigger value="favorites" className="text-white data-[state=active]:bg-blue-500 data-[state=active]:text-white">
-              <Heart className="h-4 w-4 mr-2" />
-              Favorites
-            </TabsTrigger>
-          </TabsList>
+        {/* Main Content */}
+        <div className="flex-1">
+          {/* Header */}
+          <header className="bg-black/10 backdrop-blur-md border-b border-white/10 px-8 py-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-3xl font-bold text-white">Dashboard</h1>
+                <p className="text-blue-200">Good morning, John! Here's your fitness summary</p>
+              </div>
+              <div className="flex items-center space-x-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-400 h-4 w-4" />
+                  <input
+                    type="text"
+                    placeholder="Search classes..."
+                    className="bg-white/10 backdrop-blur-md border-white/20 border rounded-lg pl-10 pr-4 py-2 text-white placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                  />
+                </div>
+                <div className="relative">
+                  <Bell className="h-6 w-6 text-white" />
+                  <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full"></span>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          {/* Content */}
+          <div className="p-8 overflow-y-auto max-h-screen">
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-8">
