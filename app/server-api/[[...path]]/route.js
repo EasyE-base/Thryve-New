@@ -399,6 +399,320 @@ async function handleGET(request) {
       }
     }
     
+    // NOTIFICATION SYSTEM ENDPOINTS
+    
+    // Send notification (email/SMS/in-app)
+    if (path === '/notifications/send') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { type, recipients, subject, message, templateId, data } = body
+
+        // Create notification record
+        const notification = {
+          id: `notification-${Date.now()}`,
+          senderId: firebaseUser.uid,
+          type: type, // 'email', 'sms', 'in_app', 'push'
+          recipients: recipients, // array of user IDs or email/phone
+          subject: subject || '',
+          message: message,
+          templateId: templateId || null,
+          templateData: data || {},
+          status: 'pending',
+          sentAt: null,
+          deliveredAt: null,
+          readAt: null,
+          createdAt: new Date()
+        }
+
+        await database.collection('notifications').insertOne(notification)
+
+        // Process notification sending (mock implementation)
+        console.log('Notification queued:', notification.id)
+
+        return NextResponse.json({
+          message: 'Notification queued for delivery',
+          notificationId: notification.id,
+          status: 'queued'
+        })
+      } catch (error) {
+        console.error('Notification send error:', error)
+        return NextResponse.json({ error: 'Failed to send notification' }, { status: 500 })
+      }
+    }
+
+    // Get user notifications
+    if (path === '/notifications/inbox') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const notifications = await database.collection('notifications').find({
+          recipients: firebaseUser.uid,
+          type: { $in: ['in_app', 'email'] }
+        }).sort({ createdAt: -1 }).limit(50).toArray()
+
+        const unreadCount = await database.collection('notifications').countDocuments({
+          recipients: firebaseUser.uid,
+          readAt: null,
+          type: 'in_app'
+        })
+
+        return NextResponse.json({
+          notifications,
+          unreadCount,
+          total: notifications.length
+        })
+      } catch (error) {
+        console.error('Notifications fetch error:', error)
+        return NextResponse.json({ error: 'Failed to fetch notifications' }, { status: 500 })
+      }
+    }
+
+    // ANALYTICS SYSTEM ENDPOINTS
+    
+    // Studio analytics dashboard
+    if (path === '/analytics/studio') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const studio = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        if (!studio || studio.role !== 'merchant') {
+          return NextResponse.json({ error: 'Studio access required' }, { status: 403 })
+        }
+
+        // Get date range from query params
+        const url = new URL(request.url)
+        const startDate = url.searchParams.get('startDate') || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+        const endDate = url.searchParams.get('endDate') || new Date().toISOString()
+
+        // Revenue analytics
+        const revenueData = await database.collection('user_transactions').find({
+          studioId: firebaseUser.uid,
+          createdAt: { $gte: new Date(startDate), $lte: new Date(endDate) },
+          status: 'completed'
+        }).toArray()
+
+        const totalRevenue = revenueData.reduce((sum, txn) => sum + txn.amount, 0)
+        const platformFees = totalRevenue * 0.0375 // 3.75%
+        const studioEarnings = totalRevenue - platformFees
+
+        // Class performance
+        const classPerformance = await database.collection('studio_classes').find({
+          studioId: firebaseUser.uid,
+          createdAt: { $gte: new Date(startDate), $lte: new Date(endDate) }
+        }).toArray()
+
+        const totalClasses = classPerformance.length
+        const totalBookings = classPerformance.reduce((sum, cls) => sum + (cls.enrolled || 0), 0)
+        const averageUtilization = totalClasses > 0 ? (totalBookings / (totalClasses * 15)) * 100 : 0 // Assuming avg capacity of 15
+
+        // X Pass analytics
+        const xpassRedemptions = await database.collection('user_transactions').find({
+          studioId: firebaseUser.uid,
+          type: 'xpass_redemption',
+          createdAt: { $gte: new Date(startDate), $lte: new Date(endDate) }
+        }).toArray()
+
+        const xpassRevenue = xpassRedemptions.reduce((sum, txn) => sum + txn.amount, 0)
+        const xpassFees = xpassRevenue * 0.05 // 5% for X Pass
+
+        return NextResponse.json({
+          dateRange: { startDate, endDate },
+          revenue: {
+            total: totalRevenue,
+            platformFees: platformFees,
+            studioEarnings: studioEarnings,
+            xpassRevenue: xpassRevenue,
+            xpassFees: xpassFees
+          },
+          classes: {
+            totalClasses,
+            totalBookings,
+            averageUtilization: Math.round(averageUtilization * 100) / 100
+          },
+          xpass: {
+            redemptions: xpassRedemptions.length,
+            revenue: xpassRevenue,
+            fees: xpassFees
+          },
+          trends: {
+            dailyRevenue: [], // TODO: Implement daily breakdown
+            popularClasses: [], // TODO: Implement class ranking
+            peakHours: [] // TODO: Implement time analysis
+          }
+        })
+      } catch (error) {
+        console.error('Studio analytics error:', error)
+        return NextResponse.json({ error: 'Failed to fetch studio analytics' }, { status: 500 })
+      }
+    }
+
+    // Platform analytics (admin only)
+    if (path === '/analytics/platform') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      // TODO: Add admin role check
+      try {
+        const url = new URL(request.url)
+        const startDate = url.searchParams.get('startDate') || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+        const endDate = url.searchParams.get('endDate') || new Date().toISOString()
+
+        // Platform revenue
+        const allTransactions = await database.collection('user_transactions').find({
+          createdAt: { $gte: new Date(startDate), $lte: new Date(endDate) },
+          status: 'completed'
+        }).toArray()
+
+        const totalPlatformRevenue = allTransactions.reduce((sum, txn) => sum + (txn.platformFee || 0), 0)
+        const totalGMV = allTransactions.reduce((sum, txn) => sum + txn.amount, 0) // Gross Merchandise Value
+
+        // User metrics
+        const totalUsers = await database.collection('profiles').countDocuments({})
+        const activeStudios = await database.collection('profiles').countDocuments({ role: 'merchant' })
+        const activeInstructors = await database.collection('profiles').countDocuments({ role: 'instructor' })
+
+        // X Pass metrics
+        const xpassUsers = await database.collection('user_xpass_credits').distinct('userId')
+        const totalXPassCredits = await database.collection('user_xpass_credits').aggregate([
+          { $group: { _id: null, total: { $sum: '$creditsTotal' } } }
+        ]).toArray()
+
+        return NextResponse.json({
+          dateRange: { startDate, endDate },
+          revenue: {
+            platformRevenue: totalPlatformRevenue,
+            grossMerchandiseValue: totalGMV,
+            revenueShare: totalPlatformRevenue / totalGMV * 100
+          },
+          users: {
+            total: totalUsers,
+            studios: activeStudios,
+            instructors: activeInstructors,
+            xpassUsers: xpassUsers.length
+          },
+          xpass: {
+            totalCreditsIssued: totalXPassCredits[0]?.total || 0,
+            activeUsers: xpassUsers.length
+          }
+        })
+      } catch (error) {
+        console.error('Platform analytics error:', error)
+        return NextResponse.json({ error: 'Failed to fetch platform analytics' }, { status: 500 })
+      }
+    }
+
+    // FILE UPLOAD ENDPOINTS
+    
+    // Upload file (images, documents)
+    if (path === '/files/upload') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.formData()
+        const file = body.get('file')
+        const fileType = body.get('type') // 'profile', 'class', 'studio'
+        const entityId = body.get('entityId')
+
+        if (!file) {
+          return NextResponse.json({ error: 'No file provided' }, { status: 400 })
+        }
+
+        // Convert file to base64 for storage (in production, use cloud storage)
+        const bytes = await file.arrayBuffer()
+        const buffer = Buffer.from(bytes)
+        const base64 = buffer.toString('base64')
+        const dataUrl = `data:${file.type};base64,${base64}`
+
+        // Create file record
+        const fileRecord = {
+          id: `file-${Date.now()}`,
+          uploaderId: firebaseUser.uid,
+          filename: file.name,
+          fileType: fileType,
+          entityId: entityId,
+          mimeType: file.type,
+          size: file.size,
+          dataUrl: dataUrl, // In production, this would be a cloud storage URL
+          uploadedAt: new Date()
+        }
+
+        await database.collection('uploaded_files').insertOne(fileRecord)
+
+        // Update entity with file reference
+        if (fileType === 'profile') {
+          await database.collection('profiles').updateOne(
+            { userId: firebaseUser.uid },
+            { $set: { profileImage: fileRecord.id, updatedAt: new Date() } }
+          )
+        } else if (fileType === 'class' && entityId) {
+          await database.collection('studio_classes').updateOne(
+            { id: entityId, studioId: firebaseUser.uid },
+            { $set: { classImage: fileRecord.id, updatedAt: new Date() } }
+          )
+        }
+
+        return NextResponse.json({
+          message: 'File uploaded successfully',
+          fileId: fileRecord.id,
+          url: dataUrl
+        })
+      } catch (error) {
+        console.error('File upload error:', error)
+        return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 })
+      }
+    }
+
+    // Get uploaded files
+    if (path === '/files/list') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const url = new URL(request.url)
+        const fileType = url.searchParams.get('type')
+        const entityId = url.searchParams.get('entityId')
+
+        let query = { uploaderId: firebaseUser.uid }
+        if (fileType) query.fileType = fileType
+        if (entityId) query.entityId = entityId
+
+        const files = await database.collection('uploaded_files').find(query).sort({ uploadedAt: -1 }).toArray()
+
+        return NextResponse.json({
+          files: files.map(file => ({
+            id: file.id,
+            filename: file.filename,
+            fileType: file.fileType,
+            mimeType: file.mimeType,
+            size: file.size,
+            url: file.dataUrl,
+            uploadedAt: file.uploadedAt
+          }))
+        })
+      } catch (error) {
+        console.error('File list error:', error)
+        return NextResponse.json({ error: 'Failed to fetch files' }, { status: 500 })
+      }
+    }
+
     return NextResponse.json({ error: 'Endpoint not found' }, { status: 404 })
   } catch (error) {
     console.error('GET Error:', error)
