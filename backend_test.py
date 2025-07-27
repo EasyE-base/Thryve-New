@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Comprehensive Backend API Testing for Thryve Fitness Platform
-Focus: My Bookings Management System Backend Testing
+Focus: Stripe Connect Integration for Instructor Payouts
 """
 
 import requests
@@ -12,9 +12,17 @@ from datetime import datetime, timedelta
 
 # Configuration
 BASE_URL = "http://localhost:3000/api"
+SERVER_API_URL = "http://localhost:3000/server-api"
 HEADERS = {
     'Content-Type': 'application/json',
     'Accept': 'application/json'
+}
+
+# Mock Firebase token for testing (in real implementation, this would be a valid JWT)
+MOCK_AUTH_HEADERS = {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    'Authorization': 'Bearer mock-firebase-token'
 }
 
 class BookingManagementTester:
