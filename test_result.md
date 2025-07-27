@@ -538,9 +538,10 @@ metadata:
 
 test_plan:
   current_focus:
-    - "My Bookings Management System - Frontend Integration Testing"
-  stuck_tasks:
-    - "My Bookings Management System - Complete User Journey"
+    - "Complete End-to-End User Journey Testing"
+    - "Authentication Flow Validation"
+    - "My Bookings System Integration Testing"
+  stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
