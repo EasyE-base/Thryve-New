@@ -472,6 +472,30 @@ frontend:
           agent: "testing"
           comment: "BLOCKED BY API INFRASTRUCTURE ISSUE: Dashboard cannot be reached due to 502 API errors preventing role selection completion. The dashboard page is properly implemented and would work correctly if users could complete the authentication flow. Issue is with external URL API routing, not dashboard functionality."
 
+  - task: "Comprehensive Class Detail Pages with Booking Flow"
+    implemented: true
+    working: "unknown"
+    file: "app/class/[id]/page.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "MAJOR ENHANCEMENT: Completely redesigned class detail pages with comprehensive booking flow. Features include: Hero section with class images, detailed tabbed navigation (Overview, Sessions, Reviews, Instructor), session selection with real-time availability, enhanced booking flow with Stripe integration, instructor profile integration, comprehensive class information (structure, benefits, requirements, FAQs), reviews system with verified badges, amenities and location details, cancellation policy, favorite functionality, and responsive design matching the billion-dollar aesthetic. Integrated with enhanced backend API for real class data fetching."
+
+  - task: "Marketplace Enhancement with Class Navigation"
+    implemented: true
+    working: "unknown"
+    file: "app/marketplace/page.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "ENHANCED: Added 'View Classes' button to instructor cards in marketplace that links to comprehensive class detail pages. Added purple gradient styling for consistency with design system. This provides seamless navigation from instructor discovery to detailed class booking flow."
+
 metadata:
   created_by: "testing_agent"
   version: "1.0"
