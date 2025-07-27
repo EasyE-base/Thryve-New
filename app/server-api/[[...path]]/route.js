@@ -128,12 +128,12 @@ async function handleGET(request) {
       if (type) query.type = type
       if (location) query.location = location
 
-      const classes = await db.collection('classes').find(query).limit(limit).toArray()
+      const classes = await database.collection('classes').find(query).limit(limit).toArray()
       
       if (classes.length === 0) {
         // Create sample classes if none exist
-        await createSampleClasses()
-        const newClasses = await db.collection('classes').find(query).limit(limit).toArray()
+        await createSampleClasses(database)
+        const newClasses = await database.collection('classes').find(query).limit(limit).toArray()
         return NextResponse.json({ classes: newClasses, total: newClasses.length })
       }
 
