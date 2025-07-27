@@ -146,7 +146,6 @@ export default function InstructorDashboard() {
   const [calendarView, setCalendarView] = useState('week')
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [checklist, setChecklist] = useState(instructorData.dailyChecklist)
-  const router = useRouter()
 
   useEffect(() => {
     if (authLoading) return
