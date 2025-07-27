@@ -308,13 +308,96 @@ async function handleGET(request) {
       }
     }
 
-    return NextResponse.json({ error: 'Endpoint not found' }, { status: 404 })
+    // Handle business logic endpoints
 
-  } catch (error) {
-    console.error('SERVER-API GET Error:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
-  }
-}
+    // User membership and class pack management
+    if (path === '/user/memberships') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        // Get user's active memberships and class packs
+        const memberships = await database.collection('user_memberships').find({ 
+          userId: firebaseUser.uid,
+          status: { $in: ['active', 'pending'] }
+        }).toArray()
+        
+        const classPacks = await database.collection('user_class_packs').find({ 
+          userId: firebaseUser.uid,
+          creditsRemaining: { $gt: 0 },
+          status: 'active'
+        }).toArray()
+        
+        const xPassCredits = await database.collection('user_xpass_credits').find({ 
+          userId: firebaseUser.uid,
+          creditsRemaining: { $gt: 0 },
+          status: 'active'
+        }).toArray()
+
+        return NextResponse.json({
+          memberships,
+          classPacks,
+          xPassCredits,
+          totalCredits: classPacks.reduce((sum, pack) => sum + pack.creditsRemaining, 0) + 
+                       xPassCredits.reduce((sum, pack) => sum + pack.creditsRemaining, 0)
+        })
+      } catch (error) {
+        console.error('User memberships fetch error:', error)
+        return NextResponse.json({ error: 'Failed to fetch user memberships' }, { status: 500 })
+      }
+    }
+
+    // User transaction history
+    if (path === '/user/transactions') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const transactions = await database.collection('user_transactions').find({ 
+          userId: firebaseUser.uid 
+        }).sort({ createdAt: -1 }).limit(50).toArray()
+
+        return NextResponse.json({ transactions })
+      } catch (error) {
+        console.error('User transactions fetch error:', error)
+        return NextResponse.json({ error: 'Failed to fetch transactions' }, { status: 500 })
+      }
+    }
+
+    // Studio X Pass settings
+    if (path === '/studio/xpass-settings') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const studio = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        if (!studio || studio.role !== 'merchant') {
+          return NextResponse.json({ error: 'Studio access required' }, { status: 403 })
+        }
+
+        const xpassSettings = await database.collection('studio_xpass_settings').findOne({ 
+          studioId: firebaseUser.uid 
+        })
+
+        return NextResponse.json(xpassSettings || {
+          studioId: firebaseUser.uid,
+          xpassEnabled: false,
+          acceptedClassTypes: [],
+          cancellationWindow: 2, // hours
+          noShowFee: 15, // dollars
+          lateCancelFee: 10
+        })
+      } catch (error) {
+        console.error('Studio X Pass settings fetch error:', error)
+        return NextResponse.json({ error: 'Failed to fetch X Pass settings' }, { status: 500 })
+      }
+    }
 
 async function handlePOST(request) {
   try {
