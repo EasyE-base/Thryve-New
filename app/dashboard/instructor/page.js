@@ -988,13 +988,34 @@ export default function InstructorDashboard() {
             {/* Earnings */}
             {activeSection === 'earnings' && (
               <div className="space-y-6">
+                {/* Stripe Connect Status */}
+                {instructor && (
+                  <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                    <CardHeader>
+                      <CardTitle className="text-white flex items-center space-x-2">
+                        <DollarSign className="h-5 w-5 text-green-400" />
+                        <span>Payment Setup</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <StripeConnectButton instructor={instructor} />
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Earnings Overview Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <Card className="bg-white/10 backdrop-blur-md border-white/20">
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-blue-200 font-medium text-sm">This Month</p>
-                          <p className="text-2xl font-bold text-white">${instructorData.earnings.monthlyTotal}</p>
+                          <p className="text-2xl font-bold text-white">
+                            ${instructor?.stripeAccountStatus === 'active' && payouts.length > 0 
+                              ? payouts.reduce((sum, payout) => sum + payout.amount, 0).toFixed(2)
+                              : '0.00'
+                            }
+                          </p>
                         </div>
                         <div className="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center">
                           <DollarSign className="h-6 w-6 text-green-400" />
@@ -1007,8 +1028,8 @@ export default function InstructorDashboard() {
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-blue-200 font-medium text-sm">Classes Taught</p>
-                          <p className="text-2xl font-bold text-white">{instructorData.performance.classesThisMonth}</p>
+                          <p className="text-blue-200 font-medium text-sm">Total Payouts</p>
+                          <p className="text-2xl font-bold text-white">{payouts.length}</p>
                         </div>
                         <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center">
                           <CalendarIcon className="h-6 w-6 text-blue-400" />
@@ -1021,8 +1042,13 @@ export default function InstructorDashboard() {
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-blue-200 font-medium text-sm">Per Class Avg</p>
-                          <p className="text-2xl font-bold text-white">${Math.round(instructorData.earnings.monthlyTotal / instructorData.performance.classesThisMonth)}</p>
+                          <p className="text-blue-200 font-medium text-sm">Platform Fee</p>
+                          <p className="text-2xl font-bold text-white">
+                            {instructor?.commissionRate 
+                              ? `${(instructor.commissionRate * 100).toFixed(0)}%`
+                              : '15%'
+                            }
+                          </p>
                         </div>
                         <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center">
                           <TrendingUp className="h-6 w-6 text-purple-400" />
@@ -1032,21 +1058,100 @@ export default function InstructorDashboard() {
                   </Card>
                 </div>
 
+                {/* Recent Payouts */}
                 <Card className="bg-white/10 backdrop-blur-md border-white/20">
                   <CardHeader>
-                    <CardTitle className="text-white">Earnings Breakdown</CardTitle>
+                    <CardTitle className="text-white">Recent Payouts</CardTitle>
+                    <CardDescription className="text-blue-200">
+                      Your latest earnings from class bookings
+                    </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
-                      {instructorData.earnings.classes.map((classItem, index) => (
-                        <div key={index} className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
-                          <div>
-                            <p className="text-white font-medium">{classItem.name}</p>
-                            <p className="text-blue-200 text-sm">{classItem.classes} classes × ${classItem.rate}</p>
-                          </div>
-                          <p className="text-white font-bold">${classItem.earnings}</p>
+                    {instructor?.stripeAccountStatus === 'active' ? (
+                      payouts.length > 0 ? (
+                        <div className="space-y-4">
+                          {payouts.slice(0, 10).map((payout, index) => (
+                            <div key={payout._id || index} className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+                              <div>
+                                <p className="text-white font-medium">Class Booking Payout</p>
+                                <p className="text-blue-200 text-sm">
+                                  {new Date(payout.createdAt).toLocaleDateString()} • 
+                                  Platform fee: ${payout.platformFee?.toFixed(2) || '0.00'}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-white font-bold">${payout.amount?.toFixed(2) || '0.00'}</p>
+                                <Badge 
+                                  variant={payout.status === 'paid' ? 'default' : 'secondary'}
+                                  className={`text-xs ${
+                                    payout.status === 'paid' 
+                                      ? 'bg-green-500/20 text-green-300 border-green-400/30' 
+                                      : 'bg-yellow-500/20 text-yellow-300 border-yellow-400/30'
+                                  }`}
+                                >
+                                  {payout.status || 'pending'}
+                                </Badge>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                      ) : (
+                        <div className="text-center py-8">
+                          <DollarSign className="h-12 w-12 text-blue-400 mx-auto mb-4 opacity-50" />
+                          <p className="text-blue-200 text-lg mb-2">No payouts yet</p>
+                          <p className="text-blue-300 text-sm">
+                            Start teaching classes to earn your first payout!
+                          </p>
+                        </div>
+                      )
+                    ) : (
+                      <div className="text-center py-8">
+                        <AlertCircle className="h-12 w-12 text-yellow-400 mx-auto mb-4" />
+                        <p className="text-yellow-300 text-lg mb-2">Payment Setup Required</p>
+                        <p className="text-blue-200 text-sm">
+                          Connect your Stripe account above to start receiving payments from your classes.
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Earnings Tips */}
+                <Card className="bg-gradient-to-br from-blue-900/40 to-purple-900/40 border border-white/10 backdrop-blur-sm">
+                  <CardContent className="p-6">
+                    <h3 className="text-white font-semibold mb-4 flex items-center">
+                      <Star className="h-5 w-5 text-yellow-400 mr-2" />
+                      Maximize Your Earnings
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      <div className="flex items-start space-x-3">
+                        <CheckCircle className="h-4 w-4 text-green-400 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-white font-medium">Maintain High Ratings</p>
+                          <p className="text-blue-200">Students book higher-rated instructors more often</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-3">
+                        <CheckCircle className="h-4 w-4 text-green-400 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-white font-medium">Offer Regular Classes</p>
+                          <p className="text-blue-200">Consistent scheduling builds a loyal student base</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-3">
+                        <CheckCircle className="h-4 w-4 text-green-400 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-white font-medium">Engage with Students</p>
+                          <p className="text-blue-200">Personal connections lead to repeat bookings</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-3">
+                        <CheckCircle className="h-4 w-4 text-green-400 mt-0.5 flex-shrink-0" />
+                        <div>
+                          <p className="text-white font-medium">Complete Your Profile</p>
+                          <p className="text-blue-200">Detailed profiles attract more students</p>
+                        </div>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
