@@ -148,7 +148,7 @@ async function handleGET(request) {
       }
 
       try {
-        const user = await db.collection('profiles').findOne({ userId: uid })
+        const user = await database.collection('profiles').findOne({ userId: uid })
         if (!user) {
           return NextResponse.json({ error: 'User not found' }, { status: 404 })
         }
