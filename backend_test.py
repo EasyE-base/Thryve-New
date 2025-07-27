@@ -11,7 +11,7 @@ import os
 from datetime import datetime, timedelta
 
 # Configuration
-BASE_URL = "https://a0166285-5fbd-430a-a296-ff63ae399ac4.preview.emergentagent.com/api"
+BASE_URL = "http://localhost:3000/api"
 HEADERS = {
     'Content-Type': 'application/json',
     'Accept': 'application/json'
