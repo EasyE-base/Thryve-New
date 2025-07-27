@@ -425,6 +425,73 @@ async function handlePOST(request) {
       }
     }
 
+    // Handle class creation
+    if (path === '/instructor/classes') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { 
+          title, description, type, level, duration, price, capacity, 
+          location, date, time, recurring, requirements, amenities 
+        } = body
+
+        // Validate required fields
+        if (!title || !description || !type || !location || !date || !time) {
+          return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+        }
+
+        // Check if user is instructor
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        if (!userProfile || userProfile.role !== 'instructor') {
+          return NextResponse.json({ error: 'Only instructors can create classes' }, { status: 403 })
+        }
+
+        // Create class data
+        const classData = {
+          id: `class-${Date.now()}`,
+          title,
+          description,
+          type,
+          level: level || 'All Levels',
+          duration: parseInt(duration) || 60,
+          price: parseFloat(price) || 25,
+          capacity: parseInt(capacity) || 15,
+          location,
+          date,
+          time,
+          recurring: recurring || false,
+          requirements: requirements || '',
+          amenities: amenities || [],
+          instructorId: firebaseUser.uid,
+          instructorName: userProfile.name || firebaseUser.email.split('@')[0],
+          instructorEmail: firebaseUser.email,
+          enrolled: 0,
+          enrolledStudents: [],
+          status: 'scheduled',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+
+        // Save class to database
+        await database.collection('instructor_classes').insertOne(classData)
+
+        console.log('Class created successfully for instructor:', firebaseUser.uid)
+
+        return NextResponse.json({
+          message: 'Class created successfully',
+          classId: classData.id,
+          class: classData
+        })
+      } catch (error) {
+        console.error('Class creation error:', error)
+        return NextResponse.json({ error: 'Failed to create class' }, { status: 500 })
+      }
+    }
+
     return NextResponse.json({ error: 'Endpoint not found' }, { status: 404 })
 
   } catch (error) {
