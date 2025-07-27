@@ -1207,6 +1207,74 @@ export default function InstructorDashboard() {
               </div>
             )}
 
+            {/* Staffing & Shift Management */}
+            {activeSection === 'staffing' && (
+              <div className="space-y-6">
+                <InstructorScheduleComponent />
+                
+                {/* Staffing Chat */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2">
+                    <StaffingChatComponent studioId="studio-placeholder-id" />
+                  </div>
+                  <div className="space-y-4">
+                    <Card className="bg-gradient-to-br from-green-900/20 to-green-700/20 border border-green-400/20 backdrop-blur-sm">
+                      <CardContent className="p-4">
+                        <h4 className="text-green-200 font-semibold mb-3">Quick Actions</h4>
+                        <div className="space-y-2">
+                          <Button 
+                            size="sm" 
+                            className="w-full bg-green-500/20 hover:bg-green-500/30 text-green-200 border border-green-400/20"
+                            onClick={() => toast.info('Feature coming soon!')}
+                          >
+                            Request Time Off
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            className="w-full bg-blue-500/20 hover:bg-blue-500/30 text-blue-200 border border-blue-400/20"
+                            onClick={() => toast.info('Feature coming soon!')}
+                          >
+                            Update Availability
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            className="w-full bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 border border-purple-400/20"
+                            onClick={() => toast.info('Feature coming soon!')}
+                          >
+                            Emergency Coverage
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="bg-gradient-to-br from-blue-900/20 to-blue-700/20 border border-blue-400/20 backdrop-blur-sm">
+                      <CardContent className="p-4">
+                        <h4 className="text-blue-200 font-semibold mb-3">Tips for Success</h4>
+                        <div className="space-y-3 text-sm">
+                          <div className="flex items-start space-x-2">
+                            <div className="w-2 h-2 bg-blue-400 rounded-full mt-2"></div>
+                            <p className="text-blue-300">Respond to swap requests quickly</p>
+                          </div>
+                          <div className="flex items-start space-x-2">
+                            <div className="w-2 h-2 bg-blue-400 rounded-full mt-2"></div>
+                            <p className="text-blue-300">Help colleagues when possible</p>
+                          </div>
+                          <div className="flex items-start space-x-2">
+                            <div className="w-2 h-2 bg-blue-400 rounded-full mt-2"></div>
+                            <p className="text-blue-300">Keep your availability updated</p>
+                          </div>
+                          <div className="flex items-start space-x-2">
+                            <div className="w-2 h-2 bg-blue-400 rounded-full mt-2"></div>
+                            <p className="text-blue-300">Use chat for coordination</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Settings */}
             {activeSection === 'settings' && (
               <div className="space-y-6">
