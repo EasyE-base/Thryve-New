@@ -17,6 +17,69 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import moment from 'moment'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
 
+const localizer = momentLocalizer(moment)
+
+// Sample data for the dashboard
+const sampleData = {
+  weeklyAttendance: [
+    { day: 'Mon', classes: 2 },
+    { day: 'Tue', classes: 1 },
+    { day: 'Wed', classes: 3 },
+    { day: 'Thu', classes: 2 },
+    { day: 'Fri', classes: 1 },
+    { day: 'Sat', classes: 4 },
+    { day: 'Sun', classes: 2 }
+  ],
+  classTypes: [
+    { name: 'Yoga', value: 40, color: '#8B5CF6' },
+    { name: 'HIIT', value: 30, color: '#EF4444' },
+    { name: 'Pilates', value: 20, color: '#10B981' },
+    { name: 'Strength', value: 10, color: '#F59E0B' }
+  ],
+  attendanceTrend: [
+    { month: 'Jan', classes: 12 },
+    { month: 'Feb', classes: 15 },
+    { month: 'Mar', classes: 18 },
+    { month: 'Apr', classes: 22 },
+    { month: 'May', classes: 25 },
+    { month: 'Jun', classes: 28 }
+  ],
+  favorites: [
+    { id: 1, name: 'Zen Yoga Studio', type: 'studio', rating: 4.9, image: null },
+    { id: 2, name: 'Sarah Johnson', type: 'instructor', rating: 4.8, image: null },
+    { id: 3, name: 'FitCore Gym', type: 'studio', rating: 4.7, image: null },
+    { id: 4, name: 'Mike Rodriguez', type: 'instructor', rating: 4.9, image: null }
+  ],
+  notifications: [
+    { id: 1, type: 'reminder', message: 'Morning Yoga starts in 30 minutes', time: '30m ago' },
+    { id: 2, type: 'waitlist', message: 'Spot available in HIIT Bootcamp', time: '2h ago' },
+    { id: 3, type: 'change', message: 'Instructor changed for Pilates class', time: '1d ago' }
+  ],
+  events: [
+    {
+      id: 1,
+      title: 'Morning Yoga',
+      start: new Date(2024, 5, 15, 8, 0),
+      end: new Date(2024, 5, 15, 9, 0),
+      resource: { type: 'Yoga', instructor: 'Sarah Johnson' }
+    },
+    {
+      id: 2,
+      title: 'HIIT Bootcamp',
+      start: new Date(2024, 5, 15, 18, 0),
+      end: new Date(2024, 5, 15, 19, 0),
+      resource: { type: 'HIIT', instructor: 'Mike Rodriguez' }
+    },
+    {
+      id: 3,
+      title: 'Pilates Core',
+      start: new Date(2024, 5, 16, 10, 0),
+      end: new Date(2024, 5, 16, 11, 0),
+      resource: { type: 'Pilates', instructor: 'Emma Chen' }
+    }
+  ]
+}
+
 export default function CustomerDashboard() {
   const { user, role, loading: authLoading } = useAuth()
   const [classes, setClasses] = useState([])
