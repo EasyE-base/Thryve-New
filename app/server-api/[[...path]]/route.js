@@ -277,7 +277,7 @@ async function handlePOST(request) {
 
       try {
         // Update user profile with onboarding completion
-        await db.collection('profiles').updateOne(
+        await database.collection('profiles').updateOne(
           { userId: firebaseUser.uid },
           {
             $set: {
