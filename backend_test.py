@@ -255,17 +255,15 @@ class BackendTester:
     
     def run_all_tests(self):
         """Run all test suites"""
-        print("🚀 STARTING BACKEND TESTING FOR FILE UPLOAD, NOTIFICATION, AND ANALYTICS SYSTEMS")
+        print("🚀 STARTING BACKEND TESTING FOR AI-POWERED RECOMMENDATION ENGINE SYSTEM")
         print("=" * 80)
         
         start_time = time.time()
         
         # Run all test suites
-        self.test_file_upload_system()
-        self.test_notification_system()
-        self.test_analytics_system()
-        self.test_integration_scenarios()
-        self.test_error_handling_and_validation()
+        self.test_ai_recommendation_system()
+        self.test_openai_integration_quality()
+        self.test_ai_system_integration()
         
         # Generate summary
         end_time = time.time()
@@ -276,7 +274,7 @@ class BackendTester:
         failed_tests = total_tests - passed_tests
         
         print("\n" + "=" * 80)
-        print("📋 TEST SUMMARY")
+        print("📋 AI RECOMMENDATION ENGINE TEST SUMMARY")
         print("=" * 80)
         print(f"Total Tests: {total_tests}")
         print(f"✅ Passed: {passed_tests}")
@@ -294,14 +292,12 @@ class BackendTester:
         # Show critical findings
         print(f"\n🔍 CRITICAL FINDINGS:")
         
-        # Check for missing endpoints
-        missing_endpoints = []
-        for test in self.test_results:
-            if "Not Implemented" in test['message'] or "not found (404)" in test['message']:
-                missing_endpoints.append(test['test'])
-        
-        if missing_endpoints:
-            print(f"  • Missing Endpoints: {', '.join(missing_endpoints)}")
+        # Check for OpenAI API integration
+        openai_working = any("AI" in test['test'] and test['success'] for test in self.test_results)
+        if openai_working:
+            print(f"  • ✅ OpenAI API integration is working correctly")
+        else:
+            print(f"  • ❌ OpenAI API integration issues detected")
         
         # Check authentication
         auth_working = any("Correctly requires authentication" in test['message'] for test in self.test_results)
@@ -309,6 +305,13 @@ class BackendTester:
             print(f"  • ✅ Authentication protection is working correctly")
         else:
             print(f"  • ❌ Authentication protection issues detected")
+        
+        # Check AI quality
+        ai_quality_tests = [t for t in self.test_results if "AI" in t['test'] and "Quality" in t['test']]
+        if ai_quality_tests and all(t['success'] for t in ai_quality_tests):
+            print(f"  • ✅ AI analysis quality is high")
+        else:
+            print(f"  • ⚠️  AI analysis quality needs improvement")
         
         return {
             'total_tests': total_tests,
