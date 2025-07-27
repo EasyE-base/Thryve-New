@@ -152,24 +152,65 @@ export default function MyBookingsPage() {
 
   useEffect(() => {
     const fetchBookings = async () => {
+      // Wait for authentication to be fully loaded
+      if (loading) {
+        console.log('🔄 My Bookings: Waiting for auth to load...')
+        return
+      }
+
       if (!user) {
+        console.log('🔄 My Bookings: No user, redirecting to signin...')
         router.push('/?signin=true')
         return
       }
+
+      // Check if user has a role - if not, they might need to complete role selection
+      if (!role) {
+        console.log('🔄 My Bookings: No role found, checking localStorage...')
+        
+        // Try to get role from localStorage as fallback
+        if (typeof window !== 'undefined') {
+          const tempUserData = localStorage.getItem('tempUserData')
+          if (tempUserData) {
+            try {
+              const parsedData = JSON.parse(tempUserData)
+              if (parsedData.uid === user.uid && parsedData.role) {
+                console.log('🔄 My Bookings: Found role in localStorage, proceeding...')
+                // Continue with fetching
+              } else {
+                console.log('🔄 My Bookings: No valid role found, redirecting to role selection...')
+                router.push('/?roleSelection=true')
+                return
+              }
+            } catch (e) {
+              console.log('🔄 My Bookings: Error parsing localStorage, redirecting to signin...')
+              router.push('/?signin=true')
+              return
+            }
+          } else {
+            console.log('🔄 My Bookings: No localStorage data, redirecting to signin...')
+            router.push('/?signin=true')
+            return
+          }
+        }
+      }
+
+      setLoading(true)
 
       try {
         const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/server-api/bookings`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${await user.getIdToken()}`
           },
-          credentials: 'include'
         })
 
         if (response.ok) {
           const data = await response.json()
           setBookings(data.bookings || [])
         } else if (response.status === 401) {
+          console.log('🔄 My Bookings: Authentication failed, redirecting to signin...')
           router.push('/?signin=true')
           return
         } else {
@@ -187,7 +228,7 @@ export default function MyBookingsPage() {
     }
 
     fetchBookings()
-  }, [user, router])
+  }, [user, role, loading, router])
 
   const upcomingBookings = bookings.filter(booking => 
     !isPast(new Date(`${format(booking.date, 'yyyy-MM-dd')} ${booking.endTime}`)) && 
