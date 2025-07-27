@@ -214,7 +214,7 @@ export default function StudioCreateClassPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="level" className="text-white">Level</Label>
-                  <Select onValueChange={(value) => handleInputChange('level', value)} defaultValue="All Levels">
+                  <Select onValueChange={(value) => handleInputChange('level', value)} value={formData.level}>
                     <SelectTrigger className="bg-white/10 border-white/20 text-white">
                       <SelectValue />
                     </SelectTrigger>
