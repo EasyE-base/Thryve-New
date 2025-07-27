@@ -147,12 +147,17 @@ async function handleGET(request) {
         return NextResponse.json({ error: 'UID is required' }, { status: 400 })
       }
 
-      const user = await db.collection('profiles').findOne({ userId: uid })
-      if (!user) {
-        return NextResponse.json({ error: 'User not found' }, { status: 404 })
-      }
+      try {
+        const user = await db.collection('profiles').findOne({ userId: uid })
+        if (!user) {
+          return NextResponse.json({ error: 'User not found' }, { status: 404 })
+        }
 
-      return NextResponse.json(user)
+        return NextResponse.json(user)
+      } catch (error) {
+        console.error('Database error:', error)
+        return NextResponse.json({ error: 'Database error' }, { status: 500 })
+      }
     }
 
     // Bookings endpoint
