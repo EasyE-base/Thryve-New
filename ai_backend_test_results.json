@@ -1,156 +1,212 @@
 {
-  "total_tests": 21,
-  "passed_tests": 4,
-  "failed_tests": 17,
-  "success_rate": 19.047619047619047,
-  "duration": 9.537741422653198,
+  "total_tests": 29,
+  "passed_tests": 26,
+  "failed_tests": 3,
+  "success_rate": 89.65517241379311,
+  "duration": 3.8209967613220215,
   "test_results": [
     {
-      "test": "Class Recommendations - Unexpected Status",
-      "success": false,
-      "message": "Status: 404, Response: {\"error\":\"Endpoint not found\"}",
+      "test": "Class Recommendations - Success",
+      "success": true,
+      "message": "AI recommendations retrieved: 0 classes",
       "response_data": null,
-      "timestamp": "2025-07-27T23:35:45.273582"
+      "timestamp": "2025-07-27T23:38:35.505107"
+    },
+    {
+      "test": "Class Recommendations - AI Powered",
+      "success": true,
+      "message": "AI-powered flag correctly set to true",
+      "response_data": null,
+      "timestamp": "2025-07-27T23:38:35.505120"
+    },
+    {
+      "test": "Class Recommendations - Empty Results",
+      "success": true,
+      "message": "No recommendations returned (expected for new user)",
+      "response_data": null,
+      "timestamp": "2025-07-27T23:38:35.505126"
     },
     {
       "test": "Class Recommendations - Auth Protection",
-      "success": false,
-      "message": "Authentication not properly enforced: 404",
+      "success": true,
+      "message": "Endpoint properly protected with authentication",
       "response_data": null,
-      "timestamp": "2025-07-27T23:35:45.353562"
+      "timestamp": "2025-07-27T23:38:35.555851"
     },
     {
-      "test": "Instructor Matching - Unexpected Status",
-      "success": false,
-      "message": "Status: 404, Response: {\"error\":\"Endpoint not found\"}",
+      "test": "Instructor Matching - Success",
+      "success": true,
+      "message": "AI instructor matches retrieved: 0 instructors",
       "response_data": null,
-      "timestamp": "2025-07-27T23:35:45.412059"
+      "timestamp": "2025-07-27T23:38:35.638738"
+    },
+    {
+      "test": "Instructor Matching - AI Powered",
+      "success": true,
+      "message": "AI-powered flag correctly set to true",
+      "response_data": null,
+      "timestamp": "2025-07-27T23:38:35.638753"
+    },
+    {
+      "test": "Instructor Matching - Empty Results",
+      "success": true,
+      "message": "No instructor matches returned (expected for new user)",
+      "response_data": null,
+      "timestamp": "2025-07-27T23:38:35.638758"
     },
     {
       "test": "Instructor Matching - Auth Protection",
-      "success": false,
-      "message": "Authentication not properly enforced: 404",
+      "success": true,
+      "message": "Endpoint properly protected with authentication",
       "response_data": null,
-      "timestamp": "2025-07-27T23:35:45.508188"
+      "timestamp": "2025-07-27T23:38:35.666767"
     },
     {
-      "test": "Natural Language Search - Unexpected Status",
-      "success": false,
-      "message": "Status: 404, Response: {\"error\":\"Endpoint not found\"}",
+      "test": "Natural Language Search - Success",
+      "success": true,
+      "message": "AI search processed: 0 results found",
       "response_data": null,
-      "timestamp": "2025-07-27T23:35:45.547886"
+      "timestamp": "2025-07-27T23:38:35.744708"
+    },
+    {
+      "test": "Natural Language Search - AI Analysis",
+      "success": false,
+      "message": "Missing or invalid AI analysis",
+      "response_data": null,
+      "timestamp": "2025-07-27T23:38:35.744724"
+    },
+    {
+      "test": "Natural Language Search - Query Processing",
+      "success": true,
+      "message": "Original query preserved correctly",
+      "response_data": null,
+      "timestamp": "2025-07-27T23:38:35.744730"
     },
     {
       "test": "Natural Language Search - Validation",
-      "success": false,
-      "message": "Should return 400 for missing query: 404",
+      "success": true,
+      "message": "Correctly validates missing query parameter (400)",
       "response_data": null,
-      "timestamp": "2025-07-27T23:35:45.608801"
+      "timestamp": "2025-07-27T23:38:35.804846"
     },
     {
       "test": "Natural Language Search - Complex Query",
       "success": false,
-      "message": "Failed to process complex query: 404",
+      "message": "No AI analysis for complex query",
       "response_data": null,
-      "timestamp": "2025-07-27T23:35:45.641782"
+      "timestamp": "2025-07-27T23:38:35.841257"
     },
     {
       "test": "Workout Plan Generation - OpenAI Integration",
       "success": false,
       "message": "Server error (500) - possible OpenAI API issue",
       "response_data": null,
-      "timestamp": "2025-07-27T23:35:45.762420"
+      "timestamp": "2025-07-27T23:38:35.906872"
     },
     {
       "test": "Workout Plan Generation - Validation",
       "success": true,
       "message": "Correctly validates required fields (400)",
       "response_data": null,
-      "timestamp": "2025-07-27T23:35:45.846159"
+      "timestamp": "2025-07-27T23:38:35.945554"
     },
     {
       "test": "Workout Plan Generation - Auth Protection",
       "success": true,
       "message": "Endpoint properly protected with authentication",
       "response_data": null,
-      "timestamp": "2025-07-27T23:35:45.941980"
+      "timestamp": "2025-07-27T23:38:36.043285"
     },
     {
-      "test": "Predictive Analytics - Unexpected Status",
-      "success": false,
-      "message": "Status: 404, Response: {\"error\":\"Endpoint not found\"}",
+      "test": "Predictive Analytics - Success",
+      "success": true,
+      "message": "AI analytics generated successfully",
       "response_data": null,
-      "timestamp": "2025-07-27T23:35:46.007810"
+      "timestamp": "2025-07-27T23:38:36.141308"
+    },
+    {
+      "test": "Predictive Analytics - AI Powered",
+      "success": true,
+      "message": "AI-powered flag correctly set",
+      "response_data": null,
+      "timestamp": "2025-07-27T23:38:36.141322"
+    },
+    {
+      "test": "Predictive Analytics - Structure",
+      "success": true,
+      "message": "Analytics contains expected business insights",
+      "response_data": null,
+      "timestamp": "2025-07-27T23:38:36.141330"
     },
     {
       "test": "Predictive Analytics - Auth Protection",
-      "success": false,
-      "message": "Authentication not enforced: 404",
+      "success": true,
+      "message": "Endpoint properly protected with authentication",
       "response_data": null,
-      "timestamp": "2025-07-27T23:35:46.046492"
+      "timestamp": "2025-07-27T23:38:36.170598"
     },
     {
       "test": "OpenAI Integration - API Key Config",
-      "success": false,
-      "message": "Unexpected response: 404",
+      "success": true,
+      "message": "OpenAI integration appears to be working",
       "response_data": null,
-      "timestamp": "2025-07-27T23:35:46.107890"
+      "timestamp": "2025-07-27T23:38:36.246662"
     },
     {
       "test": "OpenAI Integration - Rate Limiting",
-      "success": false,
-      "message": "Unexpected status codes: [404, 404, 404]",
+      "success": true,
+      "message": "No rate limiting issues detected in rapid requests",
       "response_data": null,
-      "timestamp": "2025-07-27T23:35:46.507805"
+      "timestamp": "2025-07-27T23:38:36.667005"
     },
     {
       "test": "OpenAI Integration - Fallback Mechanisms",
-      "success": false,
-      "message": "Unexpected response: 404",
+      "success": true,
+      "message": "System handles OpenAI responses appropriately",
       "response_data": null,
-      "timestamp": "2025-07-27T23:35:46.545669"
+      "timestamp": "2025-07-27T23:38:36.706873"
     },
     {
       "test": "Database Integration - User Profiles",
-      "success": false,
-      "message": "Unexpected response: 404",
+      "success": true,
+      "message": "User profile integration working",
       "response_data": null,
-      "timestamp": "2025-07-27T23:35:46.568712"
+      "timestamp": "2025-07-27T23:38:36.741833"
     },
     {
       "test": "Database Integration - Search Logging",
-      "success": false,
-      "message": "Search endpoint issue: 404",
+      "success": true,
+      "message": "Search query properly processed and logged",
       "response_data": null,
-      "timestamp": "2025-07-27T23:35:46.637312"
+      "timestamp": "2025-07-27T23:38:36.761436"
     },
     {
       "test": "Database Integration - Instructor Data",
-      "success": false,
-      "message": "Unexpected response: 404",
+      "success": true,
+      "message": "Instructor data retrieval integrated",
       "response_data": null,
-      "timestamp": "2025-07-27T23:35:46.656418"
+      "timestamp": "2025-07-27T23:38:36.835624"
     },
     {
       "test": "Performance - Response Time",
-      "success": false,
-      "message": "Cannot test performance due to status: 404",
+      "success": true,
+      "message": "AI search response time: 0.02s (acceptable)",
       "response_data": null,
-      "timestamp": "2025-07-27T23:35:46.710007"
+      "timestamp": "2025-07-27T23:38:36.854163"
     },
     {
       "test": "Performance - Concurrent Requests",
       "success": true,
-      "message": "Handled 3 concurrent requests: [404, 404, 404]",
+      "message": "Handled 3 concurrent requests: [200, 200, 200]",
       "response_data": null,
-      "timestamp": "2025-07-27T23:35:46.832374"
+      "timestamp": "2025-07-27T23:38:36.948767"
     },
     {
       "test": "Performance - Memory Optimization",
       "success": true,
-      "message": "Consistent responses across multiple requests: {404}",
+      "message": "Consistent responses across multiple requests: {200}",
       "response_data": null,
-      "timestamp": "2025-07-27T23:35:47.946951"
+      "timestamp": "2025-07-27T23:38:38.143277"
     }
   ]
 }
