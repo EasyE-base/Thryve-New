@@ -929,6 +929,45 @@ async function getUserBookings(userId) {
   return NextResponse.json({ bookings: bookingsWithClasses })
 }
 
+async function getBookingBySession(sessionId) {
+  if (!sessionId) {
+    return NextResponse.json({ error: 'Session ID is required' }, { status: 400 })
+  }
+
+  try {
+    // Find booking by Stripe session ID
+    const booking = await db.collection('bookings').findOne({ 
+      stripeSessionId: sessionId 
+    })
+
+    if (!booking) {
+      return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
+    }
+
+    // Get additional class details if needed
+    const classDoc = await db.collection('classes').findOne({ id: booking.classId })
+    
+    // Enrich booking data with class information
+    const enrichedBooking = {
+      ...booking,
+      classDetails: classDoc ? {
+        heroImage: classDoc.heroImage,
+        instructor: classDoc.instructor,
+        location: classDoc.location,
+        duration: classDoc.duration
+      } : null
+    }
+
+    return NextResponse.json({ booking: enrichedBooking })
+  } catch (error) {
+    console.error('Error fetching booking by session:', error)
+    return NextResponse.json(
+      { error: 'Failed to fetch booking details' },
+      { status: 500 }
+    )
+  }
+}
+
 async function getInstructorClasses(userId) {
   const classes = await db.collection('classes')
     .find({ instructorId: userId })
