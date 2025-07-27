@@ -433,13 +433,14 @@ export default function MarketplacePage() {
                   Preview
                 </Button>
               )}
-              <Button
-                size="sm"
-                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
-                onClick={() => toast.success('Viewing profile...')}
-              >
-                View Profile
-              </Button>
+              <Link href={`/instructor/${instructor.id}`}>
+                <Button
+                  size="sm"
+                  className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                >
+                  View Profile
+                </Button>
+              </Link>
               <Button
                 size="sm"
                 className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white"
