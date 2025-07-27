@@ -10,7 +10,7 @@ import uuid
 from datetime import datetime
 
 # Configuration - Use external URL for testing
-BASE_URL = "https://f4081b14-bbee-41e0-9a4b-518e4e2baab0.preview.emergentagent.com"
+BASE_URL = "https://a0166285-5fbd-430a-a296-ff63ae399ac4.preview.emergentagent.com"
 API_BASE = f"{BASE_URL}/api"
 
 def main():
