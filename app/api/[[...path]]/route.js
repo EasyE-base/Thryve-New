@@ -182,6 +182,9 @@ async function handlePOST(request) {
         }
         return await createPaymentIntent(body, user.id)
       
+      case '/stripe/create-checkout-session':
+        return await createCheckoutSession(body)
+      
       case '/stripe/connect/account':
         if (!user) {
           return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
