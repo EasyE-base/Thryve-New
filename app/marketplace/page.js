@@ -441,6 +441,14 @@ export default function MarketplacePage() {
                   View Profile
                 </Button>
               </Link>
+              <Link href={`/class/morning-vinyasa-flow`}>
+                <Button
+                  size="sm"
+                  className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white"
+                >
+                  View Classes
+                </Button>
+              </Link>
               <Button
                 size="sm"
                 className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white"
