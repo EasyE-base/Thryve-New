@@ -1,0 +1,156 @@
+{
+  "total_tests": 21,
+  "passed_tests": 4,
+  "failed_tests": 17,
+  "success_rate": 19.047619047619047,
+  "duration": 9.537741422653198,
+  "test_results": [
+    {
+      "test": "Class Recommendations - Unexpected Status",
+      "success": false,
+      "message": "Status: 404, Response: {\"error\":\"Endpoint not found\"}",
+      "response_data": null,
+      "timestamp": "2025-07-27T23:35:45.273582"
+    },
+    {
+      "test": "Class Recommendations - Auth Protection",
+      "success": false,
+      "message": "Authentication not properly enforced: 404",
+      "response_data": null,
+      "timestamp": "2025-07-27T23:35:45.353562"
+    },
+    {
+      "test": "Instructor Matching - Unexpected Status",
+      "success": false,
+      "message": "Status: 404, Response: {\"error\":\"Endpoint not found\"}",
+      "response_data": null,
+      "timestamp": "2025-07-27T23:35:45.412059"
+    },
+    {
+      "test": "Instructor Matching - Auth Protection",
+      "success": false,
+      "message": "Authentication not properly enforced: 404",
+      "response_data": null,
+      "timestamp": "2025-07-27T23:35:45.508188"
+    },
+    {
+      "test": "Natural Language Search - Unexpected Status",
+      "success": false,
+      "message": "Status: 404, Response: {\"error\":\"Endpoint not found\"}",
+      "response_data": null,
+      "timestamp": "2025-07-27T23:35:45.547886"
+    },
+    {
+      "test": "Natural Language Search - Validation",
+      "success": false,
+      "message": "Should return 400 for missing query: 404",
+      "response_data": null,
+      "timestamp": "2025-07-27T23:35:45.608801"
+    },
+    {
+      "test": "Natural Language Search - Complex Query",
+      "success": false,
+      "message": "Failed to process complex query: 404",
+      "response_data": null,
+      "timestamp": "2025-07-27T23:35:45.641782"
+    },
+    {
+      "test": "Workout Plan Generation - OpenAI Integration",
+      "success": false,
+      "message": "Server error (500) - possible OpenAI API issue",
+      "response_data": null,
+      "timestamp": "2025-07-27T23:35:45.762420"
+    },
+    {
+      "test": "Workout Plan Generation - Validation",
+      "success": true,
+      "message": "Correctly validates required fields (400)",
+      "response_data": null,
+      "timestamp": "2025-07-27T23:35:45.846159"
+    },
+    {
+      "test": "Workout Plan Generation - Auth Protection",
+      "success": true,
+      "message": "Endpoint properly protected with authentication",
+      "response_data": null,
+      "timestamp": "2025-07-27T23:35:45.941980"
+    },
+    {
+      "test": "Predictive Analytics - Unexpected Status",
+      "success": false,
+      "message": "Status: 404, Response: {\"error\":\"Endpoint not found\"}",
+      "response_data": null,
+      "timestamp": "2025-07-27T23:35:46.007810"
+    },
+    {
+      "test": "Predictive Analytics - Auth Protection",
+      "success": false,
+      "message": "Authentication not enforced: 404",
+      "response_data": null,
+      "timestamp": "2025-07-27T23:35:46.046492"
+    },
+    {
+      "test": "OpenAI Integration - API Key Config",
+      "success": false,
+      "message": "Unexpected response: 404",
+      "response_data": null,
+      "timestamp": "2025-07-27T23:35:46.107890"
+    },
+    {
+      "test": "OpenAI Integration - Rate Limiting",
+      "success": false,
+      "message": "Unexpected status codes: [404, 404, 404]",
+      "response_data": null,
+      "timestamp": "2025-07-27T23:35:46.507805"
+    },
+    {
+      "test": "OpenAI Integration - Fallback Mechanisms",
+      "success": false,
+      "message": "Unexpected response: 404",
+      "response_data": null,
+      "timestamp": "2025-07-27T23:35:46.545669"
+    },
+    {
+      "test": "Database Integration - User Profiles",
+      "success": false,
+      "message": "Unexpected response: 404",
+      "response_data": null,
+      "timestamp": "2025-07-27T23:35:46.568712"
+    },
+    {
+      "test": "Database Integration - Search Logging",
+      "success": false,
+      "message": "Search endpoint issue: 404",
+      "response_data": null,
+      "timestamp": "2025-07-27T23:35:46.637312"
+    },
+    {
+      "test": "Database Integration - Instructor Data",
+      "success": false,
+      "message": "Unexpected response: 404",
+      "response_data": null,
+      "timestamp": "2025-07-27T23:35:46.656418"
+    },
+    {
+      "test": "Performance - Response Time",
+      "success": false,
+      "message": "Cannot test performance due to status: 404",
+      "response_data": null,
+      "timestamp": "2025-07-27T23:35:46.710007"
+    },
+    {
+      "test": "Performance - Concurrent Requests",
+      "success": true,
+      "message": "Handled 3 concurrent requests: [404, 404, 404]",
+      "response_data": null,
+      "timestamp": "2025-07-27T23:35:46.832374"
+    },
+    {
+      "test": "Performance - Memory Optimization",
+      "success": true,
+      "message": "Consistent responses across multiple requests: {404}",
+      "response_data": null,
+      "timestamp": "2025-07-27T23:35:47.946951"
+    }
+  ]
+}
