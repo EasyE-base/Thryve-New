@@ -425,6 +425,14 @@ async function handlePOST(request) {
       }
     }
 
+    return NextResponse.json({ error: 'Endpoint not found' }, { status: 404 })
+
+  } catch (error) {
+    console.error('SERVER-API POST Error:', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
 async function handlePUT(request) {
   return NextResponse.json({ error: 'Method not implemented' }, { status: 501 })
 }
