@@ -996,6 +996,10 @@ async function handleStripeWebhook(request) {
       await handlePaymentSuccess(paymentIntent)
       break
     
+    case 'checkout.session.completed':
+      await handleCheckoutSessionCompleted(event.data.object)
+      break
+    
     case 'account.updated':
       const account = event.data.object
       await handleAccountUpdate(account)
