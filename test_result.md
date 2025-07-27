@@ -483,9 +483,9 @@ frontend:
 
   - task: "My Bookings Management System - Complete User Journey"
     implemented: true
-    working: true
+    working: false
     file: "app/my-bookings/page.js"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
     needs_retesting: false
     status_history:
@@ -498,6 +498,9 @@ frontend:
         - working: true
           agent: "testing"
           comment: "🎉 MY BOOKINGS MANAGEMENT SYSTEM BACKEND RE-TESTING COMPLETED SUCCESSFULLY: Comprehensive re-testing of all My Bookings Management System backend APIs completed with EXCELLENT RESULTS! ✅ CORE BACKEND TESTING: All 19 fundamental backend tests passed (100% success rate) confirming GET /api/bookings, POST /api/bookings/{id}/cancel, and POST /api/bookings/{id}/checkin endpoints are working perfectly. ✅ ADVANCED FUNCTIONALITY TESTING: 21/23 advanced tests passed (91.3% success rate) with comprehensive validation of enhanced bookings data structure, cancellation policy enforcement, check-in validation, database integration, and error handling. ✅ ENHANCED DATA STRUCTURE: Confirmed GET /api/bookings returns enriched booking data with class details (className, heroImage, instructor, location, duration, classType, level) as required for frontend integration. ✅ POLICY ENFORCEMENT: Booking cancellation with 4-hour policy and check-in validation with 30-minute window are properly implemented and functional. ✅ AUTHENTICATION & SECURITY: All endpoints require proper authentication (401 for unauthenticated requests), proper JSON error response structure, support for various booking ID formats. ✅ DATABASE INTEGRATION: Confirmed with 3 sample classes available, CORS headers properly configured, API routing working correctly. CONCLUSION: The My Bookings Management System backend is production-ready and fully functional, ready for frontend integration testing."
+        - working: false
+          agent: "testing"
+          comment: "❌ MY BOOKINGS FRONTEND INTEGRATION TESTING COMPLETED - BLOCKED BY AUTHENTICATION ISSUES: Comprehensive testing of the My Bookings Management System frontend reveals that while the page is properly implemented, it is completely inaccessible due to authentication flow problems. ✅ AUTHENTICATION PROTECTION: The page correctly redirects unauthenticated users to signin (/?signin=true), demonstrating proper security implementation. ✅ FRONTEND IMPLEMENTATION: Code review confirms the page has all required features - stats overview cards, search functionality, tabbed navigation (Upcoming/Past/Cancelled), booking cards with hero images, interactive buttons (Check In/Cancel/View Details), empty states, mobile responsiveness, and mock data fallback. ❌ CRITICAL BLOCKING ISSUE: Users cannot complete the Firebase authentication flow to access the page. Testing shows signup forms work but role selection fails due to persistent API 502 errors, preventing users from completing authentication and accessing any protected pages including My Bookings. ❌ USER JOURNEY BROKEN: The complete user journey from signup → role selection → onboarding → My Bookings access is broken at the role selection step due to infrastructure API routing issues. ❌ TESTING LIMITATION: Cannot test the actual My Bookings functionality (booking display, search, tabs, actions) because the authentication prerequisite cannot be satisfied. CONCLUSION: The My Bookings frontend is properly implemented but completely unusable due to authentication flow blocking issues. This is consistent with previous reports of API 502 errors preventing role selection completion."
     implemented: true
     working: true
     file: "app/class/[id]/page.js"
