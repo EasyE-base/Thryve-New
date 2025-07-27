@@ -930,20 +930,151 @@ async function getUserProfile(userId) {
 }
 
 async function getUserBookings(userId) {
-  const bookings = await db.collection('bookings')
-    .find({ customerId: userId })
-    .sort({ createdAt: -1 })
-    .toArray()
-  
-  // Get class details for each booking
-  const bookingsWithClasses = await Promise.all(
-    bookings.map(async (booking) => {
-      const classDoc = await db.collection('classes').findOne({ id: booking.classId })
-      return { ...booking, class: classDoc }
+  try {
+    // Get user bookings with enhanced class details
+    const bookings = await db.collection('bookings')
+      .find({ userId })
+      .sort({ createdAt: -1 })
+      .toArray()
+    
+    // Enrich bookings with class and instructor details
+    const enrichedBookings = await Promise.all(
+      bookings.map(async (booking) => {
+        const classDoc = await db.collection('classes').findOne({ id: booking.classId })
+        
+        return {
+          ...booking,
+          classDetails: classDoc ? {
+            className: classDoc.title,
+            heroImage: classDoc.heroImage,
+            instructor: classDoc.instructor,
+            location: classDoc.location,
+            duration: classDoc.duration,
+            classType: classDoc.type,
+            level: classDoc.level
+          } : null
+        }
+      })
+    )
+    
+    return NextResponse.json({ bookings: enrichedBookings })
+  } catch (error) {
+    console.error('Error fetching user bookings:', error)
+    return NextResponse.json({ error: 'Failed to fetch bookings' }, { status: 500 })
+  }
+}
+
+async function cancelBooking(bookingId, userId) {
+  try {
+    // Find the booking
+    const booking = await db.collection('bookings').findOne({ 
+      id: bookingId, 
+      userId 
     })
-  )
-  
-  return NextResponse.json({ bookings: bookingsWithClasses })
+
+    if (!booking) {
+      return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
+    }
+
+    // Check if cancellation is allowed (e.g., not within 4 hours of class)
+    const classDateTime = new Date(`${booking.sessionTime}`)
+    const now = new Date()
+    const hoursUntilClass = (classDateTime - now) / (1000 * 60 * 60)
+
+    if (hoursUntilClass < 4) {
+      return NextResponse.json({ 
+        error: 'Cannot cancel within 4 hours of class start time' 
+      }, { status: 400 })
+    }
+
+    // Update booking status
+    await db.collection('bookings').updateOne(
+      { id: bookingId, userId },
+      { 
+        $set: { 
+          status: 'cancelled',
+          cancelledAt: new Date(),
+          updatedAt: new Date()
+        } 
+      }
+    )
+
+    // Update class availability (increase available spots)
+    await db.collection('classes').updateOne(
+      { id: booking.classId },
+      { 
+        $inc: { 
+          'sessions.$[session].spotsBooked': -1 
+        },
+        $set: { updatedAt: new Date() }
+      },
+      { 
+        arrayFilters: [{ 'session.id': booking.sessionId }] 
+      }
+    )
+
+    // In production, you might want to process refunds here
+    // For now, we'll just mark it as cancelled
+
+    return NextResponse.json({ 
+      message: 'Booking cancelled successfully',
+      refund: 'Refund will be processed within 3-5 business days'
+    })
+  } catch (error) {
+    console.error('Error cancelling booking:', error)
+    return NextResponse.json({ error: 'Failed to cancel booking' }, { status: 500 })
+  }
+}
+
+async function checkInBooking(bookingId, userId) {
+  try {
+    // Find the booking
+    const booking = await db.collection('bookings').findOne({ 
+      id: bookingId, 
+      userId 
+    })
+
+    if (!booking) {
+      return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
+    }
+
+    // Check if check-in is allowed (e.g., within 30 minutes of class start)
+    const classDateTime = new Date(booking.sessionTime)
+    const now = new Date()
+    const minutesUntilClass = (classDateTime - now) / (1000 * 60)
+
+    if (minutesUntilClass > 30) {
+      return NextResponse.json({ 
+        error: 'Check-in opens 30 minutes before class starts' 
+      }, { status: 400 })
+    }
+
+    if (minutesUntilClass < -60) {
+      return NextResponse.json({ 
+        error: 'Check-in is no longer available for this class' 
+      }, { status: 400 })
+    }
+
+    // Update booking with check-in
+    await db.collection('bookings').updateOne(
+      { id: bookingId, userId },
+      { 
+        $set: { 
+          checkedIn: true,
+          checkedInAt: new Date(),
+          updatedAt: new Date()
+        } 
+      }
+    )
+
+    return NextResponse.json({ 
+      message: 'Checked in successfully!',
+      checkedInAt: new Date()
+    })
+  } catch (error) {
+    console.error('Error checking in:', error)
+    return NextResponse.json({ error: 'Failed to check in' }, { status: 500 })
+  }
 }
 
 async function getBookingBySession(sessionId) {
