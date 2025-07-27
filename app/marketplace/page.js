@@ -1,837 +1,680 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { useAuth } from '@/components/auth-provider'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { Slider } from '@/components/ui/slider'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Slider } from '@/components/ui/slider'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { 
   Search, 
   Filter, 
-  Grid, 
-  List, 
-  Star, 
   MapPin, 
-  Calendar, 
+  Star, 
+  DollarSign, 
   Clock, 
-  Award, 
+  Users, 
   Heart,
-  Eye,
-  MessageCircle,
   Play,
-  ChevronDown,
-  ChevronUp,
-  Bookmark,
-  Share2,
-  Phone,
-  Video,
-  Globe,
-  Dumbbell,
-  CheckCircle,
+  Award,
+  Zap,
+  Target,
   ArrowLeft,
-  Users,
-  DollarSign,
-  Sparkles
+  ChevronLeft,
+  ChevronRight,
+  X,
+  Sparkles,
+  Trophy
 } from 'lucide-react'
-import { useRouter } from 'next/navigation'
-import { toast } from 'sonner'
 import Link from 'next/link'
-
-// Sample instructor data
-const instructorData = [
-  {
-    id: 1,
-    name: 'Sarah Johnson',
-    tagline: 'Yoga with Mindfulness',
-    specialties: ['Yoga', 'Vinyasa', 'Meditation'],
-    location: 'New York, NY',
-    virtual: true,
-    rating: 4.9,
-    reviewCount: 127,
-    pricePerClass: 85,
-    experience: '5+ years',
-    languages: ['English', 'Spanish'],
-    certifications: ['RYT-200', 'NASM', 'CPR'],
-    verified: true,
-    image: null,
-    availability: 'Morning, Evening',
-    bio: 'Certified yoga instructor with 5+ years of experience helping students find balance and strength.',
-    videoIntro: true,
-    bookmarked: false,
-    matchPercentage: 95
-  },
-  {
-    id: 2,
-    name: 'Michael Rodriguez',
-    tagline: 'HIIT with Heart',
-    specialties: ['HIIT', 'Strength', 'Cardio'],
-    location: 'Virtual',
-    virtual: true,
-    rating: 4.7,
-    reviewCount: 89,
-    pricePerClass: 75,
-    experience: '3+ years',
-    languages: ['English'],
-    certifications: ['ACSM', 'NASM'],
-    verified: true,
-    image: null,
-    availability: 'Afternoon, Evening',
-    bio: 'High-energy HIIT specialist focused on functional fitness and sustainable results.',
-    videoIntro: true,
-    bookmarked: true,
-    matchPercentage: 88
-  },
-  {
-    id: 3,
-    name: 'Emma Chen',
-    tagline: 'Pilates Perfection',
-    specialties: ['Pilates', 'Mat Work', 'Barre'],
-    location: 'San Francisco, CA',
-    virtual: false,
-    rating: 5.0,
-    reviewCount: 156,
-    pricePerClass: 95,
-    experience: '7+ years',
-    languages: ['English', 'Mandarin'],
-    certifications: ['PMA', 'BASI'],
-    verified: true,
-    image: null,
-    availability: 'Morning, Afternoon',
-    bio: 'Pilates master instructor specializing in precise movement and core strengthening.',
-    videoIntro: false,
-    bookmarked: false,
-    matchPercentage: 92
-  },
-  {
-    id: 4,
-    name: 'David Wilson',
-    tagline: 'Strength & Conditioning',
-    specialties: ['Weightlifting', 'CrossFit', 'Functional'],
-    location: 'Chicago, IL',
-    virtual: true,
-    rating: 4.8,
-    reviewCount: 203,
-    pricePerClass: 90,
-    experience: '8+ years',
-    languages: ['English'],
-    certifications: ['CSCS', 'CrossFit L2'],
-    verified: true,
-    image: null,
-    availability: 'Morning, Afternoon, Evening',
-    bio: 'Strength coach with expertise in building functional fitness and athletic performance.',
-    videoIntro: true,
-    bookmarked: false,
-    matchPercentage: 85
-  },
-  {
-    id: 5,
-    name: 'Olivia Martinez',
-    tagline: 'Dance Fusion',
-    specialties: ['Dance', 'Zumba', 'Hip Hop'],
-    location: 'Miami, FL',
-    virtual: true,
-    rating: 4.9,
-    reviewCount: 174,
-    pricePerClass: 70,
-    experience: '6+ years',
-    languages: ['English', 'Spanish'],
-    certifications: ['ZIN', 'ACE'],
-    verified: true,
-    image: null,
-    availability: 'Evening',
-    bio: 'Dance fitness instructor bringing energy and fun to every workout session.',
-    videoIntro: true,
-    bookmarked: true,
-    matchPercentage: 90
-  },
-  {
-    id: 6,
-    name: 'James Thompson',
-    tagline: 'Spin Master',
-    specialties: ['Spin', 'Cycling', 'Endurance'],
-    location: 'Boston, MA',
-    virtual: false,
-    rating: 4.6,
-    reviewCount: 142,
-    pricePerClass: 80,
-    experience: '4+ years',
-    languages: ['English'],
-    certifications: ['Spinning', 'ACSM'],
-    verified: true,
-    image: null,
-    availability: 'Morning, Evening',
-    bio: 'Indoor cycling specialist focused on high-energy rides and endurance building.',
-    videoIntro: false,
-    bookmarked: false,
-    matchPercentage: 78
-  }
-]
+import { toast } from 'sonner'
 
 export default function MarketplacePage() {
-  const [searchTerm, setSearchTerm] = useState('')
-  const [viewMode, setViewMode] = useState('grid') // 'grid' or 'list'
-  const [sortBy, setSortBy] = useState('relevance')
-  const [selectedInstructor, setSelectedInstructor] = useState(null)
-  const [filteredInstructors, setFilteredInstructors] = useState(instructorData)
-  const [bookmarkedInstructors, setBookmarkedInstructors] = useState(new Set([2, 5]))
-  
-  // Filter states
+  const { user } = useAuth()
+  const [searchQuery, setSearchQuery] = useState('')
+  const [showFilters, setShowFilters] = useState(false)
+  const [currentSwipe, setCurrentSwipe] = useState(0)
   const [filters, setFilters] = useState({
-    classTypes: [],
-    location: 'all',
-    priceRange: [20, 100],
+    classType: [],
+    location: '',
+    priceRange: [0, 100],
     availability: [],
     certifications: [],
     rating: 0,
-    languages: [],
-    virtual: false
+    languages: []
   })
   
-  // Filter panel states
-  const [expandedFilters, setExpandedFilters] = useState({
-    classType: true,
-    location: true,
-    priceRange: true,
-    availability: false,
-    certifications: false,
-    rating: false,
-    languages: false
+  const swipeRef = useRef(null)
+  const [touchStart, setTouchStart] = useState(null)
+  const [touchEnd, setTouchEnd] = useState(null)
+
+  // Enhanced instructor data with modern features
+  const instructors = [
+    {
+      id: '1',
+      name: 'Sarah Johnson',
+      tagline: '✨ Transforming lives through mindful movement',
+      specialties: ['Vinyasa Yoga', 'Meditation', 'Breathwork'],
+      location: '📍 Downtown San Francisco',
+      rating: 4.9,
+      reviewCount: 127,
+      hourlyRate: 35,
+      imageUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=400&fit=crop&crop=face',
+      experience: '8+ years',
+      languages: ['🇺🇸 English', '🇪🇸 Spanish'],
+      certifications: ['RYT-500', 'Yin Yoga'],
+      videoIntro: true,
+      totalClasses: 340,
+      availability: 'Available Today',
+      nextClass: 'Tomorrow 8:00 AM',
+      featured: true,
+      achievements: ['⭐ Top Rated', '🏆 Most Booked'],
+      bio: 'Certified yoga instructor with 8+ years of experience in vinyasa, hatha, and restorative yoga.'
+    },
+    {
+      id: '2', 
+      name: 'Michael Rodriguez',
+      tagline: '🔥 High-intensity training for maximum results',
+      specialties: ['HIIT', 'Strength Training', 'CrossFit'],
+      location: '📍 Mission District',
+      rating: 4.8,
+      reviewCount: 89,
+      hourlyRate: 45,
+      imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face',
+      experience: '6+ years',
+      languages: ['🇺🇸 English'],
+      certifications: ['NASM-CPT', 'CrossFit Level 2'],
+      videoIntro: false,
+      totalClasses: 156,
+      availability: 'Available Tomorrow',
+      nextClass: 'Wed 6:00 PM',
+      featured: true,
+      achievements: ['💪 Strength Expert', '🎯 Results Driven'],
+      bio: 'HIIT specialist with 6+ years of experience in high-intensity training and functional fitness.'
+    },
+    {
+      id: '3',
+      name: 'Emma Thompson',
+      tagline: '💃 Dance your way to fitness and joy',
+      specialties: ['Dance Fitness', 'Zumba', 'Cardio Dance'],
+      location: '📍 SOMA',
+      rating: 4.7,
+      reviewCount: 203,
+      hourlyRate: 40,
+      imageUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&h=400&fit=crop&crop=face',
+      experience: '5+ years',
+      languages: ['🇺🇸 English', '🇫🇷 French'],
+      certifications: ['Zumba Instructor', 'Dance Fitness'],
+      videoIntro: true,
+      totalClasses: 278,
+      availability: 'Available This Week',
+      nextClass: 'Thu 7:00 PM',
+      featured: false,
+      achievements: ['🕺 Dance Expert', '❤️ Community Favorite'],
+      bio: 'Energetic dance instructor bringing joy and fitness together through movement.'
+    },
+    {
+      id: '4',
+      name: 'David Chen',
+      tagline: '🏋️ Building strength and confidence together',
+      specialties: ['Weight Training', 'Bodybuilding', 'Powerlifting'],
+      location: '📍 Financial District',
+      rating: 4.8,
+      reviewCount: 156,
+      hourlyRate: 50,
+      imageUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop&crop=face',
+      experience: '10+ years',
+      languages: ['🇺🇸 English', '🇨🇳 Mandarin'],
+      certifications: ['CSCS', 'Precision Nutrition'],
+      videoIntro: false,
+      totalClasses: 423,
+      availability: 'Available Today',
+      nextClass: 'Today 5:00 PM',
+      featured: true,
+      achievements: ['🦾 Strength Coach', '🏆 Elite Trainer'],
+      bio: 'Strength and conditioning specialist helping clients build muscle and confidence.'
+    },
+    {
+      id: '5',
+      name: 'Lisa Martinez',
+      tagline: '🧘 Recovery and flexibility for peak performance',
+      specialties: ['Pilates', 'Stretching', 'Injury Recovery'],
+      location: '📍 Castro District',
+      rating: 4.9,
+      reviewCount: 178,
+      hourlyRate: 42,
+      imageUrl: 'https://images.unsplash.com/photo-1494790108755-2616b332c1b6?w=400&h=400&fit=crop&crop=face',
+      experience: '7+ years',
+      languages: ['🇺🇸 English', '🇪🇸 Spanish'],
+      certifications: ['PMA Pilates', 'Physical Therapy'],
+      videoIntro: true,
+      totalClasses: 290,
+      availability: 'Available This Week',
+      nextClass: 'Fri 9:00 AM',
+      featured: false,
+      achievements: ['🎯 Recovery Expert', '✨ Flexibility Guru'],
+      bio: 'Pilates instructor and movement therapist specializing in injury recovery and mobility.'
+    },
+    {
+      id: '6',
+      name: 'James Wilson',
+      tagline: '🏃 Outdoor adventures and functional fitness',
+      specialties: ['Boot Camp', 'Outdoor Training', 'CrossFit'],
+      location: '📍 Marina District',
+      rating: 4.7,
+      reviewCount: 134,
+      hourlyRate: 48,
+      imageUrl: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&h=400&fit=crop&crop=face',
+      experience: '9+ years',
+      languages: ['🇺🇸 English'],
+      certifications: ['CrossFit Level 3', 'Outdoor Fitness'],
+      videoIntro: false,
+      totalClasses: 367,
+      availability: 'Available Tomorrow',
+      nextClass: 'Sat 7:00 AM',
+      featured: false,
+      achievements: ['🌊 Outdoor Expert', '⚡ High Energy'],
+      bio: 'Outdoor fitness specialist creating challenging workouts in beautiful settings.'
+    }
+  ]
+
+  // Touch handlers for swipe functionality
+  const minSwipeDistance = 50
+
+  const onTouchStart = (e) => {
+    setTouchEnd(null)
+    setTouchStart(e.targetTouches[0].clientX)
+  }
+
+  const onTouchMove = (e) => setTouchEnd(e.targetTouches[0].clientX)
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return
+    const distance = touchStart - touchEnd
+    const isLeftSwipe = distance > minSwipeDistance
+    const isRightSwipe = distance < -minSwipeDistance
+
+    if (isLeftSwipe) {
+      setCurrentSwipe(prev => Math.min(prev + 1, featuredInstructors.length - 1))
+    }
+    if (isRightSwipe) {
+      setCurrentSwipe(prev => Math.max(prev - 1, 0))
+    }
+  }
+
+  // Filter instructors
+  const filteredInstructors = instructors.filter(instructor => {
+    return instructor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           instructor.specialties.some(specialty => 
+             specialty.toLowerCase().includes(searchQuery.toLowerCase())
+           )
   })
 
-  const router = useRouter()
+  const featuredInstructors = filteredInstructors.filter(i => i.featured)
 
-  const classTypes = ['Yoga', 'Pilates', 'HIIT', 'Spin', 'Personal Training', 'Dance', 'Strength', 'Cardio']
-  const availabilityOptions = ['Morning', 'Afternoon', 'Evening', 'Weekends']
-  const certificationOptions = ['RYT-200', 'RYT-500', 'NASM', 'ACSM', 'ACE', 'CSCS', 'PMA', 'BASI']
-  const languageOptions = ['English', 'Spanish', 'French', 'Mandarin', 'German']
-
-  const toggleFilter = (category, value) => {
-    setFilters(prev => ({
-      ...prev,
-      [category]: prev[category].includes(value) 
-        ? prev[category].filter(item => item !== value)
-        : [...prev[category], value]
-    }))
-  }
-
-  const toggleFilterSection = (section) => {
-    setExpandedFilters(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }))
-  }
-
-  const toggleBookmark = (instructorId) => {
-    setBookmarkedInstructors(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(instructorId)) {
-        newSet.delete(instructorId)
-        toast.success('Removed from bookmarks')
-      } else {
-        newSet.add(instructorId)
-        toast.success('Added to bookmarks')
-      }
-      return newSet
-    })
-  }
-
-  const clearAllFilters = () => {
-    setFilters({
-      classTypes: [],
-      location: 'all',
-      priceRange: [20, 100],
-      availability: [],
-      certifications: [],
-      rating: 0,
-      languages: [],
-      virtual: false
-    })
-    setSearchTerm('')
-  }
-
-  // Filter instructors based on current filters
+  // Auto-advance carousel
   useEffect(() => {
-    let filtered = instructorData
+    const interval = setInterval(() => {
+      setCurrentSwipe(prev => (prev + 1) % Math.max(featuredInstructors.length, 1))
+    }, 6000)
+    return () => clearInterval(interval)
+  }, [featuredInstructors.length])
 
-    // Search filter
-    if (searchTerm) {
-      filtered = filtered.filter(instructor =>
-        instructor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        instructor.tagline.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        instructor.specialties.some(specialty => 
-          specialty.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-      )
-    }
+  const goToSlide = (index) => {
+    setCurrentSwipe(index)
+  }
 
-    // Class type filter
-    if (filters.classTypes.length > 0) {
-      filtered = filtered.filter(instructor =>
-        instructor.specialties.some(specialty => filters.classTypes.includes(specialty))
-      )
-    }
+  const nextSlide = () => {
+    setCurrentSwipe(prev => (prev + 1) % featuredInstructors.length)
+  }
 
-    // Price range filter
-    filtered = filtered.filter(instructor =>
-      instructor.pricePerClass >= filters.priceRange[0] &&
-      instructor.pricePerClass <= filters.priceRange[1]
-    )
-
-    // Rating filter
-    if (filters.rating > 0) {
-      filtered = filtered.filter(instructor => instructor.rating >= filters.rating)
-    }
-
-    // Virtual filter
-    if (filters.virtual) {
-      filtered = filtered.filter(instructor => instructor.virtual)
-    }
-
-    // Languages filter
-    if (filters.languages.length > 0) {
-      filtered = filtered.filter(instructor =>
-        instructor.languages.some(lang => filters.languages.includes(lang))
-      )
-    }
-
-    // Certifications filter
-    if (filters.certifications.length > 0) {
-      filtered = filtered.filter(instructor =>
-        instructor.certifications.some(cert => filters.certifications.includes(cert))
-      )
-    }
-
-    // Sort results
-    switch (sortBy) {
-      case 'price-low':
-        filtered.sort((a, b) => a.pricePerClass - b.pricePerClass)
-        break
-      case 'price-high':
-        filtered.sort((a, b) => b.pricePerClass - a.pricePerClass)
-        break
-      case 'rating':
-        filtered.sort((a, b) => b.rating - a.rating)
-        break
-      case 'match':
-        filtered.sort((a, b) => b.matchPercentage - a.matchPercentage)
-        break
-      default:
-        // relevance - keep original order
-        break
-    }
-
-    setFilteredInstructors(filtered)
-  }, [searchTerm, filters, sortBy])
-
-  const InstructorCard = ({ instructor, isBookmarked }) => (
-    <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300 group">
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center space-x-3">
-            <div className="relative">
-              <Avatar className="h-16 w-16 ring-2 ring-blue-400/50">
-                <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white text-lg">
-                  {instructor.name.split(' ').map(n => n[0]).join('')}
-                </AvatarFallback>
-              </Avatar>
-              {instructor.verified && (
-                <div className="absolute -top-1 -right-1 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
-                  <CheckCircle className="h-4 w-4 text-white" />
-                </div>
-              )}
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-white">{instructor.name}</h3>
-              <p className="text-blue-200 text-sm">{instructor.tagline}</p>
-              <div className="flex items-center space-x-2 mt-1">
-                <div className="flex items-center">
-                  <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                  <span className="text-white text-sm ml-1">{instructor.rating}</span>
-                  <span className="text-blue-300 text-sm ml-1">({instructor.reviewCount})</span>
-                </div>
-                {instructor.matchPercentage > 90 && (
-                  <Badge className="bg-green-500/20 text-green-200 text-xs">
-                    <Sparkles className="h-3 w-3 mr-1" />
-                    Best Match
-                  </Badge>
-                )}
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => toggleBookmark(instructor.id)}
-              className="text-white hover:text-blue-400 hover:bg-white/10"
-            >
-              <Heart className={`h-4 w-4 ${isBookmarked ? 'fill-current text-red-400' : ''}`} />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => toast.info('Share feature coming soon!')}
-              className="text-white hover:text-blue-400 hover:bg-white/10"
-            >
-              <Share2 className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          <div className="flex flex-wrap gap-2">
-            {instructor.specialties.map((specialty, index) => (
-              <Badge key={index} className="bg-blue-500/20 text-blue-200 text-xs">
-                {specialty}
-              </Badge>
-            ))}
-          </div>
-
-          <div className="flex items-center space-x-4 text-sm text-blue-200">
-            <div className="flex items-center">
-              <MapPin className="h-4 w-4 mr-1" />
-              {instructor.location}
-            </div>
-            {instructor.virtual && (
-              <div className="flex items-center">
-                <Video className="h-4 w-4 mr-1" />
-                Virtual
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center space-x-4 text-sm text-blue-200">
-            <div className="flex items-center">
-              <Clock className="h-4 w-4 mr-1" />
-              {instructor.availability}
-            </div>
-            <div className="flex items-center">
-              <Globe className="h-4 w-4 mr-1" />
-              {instructor.languages.join(', ')}
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between pt-4">
-            <div className="text-right">
-              <p className="text-2xl font-bold text-white">${instructor.pricePerClass}</p>
-              <p className="text-blue-200 text-sm">per class</p>
-            </div>
-            <div className="flex space-x-2">
-              {instructor.videoIntro && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-white/20 text-white hover:bg-white/10"
-                  onClick={() => toast.info('Video preview coming soon!')}
-                >
-                  <Play className="h-4 w-4 mr-1" />
-                  Preview
-                </Button>
-              )}
-              <Link href={`/instructor/${instructor.id}`}>
-                <Button
-                  size="sm"
-                  className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
-                >
-                  View Profile
-                </Button>
-              </Link>
-              <Link href={`/class/morning-vinyasa-flow`}>
-                <Button
-                  size="sm"
-                  className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white"
-                >
-                  View Classes
-                </Button>
-              </Link>
-              <Button
-                size="sm"
-                className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white"
-                onClick={() => toast.success('Booking request sent!')}
-              >
-                Book Now
-              </Button>
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  )
-
-  const FilterSection = ({ title, children, isExpanded, onToggle }) => (
-    <div className="border-b border-white/10 pb-4">
-      <button
-        onClick={onToggle}
-        className="flex items-center justify-between w-full text-white font-medium mb-3 hover:text-blue-400"
-      >
-        <span>{title}</span>
-        {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-      </button>
-      {isExpanded && children}
-    </div>
-  )
+  const prevSlide = () => {
+    setCurrentSwipe(prev => (prev - 1 + featuredInstructors.length) % featuredInstructors.length)
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-      {/* Header */}
-      <header className="bg-black/20 backdrop-blur-md shadow-xl border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center">
-                <Dumbbell className="h-7 w-7 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-white">Thryve</h1>
-                <p className="text-blue-200 text-sm">Instructor Marketplace</p>
-              </div>
-            </div>
-            
+    <div className="min-h-screen">
+      {/* Modern Header with Gradient */}
+      <header className="bg-black/20 backdrop-blur-xl shadow-modern border-b border-white/10 sticky top-0 z-50">
+        <div className="mobile-container">
+          <div className="flex items-center justify-between py-6">
             <div className="flex items-center space-x-4">
               <Link href="/">
-                <Button variant="ghost" className="text-white hover:text-blue-400 hover:bg-white/10">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Home
+                <Button variant="ghost" className="btn-modern-small text-white hover:bg-white/10 p-3 rounded-full">
+                  <ArrowLeft className="h-5 w-5" />
                 </Button>
               </Link>
+              <div className="animate-fadeInLeft">
+                <h1 className="text-3xl font-bold text-gradient">Marketplace</h1>
+                <p className="text-sm text-blue-200">Find your perfect fitness instructor</p>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-3">
+              <Button
+                onClick={() => setShowFilters(!showFilters)}
+                className="btn-modern-small bg-white/10 border border-white/20 md:hidden"
+              >
+                <Filter className="h-4 w-4" />
+              </Button>
+              <div className="hidden md:flex items-center space-x-2 text-blue-200 text-sm">
+                <Sparkles className="h-4 w-4" />
+                <span>{filteredInstructors.length} instructors available</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Enhanced Search Bar */}
+          <div className="relative mb-6 animate-fadeInUp delay-200">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-white/50" />
+            <Input
+              type="text"
+              placeholder="Search by name, specialty, or location..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="input-modern pl-12 text-lg py-4"
+            />
+            <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+              <Badge className="bg-blue-500/20 text-blue-300 text-xs">
+                {filteredInstructors.length} found
+              </Badge>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 backdrop-blur-sm py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-5xl font-bold text-white mb-6">
-            Find the Perfect Instructor for Your Studio
-          </h2>
-          <p className="text-xl text-blue-200 mb-8 max-w-3xl mx-auto">
-            Connect with certified fitness professionals who match your studio's needs and culture
-          </p>
-          
-          {/* Search Bar */}
-          <div className="max-w-2xl mx-auto relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-400 h-5 w-5" />
-            <Input
-              type="text"
-              placeholder="Search by name, specialty, or keyword (e.g., 'HIIT coach', 'Prenatal yoga')"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-12 pr-20 py-4 text-lg bg-white/10 backdrop-blur-md border-white/20 border text-white placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent rounded-xl"
-            />
-            <Button 
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-lg"
-              onClick={() => toast.success('Searching...')}
-            >
-              Search
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Filters Sidebar */}
-          <div className="w-full lg:w-80">
-            <Card className="bg-white/10 backdrop-blur-md border-white/20 sticky top-8">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-white flex items-center">
-                    <Filter className="h-5 w-5 mr-2" />
-                    Filters
-                  </CardTitle>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={clearAllFilters}
-                    className="text-blue-400 hover:text-blue-300"
-                  >
-                    Clear All
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Class Type */}
-                <FilterSection
-                  title="Class Type"
-                  isExpanded={expandedFilters.classType}
-                  onToggle={() => toggleFilterSection('classType')}
+      <div className="mobile-container py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          {/* Modern Filters Sidebar */}
+          <div className={`space-y-6 ${showFilters ? 'block' : 'hidden'} lg:block animate-slideInLeft`}>
+            <Card className="card-modern p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-bold text-white flex items-center">
+                  <Filter className="h-5 w-5 mr-2" />
+                  Filters
+                </h3>
+                <Button
+                  onClick={() => setShowFilters(false)}
+                  variant="ghost"
+                  size="sm"
+                  className="text-white hover:bg-white/10 lg:hidden rounded-full"
                 >
-                  <div className="space-y-2">
-                    {classTypes.map((type) => (
-                      <div key={type} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={type}
-                          checked={filters.classTypes.includes(type)}
-                          onCheckedChange={() => toggleFilter('classTypes', type)}
-                        />
-                        <Label htmlFor={type} className="text-blue-200 text-sm">
-                          {type}
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
-                </FilterSection>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
 
-                {/* Location */}
-                <FilterSection
-                  title="Location"
-                  isExpanded={expandedFilters.location}
-                  onToggle={() => toggleFilterSection('location')}
-                >
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="virtual"
-                        checked={filters.virtual}
-                        onCheckedChange={(checked) => setFilters(prev => ({ ...prev, virtual: checked }))}
+              {/* Enhanced Class Type Filter */}
+              <div className="mb-6">
+                <Label className="text-white font-medium mb-4 block flex items-center">
+                  <Target className="h-4 w-4 mr-2" />
+                  Class Type
+                </Label>
+                <div className="space-y-3">
+                  {['🧘 Yoga', '🔥 HIIT', '💪 Pilates', '🏋️ Strength', '💃 Dance', '🥊 Boxing'].map((type) => (
+                    <div key={type} className="flex items-center space-x-3 p-2 rounded-lg hover:bg-white/5 transition-colors">
+                      <Checkbox 
+                        id={type.toLowerCase()}
+                        className="border-white/30 text-blue-500 rounded-md"
                       />
-                      <Label htmlFor="virtual" className="text-blue-200 text-sm">
-                        Virtual Only
+                      <Label 
+                        htmlFor={type.toLowerCase()} 
+                        className="text-blue-200 text-sm cursor-pointer flex-1"
+                      >
+                        {type}
                       </Label>
                     </div>
-                    <Input
-                      placeholder="City or Zip Code"
-                      className="bg-white/10 border-white/20 text-white placeholder-blue-300"
-                    />
-                  </div>
-                </FilterSection>
+                  ))}
+                </div>
+              </div>
 
-                {/* Price Range */}
-                <FilterSection
-                  title="Price Range"
-                  isExpanded={expandedFilters.priceRange}
-                  onToggle={() => toggleFilterSection('priceRange')}
-                >
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between text-blue-200 text-sm">
-                      <span>${filters.priceRange[0]}</span>
-                      <span>${filters.priceRange[1]}</span>
+              {/* Enhanced Price Range */}
+              <div className="mb-6">
+                <Label className="text-white font-medium mb-4 block flex items-center">
+                  <DollarSign className="h-4 w-4 mr-2" />
+                  Price Range
+                </Label>
+                <div className="px-2">
+                  <Slider
+                    value={filters.priceRange}
+                    onValueChange={(value) => setFilters(prev => ({ ...prev, priceRange: value }))}
+                    max={100}
+                    step={5}
+                    className="mb-4"
+                  />
+                  <div className="flex justify-between text-sm">
+                    <Badge className="bg-blue-500/20 text-blue-300">${filters.priceRange[0]}</Badge>
+                    <Badge className="bg-blue-500/20 text-blue-300">${filters.priceRange[1]}</Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* Enhanced Availability */}
+              <div className="mb-6">
+                <Label className="text-white font-medium mb-4 block flex items-center">
+                  <Clock className="h-4 w-4 mr-2" />
+                  Availability
+                </Label>
+                <div className="space-y-3">
+                  {['⚡ Available Now', '📅 Today', '🌅 Tomorrow', '📍 This Week'].map((time) => (
+                    <div key={time} className="flex items-center space-x-3 p-2 rounded-lg hover:bg-white/5 transition-colors">
+                      <Checkbox 
+                        id={time.toLowerCase().replace(' ', '-')}
+                        className="border-white/30 text-blue-500 rounded-md"
+                      />
+                      <Label 
+                        htmlFor={time.toLowerCase().replace(' ', '-')} 
+                        className="text-blue-200 text-sm cursor-pointer flex-1"
+                      >
+                        {time}
+                      </Label>
                     </div>
-                    <Slider
-                      value={filters.priceRange}
-                      onValueChange={(value) => setFilters(prev => ({ ...prev, priceRange: value }))}
-                      max={150}
-                      min={20}
-                      step={5}
-                      className="w-full"
-                    />
-                  </div>
-                </FilterSection>
+                  ))}
+                </div>
+              </div>
 
-                {/* Availability */}
-                <FilterSection
-                  title="Availability"
-                  isExpanded={expandedFilters.availability}
-                  onToggle={() => toggleFilterSection('availability')}
-                >
-                  <div className="space-y-2">
-                    {availabilityOptions.map((option) => (
-                      <div key={option} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={option}
-                          checked={filters.availability.includes(option)}
-                          onCheckedChange={() => toggleFilter('availability', option)}
-                        />
-                        <Label htmlFor={option} className="text-blue-200 text-sm">
-                          {option}
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
-                </FilterSection>
-
-                {/* Certifications */}
-                <FilterSection
-                  title="Certifications"
-                  isExpanded={expandedFilters.certifications}
-                  onToggle={() => toggleFilterSection('certifications')}
-                >
-                  <div className="space-y-2">
-                    {certificationOptions.map((cert) => (
-                      <div key={cert} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={cert}
-                          checked={filters.certifications.includes(cert)}
-                          onCheckedChange={() => toggleFilter('certifications', cert)}
-                        />
-                        <Label htmlFor={cert} className="text-blue-200 text-sm">
-                          {cert}
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
-                </FilterSection>
-
-                {/* Rating */}
-                <FilterSection
-                  title="Rating"
-                  isExpanded={expandedFilters.rating}
-                  onToggle={() => toggleFilterSection('rating')}
-                >
-                  <div className="space-y-2">
-                    {[5, 4, 3, 2, 1].map((rating) => (
-                      <div key={rating} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`rating-${rating}`}
-                          checked={filters.rating === rating}
-                          onCheckedChange={() => setFilters(prev => ({ ...prev, rating: rating }))}
-                        />
-                        <Label htmlFor={`rating-${rating}`} className="text-blue-200 text-sm flex items-center">
-                          {rating}+ 
-                          <div className="flex ml-1">
-                            {[...Array(rating)].map((_, i) => (
-                              <Star key={i} className="h-3 w-3 text-yellow-400 fill-current" />
-                            ))}
-                          </div>
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
-                </FilterSection>
-
-                {/* Languages */}
-                <FilterSection
-                  title="Languages"
-                  isExpanded={expandedFilters.languages}
-                  onToggle={() => toggleFilterSection('languages')}
-                >
-                  <div className="space-y-2">
-                    {languageOptions.map((lang) => (
-                      <div key={lang} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={lang}
-                          checked={filters.languages.includes(lang)}
-                          onCheckedChange={() => toggleFilter('languages', lang)}
-                        />
-                        <Label htmlFor={lang} className="text-blue-200 text-sm">
-                          {lang}
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
-                </FilterSection>
-              </CardContent>
+              {/* Enhanced Rating Filter */}
+              <div>
+                <Label className="text-white font-medium mb-4 block flex items-center">
+                  <Star className="h-4 w-4 mr-2" />
+                  Minimum Rating
+                </Label>
+                <div className="flex items-center space-x-3 px-2">
+                  <Star className="h-5 w-5 text-yellow-400 fill-current" />
+                  <Slider
+                    value={[filters.rating]}
+                    onValueChange={(value) => setFilters(prev => ({ ...prev, rating: value[0] }))}
+                    max={5}
+                    step={0.5}
+                    className="flex-1"
+                  />
+                  <Badge className="bg-yellow-500/20 text-yellow-300 w-12 text-center">
+                    {filters.rating}
+                  </Badge>
+                </div>
+              </div>
             </Card>
           </div>
 
-          {/* Main Content Area */}
-          <div className="flex-1">
-            {/* Results Header */}
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h3 className="text-2xl font-bold text-white">Browse Instructors</h3>
-                <p className="text-blue-200">
-                  Showing {filteredInstructors.length} instructors
-                </p>
-              </div>
-              
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
-                  <span className="text-blue-200 text-sm">Sort by:</span>
-                  <Select value={sortBy} onValueChange={setSortBy}>
-                    <SelectTrigger className="w-40 bg-white/10 border-white/20 text-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="relevance">Relevance</SelectItem>
-                      <SelectItem value="match">Best Match</SelectItem>
-                      <SelectItem value="rating">Rating</SelectItem>
-                      <SelectItem value="price-low">Price: Low to High</SelectItem>
-                      <SelectItem value="price-high">Price: High to Low</SelectItem>
-                    </SelectContent>
-                  </Select>
+          {/* Main Content */}
+          <div className="lg:col-span-3 space-y-12">
+            {/* Featured Instructors Carousel - Mobile Optimized */}
+            <div className="animate-fadeInUp delay-300">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h2 className="text-3xl font-bold text-white mb-2">✨ Featured Instructors</h2>
+                  <p className="text-blue-200">Hand-picked top-rated professionals</p>
                 </div>
-                
-                <div className="flex bg-white/10 backdrop-blur-md rounded-lg p-1">
+                <div className="hidden md:flex items-center space-x-3">
                   <Button
-                    variant="ghost"
+                    onClick={prevSlide}
+                    variant="outline"
                     size="sm"
-                    onClick={() => setViewMode('grid')}
-                    className={`${viewMode === 'grid' ? 'bg-blue-500 text-white' : 'text-blue-200 hover:text-white'}`}
+                    className="btn-modern-small border-white/20 text-white hover:bg-white/10"
                   >
-                    <Grid className="h-4 w-4" />
+                    <ChevronLeft className="h-4 w-4" />
                   </Button>
                   <Button
-                    variant="ghost"
+                    onClick={nextSlide}
+                    variant="outline"
                     size="sm"
-                    onClick={() => setViewMode('list')}
-                    className={`${viewMode === 'list' ? 'bg-blue-500 text-white' : 'text-blue-200 hover:text-white'}`}
+                    className="btn-modern-small border-white/20 text-white hover:bg-white/10"
                   >
-                    <List className="h-4 w-4" />
+                    <ChevronRight className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
-            </div>
 
-            {/* Instructor Grid */}
-            {filteredInstructors.length === 0 ? (
-              <Card className="bg-white/10 backdrop-blur-md border-white/20">
-                <CardContent className="p-12 text-center">
-                  <Search className="h-16 w-16 text-blue-400 mx-auto mb-4" />
-                  <h3 className="text-2xl font-bold text-white mb-2">No instructors found</h3>
-                  <p className="text-blue-200 mb-6">
-                    Try adjusting your filters or search terms to find more instructors.
-                  </p>
-                  <Button
-                    onClick={clearAllFilters}
-                    className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
-                  >
-                    Clear All Filters
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className={`grid gap-6 ${viewMode === 'grid' ? 'grid-cols-1 xl:grid-cols-2' : 'grid-cols-1'}`}>
-                {filteredInstructors.map((instructor) => (
-                  <InstructorCard
-                    key={instructor.id}
-                    instructor={instructor}
-                    isBookmarked={bookmarkedInstructors.has(instructor.id)}
+              {/* Swipeable Carousel */}
+              <div 
+                className="relative overflow-hidden rounded-3xl shadow-modern"
+                onTouchStart={onTouchStart}
+                onTouchMove={onTouchMove}
+                onTouchEnd={onTouchEnd}
+              >
+                <div 
+                  ref={swipeRef}
+                  className="flex transition-transform duration-500 ease-out"
+                  style={{ transform: `translateX(-${currentSwipe * 100}%)` }}
+                >
+                  {featuredInstructors.map((instructor) => (
+                    <div key={instructor.id} className="card-swipe">
+                      <Card className="card-modern overflow-hidden h-[500px]">
+                        <div 
+                          className="relative h-64 bg-cover bg-center"
+                          style={{
+                            backgroundImage: `linear-gradient(135deg, rgba(0,0,0,0.4), rgba(0,0,0,0.7)), url("${instructor.imageUrl}")`,
+                          }}
+                        >
+                          <div className="absolute top-4 left-4 flex space-x-2">
+                            <Badge className="bg-gradient-to-r from-green-500 to-green-600 text-white backdrop-blur-sm animate-pulse-glow">
+                              {instructor.availability}
+                            </Badge>
+                            {instructor.achievements.map((achievement, index) => (
+                              <Badge key={index} className="bg-gradient-to-r from-purple-500 to-purple-600 text-white backdrop-blur-sm">
+                                {achievement}
+                              </Badge>
+                            ))}
+                          </div>
+                          <div className="absolute top-4 right-4 flex space-x-2">
+                            {instructor.videoIntro && (
+                              <Badge className="bg-gradient-to-r from-blue-500 to-blue-600 text-white backdrop-blur-sm">
+                                <Play className="h-3 w-3 mr-1" />
+                                Video
+                              </Badge>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full tap-target"
+                              onClick={() => toast.success('Added to favorites! ❤️')}
+                            >
+                              <Heart className="h-4 w-4 text-white" />
+                            </Button>
+                          </div>
+                          <div className="absolute bottom-4 left-4 right-4">
+                            <h3 className="text-3xl font-bold text-white mb-2 animate-fadeInUp">{instructor.name}</h3>
+                            <p className="text-blue-200 text-lg animate-fadeInUp delay-100">{instructor.tagline}</p>
+                          </div>
+                        </div>
+
+                        <CardContent className="p-6 space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-4">
+                              <div className="flex items-center">
+                                <Star className="h-5 w-5 text-yellow-400 fill-current mr-1" />
+                                <span className="text-white font-bold text-lg">{instructor.rating}</span>
+                                <span className="text-blue-200 text-sm ml-1">({instructor.reviewCount} reviews)</span>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-3xl font-bold text-gradient">${instructor.hourlyRate}</div>
+                              <div className="text-xs text-blue-200">per session</div>
+                            </div>
+                          </div>
+
+                          <div className="text-blue-200 text-sm flex items-center">
+                            <MapPin className="h-4 w-4 mr-1" />
+                            {instructor.location}
+                          </div>
+
+                          <div className="flex flex-wrap gap-2">
+                            {instructor.specialties.map((specialty) => (
+                              <Badge key={specialty} className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-200 border border-blue-400/30">
+                                {specialty}
+                              </Badge>
+                            ))}
+                          </div>
+
+                          <div className="flex space-x-2">
+                            {instructor.videoIntro && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="btn-modern-small border-white/20 text-white hover:bg-white/10"
+                                onClick={() => toast.info('🎬 Video preview coming soon!')}
+                              >
+                                <Play className="h-4 w-4 mr-1" />
+                                Preview
+                              </Button>
+                            )}
+                            <Link href={`/instructor/${instructor.id}`}>
+                              <Button
+                                size="sm"
+                                className="btn-modern-small bg-gradient-to-r from-blue-500 to-blue-600 hover:scale-105"
+                              >
+                                View Profile
+                              </Button>
+                            </Link>
+                            <Link href={`/class/morning-vinyasa-flow`}>
+                              <Button
+                                size="sm"
+                                className="btn-modern-small bg-gradient-to-r from-purple-500 to-purple-600 hover:scale-105"
+                              >
+                                View Classes
+                              </Button>
+                            </Link>
+                            <Button
+                              size="sm"
+                              className="btn-modern-small bg-gradient-to-r from-green-500 to-green-600 hover:scale-105 flex-1"
+                              onClick={() => toast.success('🎯 Booking request sent!')}
+                            >
+                              Book Now
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Swipe Indicators */}
+              <div className="swipe-indicator mt-6">
+                {featuredInstructors.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => goToSlide(index)}
+                    className={`swipe-dot tap-target ${index === currentSwipe ? 'active' : ''}`}
                   />
                 ))}
               </div>
-            )}
+            </div>
 
-            {/* Pagination */}
-            {filteredInstructors.length > 0 && (
-              <div className="flex justify-center items-center space-x-4 mt-12">
-                <Button
-                  variant="outline"
-                  className="border-white/20 text-white hover:bg-white/10"
-                  disabled
-                >
-                  Previous
-                </Button>
-                <div className="flex space-x-2">
-                  {[1, 2, 3, '...', 8].map((page, index) => (
-                    <Button
-                      key={index}
-                      variant={page === 1 ? "default" : "outline"}
-                      className={page === 1 
-                        ? "bg-blue-500 hover:bg-blue-600 text-white" 
-                        : "border-white/20 text-white hover:bg-white/10"
-                      }
-                      disabled={page === '...'}
-                    >
-                      {page}
-                    </Button>
-                  ))}
+            {/* All Instructors Grid */}
+            <div className="animate-fadeInUp delay-500">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h2 className="text-3xl font-bold text-white mb-2">🌟 All Instructors</h2>
+                  <p className="text-blue-200">Discover your perfect fitness match</p>
                 </div>
+                <div className="text-blue-200">
+                  <Trophy className="h-5 w-5 inline mr-2" />
+                  {filteredInstructors.length} professionals available
+                </div>
+              </div>
+
+              <div className="mobile-grid">
+                {filteredInstructors.map((instructor, index) => (
+                  <Card key={instructor.id} className={`card-modern overflow-hidden animate-fadeInUp delay-${(index % 3) * 100}`}>
+                    <div 
+                      className="relative h-48 bg-cover bg-center"
+                      style={{
+                        backgroundImage: `linear-gradient(135deg, rgba(0,0,0,0.4), rgba(0,0,0,0.7)), url("${instructor.imageUrl}")`,
+                      }}
+                    >
+                      <div className="absolute top-3 left-3">
+                        <Badge className="bg-gradient-to-r from-green-500 to-green-600 text-white backdrop-blur-sm text-xs">
+                          {instructor.availability}
+                        </Badge>
+                      </div>
+                      <div className="absolute top-3 right-3">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full w-8 h-8 p-0 tap-target"
+                          onClick={() => toast.success('❤️ Added to favorites!')}
+                        >
+                          <Heart className="h-3 w-3 text-white" />
+                        </Button>
+                      </div>
+                      <div className="absolute bottom-3 left-3 right-3">
+                        <h3 className="text-xl font-bold text-white mb-1">{instructor.name}</h3>
+                      </div>
+                    </div>
+
+                    <CardContent className="p-4 space-y-3">
+                      <p className="text-blue-200 text-sm">{instructor.tagline}</p>
+
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <Star className="h-4 w-4 text-yellow-400 fill-current mr-1" />
+                          <span className="text-white font-medium">{instructor.rating}</span>
+                          <span className="text-blue-200 text-xs ml-1">({instructor.reviewCount})</span>
+                        </div>
+                        <div className="text-xl font-bold text-gradient">${instructor.hourlyRate}</div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-1">
+                        {instructor.specialties.slice(0, 2).map((specialty) => (
+                          <Badge key={specialty} className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-200 text-xs border border-blue-400/30">
+                            {specialty}
+                          </Badge>
+                        ))}
+                        {instructor.specialties.length > 2 && (
+                          <Badge className="bg-white/10 text-blue-300 text-xs">
+                            +{instructor.specialties.length - 2} more
+                          </Badge>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex space-x-2">
+                          <Link href={`/instructor/${instructor.id}`} className="flex-1">
+                            <Button
+                              size="sm"
+                              className="btn-modern-small bg-gradient-to-r from-blue-500 to-blue-600 w-full text-xs hover:scale-105"
+                            >
+                              Profile
+                            </Button>
+                          </Link>
+                          <Link href={`/class/morning-vinyasa-flow`} className="flex-1">
+                            <Button
+                              size="sm"
+                              className="btn-modern-small bg-gradient-to-r from-purple-500 to-purple-600 w-full text-xs hover:scale-105"
+                            >
+                              Classes
+                            </Button>
+                          </Link>
+                        </div>
+                        <Button
+                          size="sm"
+                          className="btn-modern-small bg-gradient-to-r from-green-500 to-green-600 w-full text-xs hover:scale-105"
+                          onClick={() => toast.success('🎉 Booking request sent!')}
+                        >
+                          <Zap className="h-3 w-3 mr-1" />
+                          Book Now
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Load More Button */}
+              <div className="text-center mt-12">
                 <Button
-                  variant="outline"
-                  className="border-white/20 text-white hover:bg-white/10"
+                  className="btn-modern px-12 py-4 text-lg"
+                  onClick={() => toast.info('🔄 More instructors loading soon!')}
                 >
-                  Next
+                  <Users className="h-5 w-5 mr-2" />
+                  Load More Instructors
                 </Button>
               </div>
-            )}
+            </div>
           </div>
         </div>
       </div>
