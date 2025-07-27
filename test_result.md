@@ -568,9 +568,9 @@ metadata:
 
 test_plan:
   current_focus:
+    - "Stripe Connect Integration for Instructor Payouts"
     - "Complete End-to-End User Journey Testing"
     - "Authentication Flow Validation"
-    - "My Bookings System Integration Testing"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
