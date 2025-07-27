@@ -1000,80 +1000,30 @@ async function debugSession() {
   })
 }
 
-async function handleRoleSelectionAPI(body, userId) {
-  const { role } = body
-  
-  console.log('=== ROLE SELECTION API ===')
-  console.log('User ID:', userId)
-  console.log('Selected role:', role)
-  
-  // If no userId passed, try to get it from the session directly
-  if (!userId) {
-    console.log('No userId provided, attempting to get from session...')
+async function getFirebaseUser(uid) {
+  if (!uid) {
+    return NextResponse.json({ error: 'UID parameter is required' }, { status: 400 })
+  }
+
+  try {
+    await connectDB()
     
-    const cookieStore = cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options)
-              )
-            } catch {
-              // Handle cookie setting errors
-            }
-          },
-        },
-      }
-    )
+    // Look up user profile in MongoDB by Firebase UID
+    const profile = await db.collection('profiles').findOne({ userId: uid })
     
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session?.user) {
-      console.log('No session found')
-      return NextResponse.json({ error: 'No active session found. Please log in again.' }, { status: 401 })
+    if (!profile) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
     
-    userId = session.user.id
-    console.log('Got userId from session:', userId)
-  }
-  
-  // Validate role
-  const validRoles = ['customer', 'instructor', 'merchant']
-  if (!validRoles.includes(role)) {
-    return NextResponse.json({ error: `Invalid role: ${role}` }, { status: 400 })
-  }
-  
-  try {
-    // Store role selection in MongoDB
-    await db.collection('profiles').updateOne(
-      { userId },
-      { 
-        $set: { 
-          role,
-          onboarding_complete: false,
-          updatedAt: new Date()
-        } 
-      },
-      { upsert: true }
-    )
-    
-    console.log('Role stored in MongoDB successfully for user:', userId)
-    
     return NextResponse.json({ 
-      message: 'Role selected successfully',
-      role,
-      redirect: `/onboarding/${role}`
+      uid: profile.userId,
+      email: profile.email,
+      role: profile.role,
+      onboarding_complete: profile.onboarding_complete,
+      profile: profile
     })
   } catch (error) {
-    console.error('MongoDB role storage error:', error)
-    return NextResponse.json({ 
-      error: 'Failed to store role selection'
-    }, { status: 500 })
+    console.error('Error fetching Firebase user:', error)
+    return NextResponse.json({ error: 'Failed to fetch user data' }, { status: 500 })
   }
 }
