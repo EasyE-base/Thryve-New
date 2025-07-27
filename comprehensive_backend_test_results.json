@@ -1,0 +1,336 @@
+{
+  "total_tests": 43,
+  "passed_tests": 43,
+  "failed_tests": 0,
+  "success_rate": 100.0,
+  "duration": 6.931553840637207,
+  "categories": {
+    "Authentication": {
+      "passed": 10,
+      "total": 10
+    },
+    "File Upload": {
+      "passed": 11,
+      "total": 11
+    },
+    "Notification": {
+      "passed": 11,
+      "total": 11
+    },
+    "Analytics": {
+      "passed": 10,
+      "total": 10
+    },
+    "Integration": {
+      "passed": 0,
+      "total": 0
+    },
+    "Error Handling": {
+      "passed": 1,
+      "total": 1
+    }
+  },
+  "test_results": [
+    {
+      "test": "Auth Protection - GET /files/list",
+      "success": true,
+      "message": "Correctly requires authentication (401)",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:25.812203"
+    },
+    {
+      "test": "Auth Protection - POST /files/upload",
+      "success": true,
+      "message": "Correctly requires authentication (401)",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:25.870571"
+    },
+    {
+      "test": "Auth Protection - DELETE /files/test-file",
+      "success": true,
+      "message": "Correctly requires authentication (401)",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:25.944864"
+    },
+    {
+      "test": "Auth Protection - GET /notifications/inbox",
+      "success": true,
+      "message": "Correctly requires authentication (401)",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:26.046007"
+    },
+    {
+      "test": "Auth Protection - POST /notifications/send",
+      "success": true,
+      "message": "Correctly requires authentication (401)",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:26.107546"
+    },
+    {
+      "test": "Auth Protection - POST /notifications/mark-read",
+      "success": true,
+      "message": "Correctly requires authentication (401)",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:26.157969"
+    },
+    {
+      "test": "Auth Protection - POST /notifications/trigger",
+      "success": true,
+      "message": "Correctly requires authentication (401)",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:26.235938"
+    },
+    {
+      "test": "Auth Protection - GET /analytics/studio",
+      "success": true,
+      "message": "Correctly requires authentication (401)",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:26.272975"
+    },
+    {
+      "test": "Auth Protection - GET /analytics/platform",
+      "success": true,
+      "message": "Correctly requires authentication (401)",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:26.353519"
+    },
+    {
+      "test": "Auth Protection - POST /analytics/event",
+      "success": true,
+      "message": "Correctly requires authentication (401)",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:26.438883"
+    },
+    {
+      "test": "File Upload - profile",
+      "success": true,
+      "message": "Successfully uploaded profile file: file-1753651526505",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:26.543634"
+    },
+    {
+      "test": "File Upload - class",
+      "success": true,
+      "message": "Successfully uploaded class file: file-1753651526610",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:26.638790"
+    },
+    {
+      "test": "File Upload - studio",
+      "success": true,
+      "message": "Successfully uploaded studio file: file-1753651526670",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:26.706171"
+    },
+    {
+      "test": "File Upload - document",
+      "success": true,
+      "message": "Successfully uploaded document file: file-1753651526750",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:26.756553"
+    },
+    {
+      "test": "File Upload - Size Validation",
+      "success": true,
+      "message": "Large file upload handled correctly",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:26.836184"
+    },
+    {
+      "test": "File Upload - MIME Type",
+      "success": true,
+      "message": "PDF file upload handled correctly",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:26.866764"
+    },
+    {
+      "test": "File List - All Files",
+      "success": true,
+      "message": "Retrieved 7 total files",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:27.037586"
+    },
+    {
+      "test": "File List - Filter profile",
+      "success": true,
+      "message": "Retrieved 2 profile files",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:27.137564"
+    },
+    {
+      "test": "File List - Filter class",
+      "success": true,
+      "message": "Retrieved 1 class files",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:27.165965"
+    },
+    {
+      "test": "File List - Filter studio",
+      "success": true,
+      "message": "Retrieved 1 studio files",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:27.243291"
+    },
+    {
+      "test": "Send Notification - in_app",
+      "success": true,
+      "message": "Successfully sent in_app notification: notification-1753651527269",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:27.302728"
+    },
+    {
+      "test": "Send Notification - email",
+      "success": true,
+      "message": "Successfully sent email notification: notification-1753651527340",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:27.345503"
+    },
+    {
+      "test": "Send Notification - sms",
+      "success": true,
+      "message": "Successfully sent sms notification: notification-1753651527405",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:27.432317"
+    },
+    {
+      "test": "Trigger Notification - booking_confirmed",
+      "success": true,
+      "message": "Successfully triggered booking_confirmed: notification-1753651527455",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:27.460038"
+    },
+    {
+      "test": "Trigger Notification - class_cancelled",
+      "success": true,
+      "message": "Successfully triggered class_cancelled: notification-1753651527539",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:27.545315"
+    },
+    {
+      "test": "Trigger Notification - no_show_penalty",
+      "success": true,
+      "message": "Successfully triggered no_show_penalty: notification-1753651527571",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:27.605902"
+    },
+    {
+      "test": "Trigger Notification - low_credits",
+      "success": true,
+      "message": "Successfully triggered low_credits: notification-1753651527646",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:27.651879"
+    },
+    {
+      "test": "Notification Inbox",
+      "success": true,
+      "message": "Retrieved 0 notifications, 0 unread",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:27.743274"
+    },
+    {
+      "test": "Analytics Event - class_booking",
+      "success": true,
+      "message": "Successfully recorded class_booking: event-1753651527773",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:27.807788"
+    },
+    {
+      "test": "Analytics Event - class_cancellation",
+      "success": true,
+      "message": "Successfully recorded class_cancellation: event-1753651527864",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:27.869902"
+    },
+    {
+      "test": "Analytics Event - payment_completed",
+      "success": true,
+      "message": "Successfully recorded payment_completed: event-1753651527937",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:27.942069"
+    },
+    {
+      "test": "Analytics Event - user_signup",
+      "success": true,
+      "message": "Successfully recorded user_signup: event-1753651527964",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:27.969455"
+    },
+    {
+      "test": "Analytics Event - file_upload",
+      "success": true,
+      "message": "Successfully recorded file_upload: event-1753651528041",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:28.046953"
+    },
+    {
+      "test": "Studio Analytics - 2025-01-01 to 2025-01-31",
+      "success": true,
+      "message": "Analytics data complete for date range",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:28.165073"
+    },
+    {
+      "test": "Studio Analytics - 2025-01-15 to 2025-01-30",
+      "success": true,
+      "message": "Analytics data complete for date range",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:28.242966"
+    },
+    {
+      "test": "Studio Analytics - 2024-12-01 to 2024-12-31",
+      "success": true,
+      "message": "Analytics data complete for date range",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:28.311518"
+    },
+    {
+      "test": "Platform Analytics",
+      "success": true,
+      "message": "Complete platform analytics retrieved",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:28.368004"
+    },
+    {
+      "test": "Integration - File\u2192Analytics\u2192Notification",
+      "success": true,
+      "message": "Complete integration workflow successful",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:28.556936"
+    },
+    {
+      "test": "Integration - Analytics\u2192Notification Trigger",
+      "success": true,
+      "message": "Analytics-driven notification trigger successful",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:28.708288"
+    },
+    {
+      "test": "Error Handling - No File",
+      "success": true,
+      "message": "Correctly handles missing file (400)",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:28.751992"
+    },
+    {
+      "test": "Error Handling - Invalid Notification",
+      "success": true,
+      "message": "Handles invalid notification data (Status: 200)",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:28.809440"
+    },
+    {
+      "test": "Error Handling - Invalid Analytics",
+      "success": true,
+      "message": "Handles invalid analytics data (Status: 200)",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:28.854231"
+    },
+    {
+      "test": "Error Handling - Non-existent File Delete",
+      "success": true,
+      "message": "Correctly handles non-existent file deletion (404)",
+      "response_data": null,
+      "timestamp": "2025-07-27T21:25:28.942830"
+    }
+  ]
+}
