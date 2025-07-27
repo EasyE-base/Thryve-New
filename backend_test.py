@@ -330,4 +330,4 @@ if __name__ == "__main__":
     with open('/app/backend_test_results.json', 'w') as f:
         json.dump(results, f, indent=2, default=str)
     
-    print(f"\n💾 Test results saved to: /app/backend_test_results.json")
+    print(f"\n💾 AI Recommendation Engine test results saved to: /app/backend_test_results.json")
