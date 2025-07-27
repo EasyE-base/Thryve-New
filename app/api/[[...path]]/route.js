@@ -1062,6 +1062,82 @@ async function handleAccountUpdate(account) {
   )
 }
 
+async function handleCheckoutSessionCompleted(session) {
+  try {
+    console.log('Processing checkout session completed:', session.id)
+    
+    const { bookingId, userId, classId, sessionId, instructorId } = session.metadata
+    
+    if (!bookingId) {
+      console.error('No booking ID found in session metadata')
+      return
+    }
+    
+    // Update booking status to confirmed and paid
+    const updateResult = await db.collection('bookings').updateOne(
+      { id: bookingId },
+      { 
+        $set: { 
+          status: 'confirmed',
+          paymentStatus: 'paid',
+          stripeSessionId: session.id,
+          paidAt: new Date(),
+          updatedAt: new Date()
+        }
+      }
+    )
+    
+    if (updateResult.matchedCount === 0) {
+      console.error('Booking not found for ID:', bookingId)
+      return
+    }
+    
+    console.log('Booking updated successfully:', bookingId)
+    
+    // Update class booking count if needed
+    if (classId && sessionId) {
+      await db.collection('classes').updateOne(
+        { id: classId, 'sessions.id': sessionId },
+        { 
+          $inc: { 'sessions.$.spotsBooked': 1 },
+          $set: { updatedAt: new Date() }
+        }
+      )
+    }
+    
+    // Create instructor payout (85% of payment, 15% platform fee)
+    if (instructorId && session.amount_total) {
+      const instructorAmount = Math.round(session.amount_total * 0.85)
+      
+      // Get instructor's Stripe account
+      const profile = await db.collection('profiles').findOne({ userId: instructorId })
+      
+      if (profile?.stripeAccountId) {
+        try {
+          await stripe.transfers.create({
+            amount: instructorAmount,
+            currency: 'usd',
+            destination: profile.stripeAccountId,
+            metadata: {
+              bookingId,
+              classId,
+              sessionId,
+              userId,
+              instructorId
+            }
+          })
+          console.log('Transfer created for instructor:', instructorId)
+        } catch (error) {
+          console.error('Failed to create transfer:', error)
+        }
+      }
+    }
+    
+  } catch (error) {
+    console.error('Error handling checkout session completed:', error)
+  }
+}
+
 // Debug functions
 async function testSignup(body) {
   const { email, password } = body
