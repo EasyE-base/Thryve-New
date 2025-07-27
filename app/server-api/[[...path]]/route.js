@@ -1367,6 +1367,635 @@ async function handlePOST(request) {
       }
     }
 
+    // ========================================
+    // INSTRUCTOR STAFFING & SCHEDULE MANAGEMENT SYSTEM
+    // ========================================
+
+    // Request shift swap between instructors
+    if (path === '/staffing/request-swap') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { classId, recipientInstructorId, message } = body
+
+        if (!classId || !recipientInstructorId) {
+          return NextResponse.json({ error: 'Class ID and recipient instructor ID are required' }, { status: 400 })
+        }
+
+        // Verify initiator is assigned to the class
+        const classAssignment = await database.collection('studio_classes').findOne({
+          id: classId,
+          assignedInstructorId: firebaseUser.uid
+        })
+
+        if (!classAssignment) {
+          return NextResponse.json({ error: 'You are not assigned to this class' }, { status: 403 })
+        }
+
+        // Check if recipient instructor exists
+        const recipientProfile = await database.collection('profiles').findOne({
+          userId: recipientInstructorId,
+          role: 'instructor'
+        })
+
+        if (!recipientProfile) {
+          return NextResponse.json({ error: 'Recipient instructor not found' }, { status: 404 })
+        }
+
+        // Check for existing pending swap request
+        const existingSwap = await database.collection('swap_requests').findOne({
+          classId: classId,
+          status: 'pending'
+        })
+
+        if (existingSwap) {
+          return NextResponse.json({ error: 'A swap request for this class is already pending' }, { status: 409 })
+        }
+
+        // Create swap request
+        const swapRequest = {
+          id: `swap-${Date.now()}`,
+          classId: classId,
+          initiatorId: firebaseUser.uid,
+          recipientId: recipientInstructorId,
+          studioId: classAssignment.studioId,
+          message: message || '',
+          status: 'pending', // 'pending', 'accepted', 'rejected', 'approved', 'completed'
+          requiresApproval: false, // Will be updated based on studio settings
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+
+        // Check studio approval settings
+        const studioSettings = await database.collection('studio_staffing_settings').findOne({
+          studioId: classAssignment.studioId
+        })
+
+        if (studioSettings && studioSettings.requireApproval) {
+          swapRequest.requiresApproval = true
+        }
+
+        await database.collection('swap_requests').insertOne(swapRequest)
+
+        // Send notification to recipient
+        const notification = {
+          id: `notification-${Date.now()}`,
+          senderId: firebaseUser.uid,
+          recipientId: recipientInstructorId,
+          type: 'in_app',
+          subject: 'Shift Swap Request',
+          message: `${classAssignment.className} on ${new Date(classAssignment.startTime).toLocaleDateString()} - Swap requested`,
+          templateId: 'swap_request',
+          templateData: {
+            className: classAssignment.className,
+            date: new Date(classAssignment.startTime).toLocaleDateString(),
+            time: new Date(classAssignment.startTime).toLocaleTimeString(),
+            requestId: swapRequest.id
+          },
+          status: 'pending',
+          createdAt: new Date()
+        }
+
+        await database.collection('notifications').insertOne(notification)
+
+        return NextResponse.json({
+          message: 'Swap request sent successfully',
+          swapRequestId: swapRequest.id,
+          requiresApproval: swapRequest.requiresApproval
+        })
+      } catch (error) {
+        console.error('Swap request error:', error)
+        return NextResponse.json({ error: 'Failed to create swap request' }, { status: 500 })
+      }
+    }
+
+    // Accept shift swap request
+    if (path === '/staffing/accept-swap') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { swapRequestId } = body
+
+        if (!swapRequestId) {
+          return NextResponse.json({ error: 'Swap request ID is required' }, { status: 400 })
+        }
+
+        // Find swap request
+        const swapRequest = await database.collection('swap_requests').findOne({
+          id: swapRequestId,
+          recipientId: firebaseUser.uid,
+          status: 'pending'
+        })
+
+        if (!swapRequest) {
+          return NextResponse.json({ error: 'Swap request not found or already processed' }, { status: 404 })
+        }
+
+        // Perform conflict detection
+        const classData = await database.collection('studio_classes').findOne({ id: swapRequest.classId })
+        if (!classData) {
+          return NextResponse.json({ error: 'Class not found' }, { status: 404 })
+        }
+
+        // Check for scheduling conflicts
+        const conflicts = await database.collection('studio_classes').find({
+          assignedInstructorId: firebaseUser.uid,
+          startTime: {
+            $gte: new Date(new Date(classData.startTime).getTime() - 60 * 60 * 1000), // 1 hour before
+            $lte: new Date(new Date(classData.endTime).getTime() + 60 * 60 * 1000)    // 1 hour after
+          }
+        }).toArray()
+
+        if (conflicts.length > 0) {
+          return NextResponse.json({ 
+            error: 'Scheduling conflict detected',
+            conflicts: conflicts.map(c => ({ className: c.className, startTime: c.startTime }))
+          }, { status: 409 })
+        }
+
+        // Update swap request status
+        let newStatus = swapRequest.requiresApproval ? 'awaiting_approval' : 'accepted'
+        
+        await database.collection('swap_requests').updateOne(
+          { id: swapRequestId },
+          { 
+            $set: { 
+              status: newStatus,
+              acceptedAt: new Date(),
+              updatedAt: new Date()
+            }
+          }
+        )
+
+        // If no approval required, execute the swap immediately
+        if (!swapRequest.requiresApproval) {
+          await database.collection('studio_classes').updateOne(
+            { id: swapRequest.classId },
+            {
+              $set: {
+                assignedInstructorId: firebaseUser.uid,
+                assignedInstructorName: (await database.collection('profiles').findOne({ userId: firebaseUser.uid }))?.name || 'Unknown',
+                updatedAt: new Date()
+              }
+            }
+          )
+
+          // Record analytics event
+          await database.collection('analytics_events').insertOne({
+            id: `event-${Date.now()}`,
+            userId: firebaseUser.uid,
+            eventType: 'shift_swap_completed',
+            entityId: swapRequest.classId,
+            data: {
+              swapRequestId: swapRequestId,
+              fromInstructorId: swapRequest.initiatorId,
+              toInstructorId: firebaseUser.uid,
+              requiresApproval: false
+            },
+            timestamp: new Date(),
+            createdAt: new Date()
+          })
+        }
+
+        // Send notifications
+        const notifications = []
+
+        // Notify initiator
+        notifications.push({
+          id: `notification-${Date.now()}-1`,
+          senderId: firebaseUser.uid,
+          recipientId: swapRequest.initiatorId,
+          type: 'in_app',
+          subject: newStatus === 'accepted' ? 'Swap Request Accepted' : 'Swap Request Pending Approval',
+          message: newStatus === 'accepted' 
+            ? 'Your shift swap has been accepted and is now active!'
+            : 'Your shift swap has been accepted but requires studio approval.',
+          templateId: 'swap_accepted',
+          templateData: { swapRequestId, status: newStatus },
+          status: 'pending',
+          createdAt: new Date()
+        })
+
+        // If requires approval, notify studio
+        if (swapRequest.requiresApproval) {
+          notifications.push({
+            id: `notification-${Date.now()}-2`,
+            senderId: firebaseUser.uid,
+            recipientId: swapRequest.studioId,
+            type: 'in_app',
+            subject: 'Shift Swap Awaiting Approval',
+            message: 'A shift swap between instructors requires your approval.',
+            templateId: 'swap_approval_needed',
+            templateData: { swapRequestId, classId: swapRequest.classId },
+            status: 'pending',
+            createdAt: new Date()
+          })
+        }
+
+        await database.collection('notifications').insertMany(notifications)
+
+        return NextResponse.json({
+          message: 'Swap request accepted successfully',
+          status: newStatus,
+          requiresApproval: swapRequest.requiresApproval
+        })
+      } catch (error) {
+        console.error('Accept swap error:', error)
+        return NextResponse.json({ error: 'Failed to accept swap request' }, { status: 500 })
+      }
+    }
+
+    // Request coverage for a class
+    if (path === '/staffing/request-coverage') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { classId, message, urgent } = body
+
+        if (!classId) {
+          return NextResponse.json({ error: 'Class ID is required' }, { status: 400 })
+        }
+
+        // Verify user is assigned to the class or is studio owner
+        const classData = await database.collection('studio_classes').findOne({ id: classId })
+        if (!classData) {
+          return NextResponse.json({ error: 'Class not found' }, { status: 404 })
+        }
+
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        
+        if (classData.assignedInstructorId !== firebaseUser.uid && 
+            classData.studioId !== firebaseUser.uid && 
+            userProfile?.role !== 'merchant') {
+          return NextResponse.json({ error: 'Unauthorized to request coverage for this class' }, { status: 403 })
+        }
+
+        // Create coverage request
+        const coverageRequest = {
+          id: `coverage-${Date.now()}`,
+          classId: classId,
+          requesterId: firebaseUser.uid,
+          studioId: classData.studioId,
+          message: message || '',
+          urgent: urgent || false,
+          status: 'open', // 'open', 'filled', 'cancelled'
+          applicants: [],
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+
+        await database.collection('coverage_requests').insertOne(coverageRequest)
+
+        // Mark class as needing coverage
+        await database.collection('studio_classes').updateOne(
+          { id: classId },
+          { 
+            $set: { 
+              needsCoverage: true,
+              coverageRequestId: coverageRequest.id,
+              updatedAt: new Date()
+            }
+          }
+        )
+
+        // Notify all studio instructors
+        const studioInstructors = await database.collection('profiles').find({
+          role: 'instructor',
+          // Add studio association when we have that data structure
+        }).toArray()
+
+        const notifications = studioInstructors.map(instructor => ({
+          id: `notification-${Date.now()}-${instructor.userId}`,
+          senderId: firebaseUser.uid,
+          recipientId: instructor.userId,
+          type: 'in_app',
+          subject: urgent ? '🚨 Urgent Coverage Needed' : 'Coverage Opportunity Available',
+          message: `${classData.className} on ${new Date(classData.startTime).toLocaleDateString()} needs coverage`,
+          templateId: 'coverage_request',
+          templateData: {
+            className: classData.className,
+            date: new Date(classData.startTime).toLocaleDateString(),
+            time: new Date(classData.startTime).toLocaleTimeString(),
+            coverageRequestId: coverageRequest.id,
+            urgent: urgent
+          },
+          status: 'pending',
+          createdAt: new Date()
+        }))
+
+        if (notifications.length > 0) {
+          await database.collection('notifications').insertMany(notifications)
+        }
+
+        return NextResponse.json({
+          message: 'Coverage request created successfully',
+          coverageRequestId: coverageRequest.id,
+          notificationsSent: notifications.length
+        })
+      } catch (error) {
+        console.error('Coverage request error:', error)
+        return NextResponse.json({ error: 'Failed to create coverage request' }, { status: 500 })
+      }
+    }
+
+    // Apply to cover a class
+    if (path === '/staffing/apply-coverage') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { coverageRequestId, message } = body
+
+        if (!coverageRequestId) {
+          return NextResponse.json({ error: 'Coverage request ID is required' }, { status: 400 })
+        }
+
+        // Find coverage request
+        const coverageRequest = await database.collection('coverage_requests').findOne({
+          id: coverageRequestId,
+          status: 'open'
+        })
+
+        if (!coverageRequest) {
+          return NextResponse.json({ error: 'Coverage request not found or no longer available' }, { status: 404 })
+        }
+
+        // Verify user is an instructor
+        const userProfile = await database.collection('profiles').findOne({ 
+          userId: firebaseUser.uid,
+          role: 'instructor'
+        })
+
+        if (!userProfile) {
+          return NextResponse.json({ error: 'Only instructors can apply for coverage' }, { status: 403 })
+        }
+
+        // Check if instructor already applied
+        const existingApplication = coverageRequest.applicants.find(app => app.instructorId === firebaseUser.uid)
+        if (existingApplication) {
+          return NextResponse.json({ error: 'You have already applied for this coverage' }, { status: 409 })
+        }
+
+        // Check for conflicts
+        const classData = await database.collection('studio_classes').findOne({ id: coverageRequest.classId })
+        const conflicts = await database.collection('studio_classes').find({
+          assignedInstructorId: firebaseUser.uid,
+          startTime: {
+            $gte: new Date(new Date(classData.startTime).getTime() - 60 * 60 * 1000),
+            $lte: new Date(new Date(classData.endTime).getTime() + 60 * 60 * 1000)
+          }
+        }).toArray()
+
+        if (conflicts.length > 0) {
+          return NextResponse.json({ 
+            error: 'Scheduling conflict detected',
+            conflicts: conflicts.map(c => ({ className: c.className, startTime: c.startTime }))
+          }, { status: 409 })
+        }
+
+        // Add application to coverage request
+        const application = {
+          instructorId: firebaseUser.uid,
+          instructorName: userProfile.name || 'Unknown',
+          message: message || '',
+          appliedAt: new Date(),
+          status: 'pending' // 'pending', 'selected', 'rejected'
+        }
+
+        await database.collection('coverage_requests').updateOne(
+          { id: coverageRequestId },
+          { 
+            $push: { applicants: application },
+            $set: { updatedAt: new Date() }
+          }
+        )
+
+        // Notify studio/requester
+        const notification = {
+          id: `notification-${Date.now()}`,
+          senderId: firebaseUser.uid,
+          recipientId: coverageRequest.requesterId,
+          type: 'in_app',
+          subject: 'New Coverage Application',
+          message: `${userProfile.name || 'An instructor'} has applied to cover your class`,
+          templateId: 'coverage_application',
+          templateData: {
+            instructorName: userProfile.name || 'Unknown',
+            coverageRequestId: coverageRequestId
+          },
+          status: 'pending',
+          createdAt: new Date()
+        }
+
+        await database.collection('notifications').insertOne(notification)
+
+        return NextResponse.json({
+          message: 'Coverage application submitted successfully',
+          applicationStatus: 'pending'
+        })
+      } catch (error) {
+        console.error('Coverage application error:', error)
+        return NextResponse.json({ error: 'Failed to apply for coverage' }, { status: 500 })
+      }
+    }
+
+    // Studio approve/reject swap request
+    if (path === '/staffing/approve-swap') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { swapRequestId, approved, reason } = body
+
+        if (!swapRequestId || approved === undefined) {
+          return NextResponse.json({ error: 'Swap request ID and approval status are required' }, { status: 400 })
+        }
+
+        // Find swap request and verify studio ownership
+        const swapRequest = await database.collection('swap_requests').findOne({
+          id: swapRequestId,
+          studioId: firebaseUser.uid,
+          status: 'awaiting_approval'
+        })
+
+        if (!swapRequest) {
+          return NextResponse.json({ error: 'Swap request not found or not awaiting approval' }, { status: 404 })
+        }
+
+        const newStatus = approved ? 'approved' : 'rejected'
+        
+        await database.collection('swap_requests').updateOne(
+          { id: swapRequestId },
+          { 
+            $set: { 
+              status: newStatus,
+              approvedAt: approved ? new Date() : null,
+              rejectedAt: approved ? null : new Date(),
+              approvalReason: reason || '',
+              updatedAt: new Date()
+            }
+          }
+        )
+
+        // If approved, execute the swap
+        if (approved) {
+          await database.collection('studio_classes').updateOne(
+            { id: swapRequest.classId },
+            {
+              $set: {
+                assignedInstructorId: swapRequest.recipientId,
+                assignedInstructorName: (await database.collection('profiles').findOne({ userId: swapRequest.recipientId }))?.name || 'Unknown',
+                updatedAt: new Date()
+              }
+            }
+          )
+
+          // Record analytics
+          await database.collection('analytics_events').insertOne({
+            id: `event-${Date.now()}`,
+            userId: firebaseUser.uid,
+            eventType: 'shift_swap_approved',
+            entityId: swapRequest.classId,
+            data: {
+              swapRequestId: swapRequestId,
+              fromInstructorId: swapRequest.initiatorId,
+              toInstructorId: swapRequest.recipientId
+            },
+            timestamp: new Date(),
+            createdAt: new Date()
+          })
+        }
+
+        // Notify both instructors
+        const notifications = [
+          {
+            id: `notification-${Date.now()}-1`,
+            senderId: firebaseUser.uid,
+            recipientId: swapRequest.initiatorId,
+            type: 'in_app',
+            subject: approved ? 'Swap Request Approved' : 'Swap Request Rejected',
+            message: approved 
+              ? 'Your shift swap has been approved by the studio!'
+              : `Your shift swap was rejected. ${reason || ''}`,
+            templateId: approved ? 'swap_approved' : 'swap_rejected',
+            templateData: { swapRequestId, reason },
+            status: 'pending',
+            createdAt: new Date()
+          },
+          {
+            id: `notification-${Date.now()}-2`,
+            senderId: firebaseUser.uid,
+            recipientId: swapRequest.recipientId,
+            type: 'in_app',
+            subject: approved ? 'Swap Request Approved' : 'Swap Request Rejected',
+            message: approved 
+              ? 'The shift swap has been approved - you are now assigned to this class!'
+              : `The shift swap was rejected. ${reason || ''}`,
+            templateId: approved ? 'swap_approved' : 'swap_rejected',
+            templateData: { swapRequestId, reason },
+            status: 'pending',
+            createdAt: new Date()
+          }
+        ]
+
+        await database.collection('notifications').insertMany(notifications)
+
+        return NextResponse.json({
+          message: `Swap request ${approved ? 'approved' : 'rejected'} successfully`,
+          status: newStatus
+        })
+      } catch (error) {
+        console.error('Approve swap error:', error)
+        return NextResponse.json({ error: 'Failed to process swap approval' }, { status: 500 })
+      }
+    }
+
+    // Send staffing chat message
+    if (path === '/staffing/chat') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { studioId, message, relatedClassId, relatedSwapId } = body
+
+        if (!studioId || !message) {
+          return NextResponse.json({ error: 'Studio ID and message are required' }, { status: 400 })
+        }
+
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+
+        const chatMessage = {
+          id: `msg-${Date.now()}`,
+          studioId: studioId,
+          senderId: firebaseUser.uid,
+          senderName: userProfile?.name || 'Unknown',
+          senderRole: userProfile?.role || 'unknown',
+          message: message,
+          relatedClassId: relatedClassId || null,
+          relatedSwapId: relatedSwapId || null,
+          timestamp: new Date(),
+          createdAt: new Date()
+        }
+
+        await database.collection('staffing_chat').insertOne(chatMessage)
+
+        // Notify all studio instructors about new chat message
+        const studioInstructors = await database.collection('profiles').find({
+          role: 'instructor',
+          // Add studio filtering logic when available
+        }).toArray()
+
+        const notifications = studioInstructors
+          .filter(instructor => instructor.userId !== firebaseUser.uid)
+          .map(instructor => ({
+            id: `notification-${Date.now()}-${instructor.userId}`,
+            senderId: firebaseUser.uid,
+            recipientId: instructor.userId,
+            type: 'in_app',
+            subject: 'New Staffing Chat Message',
+            message: `${userProfile?.name || 'Someone'}: ${message.substring(0, 50)}${message.length > 50 ? '...' : ''}`,
+            templateId: 'chat_message',
+            templateData: { messageId: chatMessage.id, studioId },
+            status: 'pending',
+            createdAt: new Date()
+          }))
+
+        if (notifications.length > 0) {
+          await database.collection('notifications').insertMany(notifications)
+        }
+
+        return NextResponse.json({
+          message: 'Chat message sent successfully',
+          messageId: chatMessage.id,
+          notificationsSent: notifications.length
+        })
+      } catch (error) {
+        console.error('Chat message error:', error)
+        return NextResponse.json({ error: 'Failed to send chat message' }, { status: 500 })
+      }
+    }
+
     return NextResponse.json({ error: 'Endpoint not found' }, { status: 404 })
   } catch (error) {
     console.error('POST Error:', error)
