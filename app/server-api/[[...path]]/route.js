@@ -883,6 +883,13 @@ async function handlePOST(request) {
         return NextResponse.json({ error: 'Failed to update X Pass settings' }, { status: 500 })
       }
     }
+    
+    return NextResponse.json({ error: 'Endpoint not found' }, { status: 404 })
+  } catch (error) {
+    console.error('POST Error:', error)
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+}
 
 async function handlePUT(request) {
   return NextResponse.json({ error: 'Method not implemented' }, { status: 501 })
