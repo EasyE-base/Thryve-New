@@ -2404,6 +2404,145 @@ async function handlePOST(request) {
       }
     }
 
+    // ========================================
+    // AI-POWERED RECOMMENDATION ENGINE ENDPOINTS
+    // ========================================
+
+    // Get personalized class recommendations
+    if (path === '/recommendations/classes') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const { getPersonalizedClassRecommendations } = await import('@/lib/ai-recommendations')
+        const recommendations = await getPersonalizedClassRecommendations(firebaseUser.uid)
+        
+        return NextResponse.json({
+          recommendations: recommendations,
+          totalCount: recommendations.length,
+          aiPowered: true,
+          userId: firebaseUser.uid
+        })
+      } catch (error) {
+        console.error('Class recommendations error:', error)
+        return NextResponse.json({ error: 'Failed to get class recommendations' }, { status: 500 })
+      }
+    }
+
+    // Get instructor matches
+    if (path === '/recommendations/instructors') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const { getInstructorMatches } = await import('@/lib/ai-recommendations')
+        const matches = await getInstructorMatches(firebaseUser.uid)
+        
+        return NextResponse.json({
+          instructors: matches,
+          totalCount: matches.length,
+          aiPowered: true,
+          userId: firebaseUser.uid
+        })
+      } catch (error) {
+        console.error('Instructor matches error:', error)
+        return NextResponse.json({ error: 'Failed to get instructor matches' }, { status: 500 })
+      }
+    }
+
+    // Natural language search
+    if (path === '/ai/search') {
+      const firebaseUser = await getFirebaseUser(request)
+      const url = new URL(request.url)
+      const query = url.searchParams.get('q')
+
+      if (!query) {
+        return NextResponse.json({ error: 'Search query is required' }, { status: 400 })
+      }
+
+      try {
+        const { naturalLanguageSearch } = await import('@/lib/ai-recommendations')
+        const searchResults = await naturalLanguageSearch(query, firebaseUser?.uid)
+        
+        return NextResponse.json({
+          ...searchResults,
+          aiPowered: true,
+          timestamp: new Date().toISOString()
+        })
+      } catch (error) {
+        console.error('AI search error:', error)
+        return NextResponse.json({ error: 'Failed to perform AI search' }, { status: 500 })
+      }
+    }
+
+    // Generate personalized workout plan
+    if (path === '/ai/workout-plan') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { goals, duration, preferences } = body
+
+        if (!goals || !duration) {
+          return NextResponse.json({ error: 'Goals and duration are required' }, { status: 400 })
+        }
+
+        const { generateWorkoutPlan } = await import('@/lib/ai-recommendations')
+        const workoutPlan = await generateWorkoutPlan(
+          firebaseUser.uid, 
+          goals, 
+          duration, 
+          preferences || []
+        )
+        
+        return NextResponse.json({
+          workoutPlan: workoutPlan,
+          aiGenerated: true,
+          timestamp: new Date().toISOString()
+        })
+      } catch (error) {
+        console.error('Workout plan generation error:', error)
+        return NextResponse.json({ error: 'Failed to generate workout plan' }, { status: 500 })
+      }
+    }
+
+    // Get predictive analytics (Admin/Merchant only)
+    if (path === '/ai/analytics') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        // Verify user has analytics access (merchant or admin)
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        
+        if (!userProfile || !['merchant', 'admin'].includes(userProfile.role)) {
+          return NextResponse.json({ error: 'Access denied: Analytics access required' }, { status: 403 })
+        }
+
+        const { getPredictiveAnalytics } = await import('@/lib/ai-recommendations')
+        const analytics = await getPredictiveAnalytics()
+        
+        return NextResponse.json({
+          analytics: analytics,
+          aiPowered: true,
+          timestamp: new Date().toISOString(),
+          accessLevel: userProfile.role
+        })
+      } catch (error) {
+        console.error('Predictive analytics error:', error)
+        return NextResponse.json({ error: 'Failed to get predictive analytics' }, { status: 500 })
+      }
+    }
+
     return NextResponse.json({ error: 'Endpoint not found' }, { status: 404 })
   } catch (error) {
     console.error('POST Error:', error)
