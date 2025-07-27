@@ -45,7 +45,7 @@ import { toast } from 'sonner'
 import { format, isToday, isTomorrow, isPast, addDays, differenceInHours, differenceInMinutes } from 'date-fns'
 
 export default function MyBookingsPage() {
-  const { user } = useAuth()
+  const { user, role, loading: authLoading } = useAuth()
   const router = useRouter()
   const [bookings, setBookings] = useState([])
   const [loading, setLoading] = useState(true)
