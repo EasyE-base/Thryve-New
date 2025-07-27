@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Backend Testing Script for Thryve Fitness Platform
-Testing File Upload, Notification, and Analytics Systems
+Testing AI-Powered Recommendation Engine System
 """
 
 import requests
