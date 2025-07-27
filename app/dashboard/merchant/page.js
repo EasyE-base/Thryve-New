@@ -168,9 +168,10 @@ export default function MerchantDashboard() {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Activity },
     { id: 'classes', label: 'Classes', icon: CalendarIcon },
+    { id: 'staffing', label: 'Staffing', icon: Users },
     { id: 'calendar', label: 'Calendar', icon: CalendarIcon },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-    { id: 'clients', label: 'Clients', icon: Users },
+    { id: 'clients', label: 'Clients', icon: User },
     { id: 'instructors', label: 'Instructors', icon: User },
     { id: 'payments', label: 'Payments', icon: CreditCard },
     { id: 'packages', label: 'Packages', icon: Package },
