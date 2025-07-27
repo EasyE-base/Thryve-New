@@ -116,6 +116,20 @@ async function handleGET(request) {
         }
         return await getUserBookings(user.id)
       
+      case (path.match(/^\/bookings\/(.+)\/cancel$/) || {}).input:
+        if (!user) {
+          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+        const bookingId = path.match(/^\/bookings\/(.+)\/cancel$/)[1]
+        return await cancelBooking(bookingId, user.id)
+      
+      case (path.match(/^\/bookings\/(.+)\/checkin$/) || {}).input:
+        if (!user) {
+          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+        const checkinBookingId = path.match(/^\/bookings\/(.+)\/checkin$/)[1]
+        return await checkInBooking(checkinBookingId, user.id)
+      
       case '/booking/by-session':
         return await getBookingBySession(url.searchParams.get('sessionId'))
       
