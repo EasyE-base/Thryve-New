@@ -113,7 +113,7 @@ export default function CustomerOnboarding() {
       
       console.log('🔥 Customer Onboarding: Completing onboarding for user:', user.uid, 'role:', userRole)
 
-      const response = await fetch('/api/onboarding/complete', {
+      const response = await fetch('/server-api/onboarding/complete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
