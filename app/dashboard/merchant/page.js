@@ -7,14 +7,97 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Building2, Users, Calendar, DollarSign, Plus, BarChart3, Settings, LogOut, User, TrendingUp } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Building2, Users, Calendar as CalendarIcon, DollarSign, Plus, BarChart3, Settings, LogOut, User, TrendingUp, Activity, CreditCard, Package, Bot, Search, Bell, ChevronUp, ChevronDown, Eye, Edit, Trash2, Download, Filter, MapPin, Clock, Star, AlertCircle } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import { format, addDays, startOfWeek, endOfWeek, isSameDay, isToday } from 'date-fns'
+import { Calendar, momentLocalizer } from 'react-big-calendar'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, AreaChart, Area } from 'recharts'
+import moment from 'moment'
+import 'react-big-calendar/lib/css/react-big-calendar.css'
+
+const localizer = momentLocalizer(moment)
+
+// Sample merchant data
+const merchantData = {
+  kpis: {
+    totalRevenue: { value: 24582, change: 12.3, period: 'this month' },
+    totalBookings: { value: 1248, change: 8.7, period: 'this month' },
+    newClients: { value: 86, change: 15.2, period: 'this week' },
+    classUtilization: { value: 78.5, change: 5.1, period: 'this month' },
+    cancellationRate: { value: 5.2, change: -2.1, period: 'this month' }
+  },
+  revenueData: [
+    { date: '2024-06-01', revenue: 1200 },
+    { date: '2024-06-02', revenue: 1350 },
+    { date: '2024-06-03', revenue: 1100 },
+    { date: '2024-06-04', revenue: 1580 },
+    { date: '2024-06-05', revenue: 1420 },
+    { date: '2024-06-06', revenue: 1650 },
+    { date: '2024-06-07', revenue: 1480 }
+  ],
+  classFillRates: [
+    { time: '6:00 AM', rate: 85 },
+    { time: '7:00 AM', rate: 92 },
+    { time: '8:00 AM', rate: 78 },
+    { time: '9:00 AM', rate: 65 },
+    { time: '10:00 AM', rate: 70 },
+    { time: '6:00 PM', rate: 95 },
+    { time: '7:00 PM', rate: 88 },
+    { time: '8:00 PM', rate: 82 }
+  ],
+  clients: [
+    { id: 1, name: 'Sarah Miller', email: 'sarah@example.com', package: 'Monthly Unlimited', status: 'Active', lastVisit: 'Today, 9:00 AM', attendance: '18/20 classes' },
+    { id: 2, name: 'James Thompson', email: 'james@example.com', package: '10-Class Pack', status: 'Active', lastVisit: 'Yesterday, 6:30 PM', attendance: '4/10 classes' },
+    { id: 3, name: 'Emma Lewis', email: 'emma@example.com', package: 'Expired', status: 'Inactive', lastVisit: 'Aug 28, 2023', attendance: '20/20 classes' },
+    { id: 4, name: 'Robert Johnson', email: 'robert@example.com', package: 'Annual Membership', status: 'Active', lastVisit: 'Today, 12:00 PM', attendance: '87/∞ classes' }
+  ],
+  instructors: [
+    { id: 1, name: 'Sarah Johnson', email: 'sarah.instructor@studio.com', role: 'Senior Instructor', rating: 4.9, classes: 24 },
+    { id: 2, name: 'Mike Rodriguez', email: 'mike@studio.com', role: 'HIIT Specialist', rating: 4.8, classes: 18 },
+    { id: 3, name: 'Emma Chen', email: 'emma.chen@studio.com', role: 'Yoga Instructor', rating: 4.7, classes: 20 },
+    { id: 4, name: 'David Kim', email: 'david@studio.com', role: 'Strength Coach', rating: 4.9, classes: 15 }
+  ],
+  events: [
+    {
+      id: 1,
+      title: 'Morning Yoga Flow',
+      start: new Date(2024, 5, 17, 7, 0),
+      end: new Date(2024, 5, 17, 8, 0),
+      resource: { instructor: 'Sarah Johnson', capacity: 20, booked: 18, type: 'Yoga' }
+    },
+    {
+      id: 2,
+      title: 'HIIT Bootcamp',
+      start: new Date(2024, 5, 17, 18, 0),
+      end: new Date(2024, 5, 17, 19, 0),
+      resource: { instructor: 'Mike Rodriguez', capacity: 15, booked: 15, type: 'HIIT' }
+    },
+    {
+      id: 3,
+      title: 'Pilates Core',
+      start: new Date(2024, 5, 18, 10, 0),
+      end: new Date(2024, 5, 18, 11, 0),
+      resource: { instructor: 'Emma Chen', capacity: 12, booked: 9, type: 'Pilates' }
+    },
+    {
+      id: 4,
+      title: 'Strength Training',
+      start: new Date(2024, 5, 18, 19, 0),
+      end: new Date(2024, 5, 18, 20, 0),
+      resource: { instructor: 'David Kim', capacity: 10, booked: 8, type: 'Strength' }
+    }
+  ]
+}
 
 export default function MerchantDashboard() {
   const { user, role, loading: authLoading } = useAuth()
   const [loading, setLoading] = useState(true)
+  const [activeSection, setActiveSection] = useState('dashboard')
+  const [calendarView, setCalendarView] = useState('week')
+  const [selectedDate, setSelectedDate] = useState(new Date())
   const router = useRouter()
 
   useEffect(() => {
@@ -25,29 +108,173 @@ export default function MerchantDashboard() {
       return
     }
 
-    // Check if user completed onboarding locally due to API issues
-    if (typeof window !== 'undefined') {
-      const onboardingComplete = localStorage.getItem('onboardingComplete')
-      if (onboardingComplete) {
-        try {
-          const data = JSON.parse(onboardingComplete)
-          if (data.uid === user.uid && data.role === 'merchant') {
-            console.log('🔥 Using locally stored onboarding data for merchant dashboard')
-            // Display a message that data will sync when server is available
-            setTimeout(() => {
-              toast.info('Welcome! Your profile data will sync with the server once it\'s fully available.')
-            }, 1000)
-          }
-        } catch (e) {
-          console.error('Failed to parse localStorage onboarding data:', e)
-        }
-      }
-    }
-
     if (role && role !== 'merchant') {
       router.push(`/dashboard/${role}`)
       return
     }
+
+    // Simulate loading
+    setTimeout(() => {
+      setLoading(false)
+    }, 1000)
+  }, [user, role, authLoading, router])
+
+  const handleSignOut = async () => {
+    try {
+      await signOut()
+      router.push('/')
+    } catch (error) {
+      console.error('Sign out error:', error)
+      toast.error('Failed to sign out')
+    }
+  }
+
+  const eventStyleGetter = (event, start, end, isSelected) => {
+    const typeColors = {
+      'Yoga': '#8B5CF6',
+      'HIIT': '#EF4444',
+      'Pilates': '#10B981',
+      'Strength': '#F59E0B'
+    }
+    
+    const backgroundColor = typeColors[event.resource?.type] || '#3B82F6'
+    
+    return {
+      style: {
+        backgroundColor,
+        borderRadius: '6px',
+        opacity: 0.8,
+        color: 'white',
+        border: '0px',
+        display: 'block'
+      }
+    }
+  }
+
+  if (authLoading || loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-400 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-white text-xl font-light">Loading Merchant Dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+
+  const navItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: Activity },
+    { id: 'calendar', label: 'Calendar', icon: CalendarIcon },
+    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+    { id: 'clients', label: 'Clients', icon: Users },
+    { id: 'instructors', label: 'Instructors', icon: User },
+    { id: 'payments', label: 'Payments', icon: CreditCard },
+    { id: 'packages', label: 'Packages', icon: Package },
+    { id: 'settings', label: 'Settings', icon: Settings },
+    { id: 'ai-tools', label: 'AI Tools', icon: Bot }
+  ]
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+      <div className="flex">
+        {/* Sidebar */}
+        <div className="w-64 bg-black/20 backdrop-blur-md border-r border-white/10 min-h-screen">
+          <div className="p-6">
+            <div className="flex items-center space-x-3 mb-8">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center">
+                <Building2 className="h-6 w-6 text-white" />
+              </div>
+              <span className="text-xl font-bold text-white">Thryve</span>
+            </div>
+            
+            <nav className="space-y-2">
+              {navItems.map((item) => {
+                const Icon = item.icon
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveSection(item.id)}
+                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                      activeSection === item.id
+                        ? 'bg-blue-500/20 text-blue-200 border-l-2 border-blue-400'
+                        : 'text-white/70 hover:text-white hover:bg-white/10'
+                    }`}
+                  >
+                    <Icon className="h-5 w-5" />
+                    <span className="font-medium">{item.label}</span>
+                  </button>
+                )
+              })}
+            </nav>
+          </div>
+          
+          {/* User Profile in Sidebar */}
+          <div className="absolute bottom-0 w-64 p-6 border-t border-white/10 bg-black/10">
+            <div className="flex items-center space-x-3 mb-4">
+              <Avatar className="h-10 w-10 ring-2 ring-blue-400/50">
+                <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white">
+                  <Building2 className="h-5 w-5" />
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <p className="text-white font-medium text-sm">FitCore Studio</p>
+                <p className="text-blue-200 text-xs">Studio Manager</p>
+              </div>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleSignOut}
+              className="w-full text-white hover:text-blue-400 hover:bg-white/10 border border-white/20"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out
+            </Button>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1">
+          {/* Header */}
+          <header className="bg-black/10 backdrop-blur-md border-b border-white/10 px-8 py-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-3xl font-bold text-white">
+                  {activeSection === 'dashboard' && 'Dashboard Overview'}
+                  {activeSection === 'calendar' && 'Calendar & Scheduling'}
+                  {activeSection === 'analytics' && 'Advanced Analytics'}
+                  {activeSection === 'clients' && 'Client Management'}
+                  {activeSection === 'instructors' && 'Instructor Management'}
+                  {activeSection === 'payments' && 'Payments & Financials'}
+                  {activeSection === 'packages' && 'Packages & Memberships'}
+                  {activeSection === 'settings' && 'Settings & Customization'}
+                  {activeSection === 'ai-tools' && 'AI Tools & Insights'}
+                </h1>
+                <p className="text-blue-200">Welcome to your studio management hub</p>
+              </div>
+              <div className="flex items-center space-x-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-400 h-4 w-4" />
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    className="bg-white/10 backdrop-blur-md border-white/20 border rounded-lg pl-10 pr-4 py-2 text-white placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                  />
+                </div>
+                <div className="relative">
+                  <Bell className="h-6 w-6 text-white" />
+                  <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full"></span>
+                </div>
+                <div className="flex items-center space-x-2 bg-white/10 backdrop-blur-md rounded-lg px-3 py-2">
+                  <span className="text-white font-medium">This Month</span>
+                  <ChevronDown className="h-4 w-4 text-white" />
+                </div>
+              </div>
+            </div>
+          </header>
+
+          {/* Content */}
+          <div className="p-8 overflow-y-auto max-h-screen">
 
     setLoading(false)
   }, [user, role, authLoading, router])
