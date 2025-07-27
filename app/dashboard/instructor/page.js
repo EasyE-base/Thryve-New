@@ -317,3 +317,717 @@ export default function InstructorDashboard() {
 
           {/* Content */}
           <div className="p-8 overflow-y-auto max-h-screen">
+            
+            {/* Dashboard Overview */}
+            {activeSection === 'dashboard' && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Main Content - Left Side */}
+                <div className="lg:col-span-2 space-y-8">
+                  {/* Upcoming Classes */}
+                  <div>
+                    <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-xl font-semibold text-white">Upcoming Classes</h3>
+                      <button className="text-blue-400 hover:text-blue-300 text-sm font-medium">
+                        View All →
+                      </button>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      {instructorData.upcomingClasses.map((classItem) => (
+                        <Card key={classItem.id} className="bg-white/10 backdrop-blur-md border-white/20">
+                          <CardContent className="p-4">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center space-x-4">
+                                <div className={`w-1 h-12 rounded-full ${
+                                  classItem.color === 'green' ? 'bg-green-500' : 
+                                  classItem.color === 'red' ? 'bg-red-500' : 'bg-blue-500'
+                                }`}></div>
+                                <div>
+                                  <h4 className="font-medium text-white">{classItem.name}</h4>
+                                  <div className="flex items-center space-x-4 text-sm text-blue-200">
+                                    <div className="flex items-center">
+                                      <MapPin className="h-4 w-4 mr-1" />
+                                      {classItem.location}
+                                    </div>
+                                    <div className="flex items-center">
+                                      <Clock className="h-4 w-4 mr-1" />
+                                      {classItem.time}
+                                    </div>
+                                    <div className="flex items-center">
+                                      <Users className="h-4 w-4 mr-1" />
+                                      {classItem.booked}/{classItem.capacity}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex space-x-2">
+                                <Button 
+                                  size="sm" 
+                                  className="bg-blue-500 hover:bg-blue-600 text-white"
+                                  onClick={() => toast.success('Starting class...')}
+                                >
+                                  Start Class
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  className="border-white/20 text-white hover:bg-white/10"
+                                  onClick={() => toast.info('Viewing roster...')}
+                                >
+                                  Roster
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Performance Overview */}
+                  <div>
+                    <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-xl font-semibold text-white">Performance Overview</h3>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-blue-200 text-sm">This Month</span>
+                        <ChevronDown className="h-4 w-4 text-blue-200" />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                      <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                        <CardContent className="p-4">
+                          <div className="text-center">
+                            <p className="text-blue-200 text-sm">Classes Taught</p>
+                            <p className="text-2xl font-bold text-white">{instructorData.performance.classesThisMonth}</p>
+                            <div className="flex items-center justify-center mt-1">
+                              <TrendingUp className="h-3 w-3 text-green-400 mr-1" />
+                              <span className="text-green-400 text-xs">+{instructorData.performance.fillRateChange}% vs last month</span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                        <CardContent className="p-4">
+                          <div className="text-center">
+                            <p className="text-blue-200 text-sm">Avg. Fill Rate</p>
+                            <p className="text-2xl font-bold text-white">{instructorData.performance.fillRate}%</p>
+                            <div className="flex items-center justify-center mt-1">
+                              <TrendingUp className="h-3 w-3 text-green-400 mr-1" />
+                              <span className="text-green-400 text-xs">+{instructorData.performance.ratingChange}% vs last month</span>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                        <CardContent className="p-4">
+                          <div className="text-center">
+                            <p className="text-blue-200 text-sm">Avg. Rating</p>
+                            <p className="text-2xl font-bold text-white">{instructorData.performance.avgRating}</p>
+                            <div className="flex items-center justify-center mt-1">
+                              <div className="flex">
+                                {[...Array(5)].map((_, i) => (
+                                  <Star key={i} className="h-3 w-3 text-yellow-400 fill-current" />
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                      <CardContent className="p-6">
+                        <div className="h-64">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={instructorData.performanceChart}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                              <XAxis dataKey="week" stroke="#9CA3AF" />
+                              <YAxis stroke="#9CA3AF" />
+                              <Tooltip 
+                                contentStyle={{
+                                  backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                                  border: '1px solid rgba(59, 130, 246, 0.2)',
+                                  borderRadius: '8px',
+                                  color: 'white'
+                                }}
+                              />
+                              <Bar dataKey="classes" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* AI Tools */}
+                  <div>
+                    <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-xl font-semibold text-white">
+                        <Bot className="h-5 w-5 text-pink-400 inline mr-2" />
+                        AI Tools Coming Soon
+                      </h3>
+                    </div>
+                    
+                    <p className="text-blue-200 mb-6">Exciting new features powered by AI to help you be more efficient</p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                        <CardContent className="p-6">
+                          <div className="text-center">
+                            <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center mx-auto mb-4">
+                              <FileText className="h-6 w-6 text-blue-400" />
+                            </div>
+                            <h4 className="text-white font-medium mb-2">Class Plan Generator</h4>
+                            <p className="text-blue-200 text-sm">Create personalized class plans in seconds</p>
+                            <Button size="sm" className="mt-4 bg-blue-500 hover:bg-blue-600 text-white">
+                              Coming Soon
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                        <CardContent className="p-6">
+                          <div className="text-center">
+                            <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center mx-auto mb-4">
+                              <MessageSquare className="h-6 w-6 text-purple-400" />
+                            </div>
+                            <h4 className="text-white font-medium mb-2">Smart Feedback</h4>
+                            <p className="text-blue-200 text-sm">Generate personalized feedback for your students</p>
+                            <Button size="sm" className="mt-4 bg-purple-500 hover:bg-purple-600 text-white">
+                              Coming Soon
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+
+                      <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                        <CardContent className="p-6">
+                          <div className="text-center">
+                            <div className="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center mx-auto mb-4">
+                              <BarChart3 className="h-6 w-6 text-green-400" />
+                            </div>
+                            <h4 className="text-white font-medium mb-2">Attendance Prediction</h4>
+                            <p className="text-blue-200 text-sm">Forecast class attendance based on historical data</p>
+                            <Button size="sm" className="mt-4 bg-green-500 hover:bg-green-600 text-white">
+                              Coming Soon
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </div>
+
+                  {/* Recent Messages */}
+                  <div>
+                    <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-xl font-semibold text-white">Recent Messages</h3>
+                      <button 
+                        className="text-blue-400 hover:text-blue-300 text-sm font-medium"
+                        onClick={() => setActiveSection('messages')}
+                      >
+                        View All →
+                      </button>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      {instructorData.messages.map((message) => (
+                        <Card key={message.id} className="bg-white/10 backdrop-blur-md border-white/20">
+                          <CardContent className="p-4">
+                            <div className="flex items-start space-x-4">
+                              <Avatar className="h-10 w-10 ring-2 ring-blue-400/50">
+                                <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white">
+                                  {message.avatar}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center space-x-2">
+                                    <p className="text-white font-medium">{message.sender}</p>
+                                    {message.unread && (
+                                      <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                                    )}
+                                  </div>
+                                  <span className="text-blue-300 text-xs">{message.time}</span>
+                                </div>
+                                <p className="text-blue-200 text-sm mt-1">{message.message}</p>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Sidebar */}
+                <div className="space-y-8">
+                  {/* Daily Checklist */}
+                  <div>
+                    <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-xl font-semibold text-white">Daily Checklist</h3>
+                      <button className="text-blue-400 hover:text-blue-300 text-sm font-medium">
+                        Add Item +
+                      </button>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      {checklist.map((item) => (
+                        <Card key={item.id} className="bg-white/10 backdrop-blur-md border-white/20">
+                          <CardContent className="p-4">
+                            <div className="flex items-start space-x-3">
+                              <button
+                                onClick={() => toggleChecklistItem(item.id)}
+                                className={`w-5 h-5 rounded border-2 flex items-center justify-center mt-0.5 ${
+                                  item.completed 
+                                    ? 'bg-green-500 border-green-500' 
+                                    : 'border-white/30 hover:border-white/50'
+                                }`}
+                              >
+                                {item.completed && <Check className="h-3 w-3 text-white" />}
+                              </button>
+                              <div className="flex-1">
+                                <p className={`text-sm font-medium ${
+                                  item.completed ? 'text-green-300 line-through' : 'text-white'
+                                }`}>
+                                  {item.task}
+                                </p>
+                                <p className="text-blue-200 text-xs mt-1">{item.note}</p>
+                                <div className="flex items-center mt-2">
+                                  <Badge className={`text-xs ${
+                                    item.priority === 'high' ? 'bg-red-500/20 text-red-200' :
+                                    item.priority === 'medium' ? 'bg-yellow-500/20 text-yellow-200' :
+                                    'bg-blue-500/20 text-blue-200'
+                                  }`}>
+                                    {item.priority}
+                                  </Badge>
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Earnings Overview */}
+                  <div>
+                    <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-xl font-semibold text-white">Earnings Overview</h3>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-blue-200 text-sm">June</span>
+                        <ChevronDown className="h-4 w-4 text-blue-200" />
+                      </div>
+                    </div>
+                    
+                    <Card className="bg-white/10 backdrop-blur-md border-white/20 mb-4">
+                      <CardContent className="p-4">
+                        <div className="text-center">
+                          <p className="text-blue-200 text-sm">Estimated for June</p>
+                          <p className="text-3xl font-bold text-white">${instructorData.earnings.monthlyTotal}</p>
+                          <div className="flex items-center justify-center mt-1">
+                            <TrendingUp className="h-3 w-3 text-green-400 mr-1" />
+                            <span className="text-green-400 text-xs">+{instructorData.earnings.monthlyChange}% vs May</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <div className="space-y-3">
+                      {instructorData.earnings.classes.map((classItem, index) => (
+                        <div key={index} className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
+                          <div>
+                            <p className="text-white font-medium text-sm">{classItem.name}</p>
+                            <p className="text-blue-200 text-xs">{classItem.classes} classes</p>
+                          </div>
+                          <p className="text-white font-medium">${classItem.earnings}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-6">
+                      <p className="text-blue-200 text-sm font-medium mb-3">Bonus Tracker</p>
+                      <div className="space-y-3">
+                        {instructorData.earnings.bonuses.map((bonus, index) => (
+                          <div key={index}>
+                            <div className="flex justify-between items-center mb-1">
+                              <p className="text-white text-sm">{bonus.name}</p>
+                              <p className="text-blue-200 text-xs">{bonus.progress}%</p>
+                            </div>
+                            <div className="w-full bg-white/20 rounded-full h-2">
+                              <div 
+                                className="bg-gradient-to-r from-green-400 to-green-600 h-2 rounded-full transition-all duration-300"
+                                style={{ width: `${bonus.progress}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Schedule & Calendar */}
+            {activeSection === 'schedule' && (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-xl font-semibold text-white">Schedule & Calendar</h3>
+                  <div className="flex items-center space-x-4">
+                    <div className="flex bg-white/10 backdrop-blur-md rounded-lg p-1">
+                      <button
+                        onClick={() => setCalendarView('week')}
+                        className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+                          calendarView === 'week' 
+                            ? 'bg-blue-500 text-white' 
+                            : 'text-blue-200 hover:text-white'
+                        }`}
+                      >
+                        Week
+                      </button>
+                      <button
+                        onClick={() => setCalendarView('day')}
+                        className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+                          calendarView === 'day' 
+                            ? 'bg-blue-500 text-white' 
+                            : 'text-blue-200 hover:text-white'
+                        }`}
+                      >
+                        Day
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                  <CardContent className="p-6">
+                    <div className="h-96">
+                      <Calendar
+                        localizer={localizer}
+                        events={instructorData.events}
+                        startAccessor="start"
+                        endAccessor="end"
+                        style={{ height: '100%' }}
+                        view={calendarView}
+                        onView={setCalendarView}
+                        eventPropGetter={eventStyleGetter}
+                        onSelectEvent={(event) => {
+                          toast.info(`${event.title} - ${event.resource?.booked}/${event.resource?.capacity} booked`)
+                        }}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Class Management */}
+            {activeSection === 'classes' && (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-xl font-semibold text-white">Class Management</h3>
+                  <Button 
+                    className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                    onClick={() => router.push('/instructor/create-class')}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Class
+                  </Button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {instructorData.upcomingClasses.map((classItem) => (
+                    <Card key={classItem.id} className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
+                      <CardContent className="p-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <Badge className={`${
+                            classItem.type === 'Yoga' ? 'bg-green-500/20 text-green-200' :
+                            classItem.type === 'HIIT' ? 'bg-red-500/20 text-red-200' :
+                            'bg-blue-500/20 text-blue-200'
+                          }`}>
+                            {classItem.type}
+                          </Badge>
+                          <div className="flex space-x-1">
+                            <Button size="sm" variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="outline" className="border-white/20 text-white hover:bg-white/10">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        <h4 className="text-lg font-semibold text-white mb-2">{classItem.name}</h4>
+                        
+                        <div className="space-y-2 mb-4">
+                          <div className="flex items-center text-blue-200 text-sm">
+                            <MapPin className="h-4 w-4 mr-2" />
+                            {classItem.location}
+                          </div>
+                          <div className="flex items-center text-blue-200 text-sm">
+                            <Clock className="h-4 w-4 mr-2" />
+                            {classItem.time}
+                          </div>
+                          <div className="flex items-center text-blue-200 text-sm">
+                            <Users className="h-4 w-4 mr-2" />
+                            {classItem.booked}/{classItem.capacity} booked
+                          </div>
+                        </div>
+                        
+                        <div className="flex space-x-2">
+                          <Button 
+                            size="sm" 
+                            className="bg-blue-500 hover:bg-blue-600 text-white flex-1"
+                            onClick={() => toast.success('Viewing roster...')}
+                          >
+                            View Roster
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="border-white/20 text-white hover:bg-white/10"
+                            onClick={() => toast.success('Marking attendance...')}
+                          >
+                            Attendance
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Performance Dashboard */}
+            {activeSection === 'performance' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-blue-200 font-medium text-sm">Total Classes</p>
+                          <p className="text-2xl font-bold text-white">{instructorData.instructor.totalClasses}</p>
+                        </div>
+                        <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                          <CalendarIcon className="h-6 w-6 text-blue-400" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-blue-200 font-medium text-sm">Average Rating</p>
+                          <p className="text-2xl font-bold text-white">{instructorData.instructor.rating}</p>
+                        </div>
+                        <div className="w-12 h-12 bg-yellow-500/20 rounded-lg flex items-center justify-center">
+                          <Star className="h-6 w-6 text-yellow-400" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-blue-200 font-medium text-sm">Fill Rate</p>
+                          <p className="text-2xl font-bold text-white">{instructorData.performance.fillRate}%</p>
+                        </div>
+                        <div className="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center">
+                          <TrendingUp className="h-6 w-6 text-green-400" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                  <CardHeader>
+                    <CardTitle className="text-white">Performance Trends</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={instructorData.performanceChart}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                          <XAxis dataKey="week" stroke="#9CA3AF" />
+                          <YAxis stroke="#9CA3AF" />
+                          <Tooltip 
+                            contentStyle={{
+                              backgroundColor: 'rgba(30, 41, 59, 0.9)',
+                              border: '1px solid rgba(59, 130, 246, 0.2)',
+                              borderRadius: '8px',
+                              color: 'white'
+                            }}
+                          />
+                          <Line 
+                            type="monotone" 
+                            dataKey="fillRate" 
+                            stroke="#10B981" 
+                            strokeWidth={3}
+                            dot={{ fill: '#10B981', strokeWidth: 2, r: 4 }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Messages */}
+            {activeSection === 'messages' && (
+              <div className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-xl font-semibold text-white">Messages</h3>
+                  <Button 
+                    className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                    onClick={() => toast.success('Compose message coming soon!')}
+                  >
+                    <Send className="h-4 w-4 mr-2" />
+                    Compose
+                  </Button>
+                </div>
+
+                <div className="space-y-4">
+                  {instructorData.messages.map((message) => (
+                    <Card key={message.id} className="bg-white/10 backdrop-blur-md border-white/20">
+                      <CardContent className="p-6">
+                        <div className="flex items-start space-x-4">
+                          <Avatar className="h-12 w-12 ring-2 ring-blue-400/50">
+                            <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white">
+                              {message.avatar}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center space-x-2">
+                                <p className="text-white font-medium">{message.sender}</p>
+                                {message.unread && (
+                                  <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                                )}
+                              </div>
+                              <span className="text-blue-300 text-sm">{message.time}</span>
+                            </div>
+                            <p className="text-blue-200 mb-4">{message.message}</p>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              className="border-white/20 text-white hover:bg-white/10"
+                              onClick={() => toast.success('Reply feature coming soon!')}
+                            >
+                              Reply
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Earnings */}
+            {activeSection === 'earnings' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-blue-200 font-medium text-sm">This Month</p>
+                          <p className="text-2xl font-bold text-white">${instructorData.earnings.monthlyTotal}</p>
+                        </div>
+                        <div className="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center">
+                          <DollarSign className="h-6 w-6 text-green-400" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-blue-200 font-medium text-sm">Classes Taught</p>
+                          <p className="text-2xl font-bold text-white">{instructorData.performance.classesThisMonth}</p>
+                        </div>
+                        <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                          <CalendarIcon className="h-6 w-6 text-blue-400" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-blue-200 font-medium text-sm">Per Class Avg</p>
+                          <p className="text-2xl font-bold text-white">${Math.round(instructorData.earnings.monthlyTotal / instructorData.performance.classesThisMonth)}</p>
+                        </div>
+                        <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                          <TrendingUp className="h-6 w-6 text-purple-400" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                  <CardHeader>
+                    <CardTitle className="text-white">Earnings Breakdown</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {instructorData.earnings.classes.map((classItem, index) => (
+                        <div key={index} className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
+                          <div>
+                            <p className="text-white font-medium">{classItem.name}</p>
+                            <p className="text-blue-200 text-sm">{classItem.classes} classes × ${classItem.rate}</p>
+                          </div>
+                          <p className="text-white font-bold">${classItem.earnings}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Settings */}
+            {activeSection === 'settings' && (
+              <div className="space-y-6">
+                <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                  <CardContent className="p-6">
+                    <div className="text-center">
+                      <User className="h-12 w-12 text-blue-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-white mb-2">Profile Settings</h3>
+                      <p className="text-blue-200">
+                        Manage your profile, certifications, and preferences
+                      </p>
+                      <Button 
+                        className="mt-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                        onClick={() => router.push('/settings')}
+                      >
+                        Go to Settings
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
