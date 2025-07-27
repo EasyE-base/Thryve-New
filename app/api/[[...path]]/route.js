@@ -744,7 +744,7 @@ async function createCheckoutSession(body) {
         sessionId,
         instructorId: instructorId || classDoc.instructor?.id || 'unknown'
       },
-      customer_email: null, // Let user enter email during checkout
+      customer_email: undefined, // Let user enter email during checkout
       billing_address_collection: 'auto',
       shipping_address_collection: null,
     })
