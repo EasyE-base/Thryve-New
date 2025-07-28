@@ -235,6 +235,7 @@ export default function MerchantDashboard() {
                   {activeSection === 'packages' && 'Packages & Memberships'}
                   {activeSection === 'settings' && 'Settings & Customization'}
                   {activeSection === 'ai-tools' && 'AI Tools & Insights'}
+                  {activeSection === 'debug' && 'Profile Debug'}
                 </h1>
                 <p className="text-blue-200">Welcome to your studio management hub</p>
               </div>
