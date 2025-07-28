@@ -38,6 +38,8 @@ export default function MarketplacePage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [showFilters, setShowFilters] = useState(false)
   const [currentSwipe, setCurrentSwipe] = useState(0)
+  const [instructors, setInstructors] = useState([])
+  const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState({
     classType: [],
     location: '',
@@ -52,52 +54,54 @@ export default function MarketplacePage() {
   const [touchStart, setTouchStart] = useState(null)
   const [touchEnd, setTouchEnd] = useState(null)
 
-  // Enhanced instructor data with modern features
-  const instructors = [
-    {
-      id: '1',
-      name: 'Sarah Johnson',
-      tagline: '✨ Transforming lives through mindful movement',
-      specialties: ['Vinyasa Yoga', 'Meditation', 'Breathwork'],
-      location: '📍 Downtown San Francisco',
-      rating: 4.9,
-      reviewCount: 127,
-      hourlyRate: 35,
-      imageUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&h=400&fit=crop&crop=face',
-      experience: '8+ years',
-      languages: ['🇺🇸 English', '🇪🇸 Spanish'],
-      certifications: ['RYT-500', 'Yin Yoga'],
-      videoIntro: true,
-      totalClasses: 340,
-      availability: 'Available Today',
-      nextClass: 'Tomorrow 8:00 AM',
-      featured: true,
-      achievements: ['⭐ Top Rated', '🏆 Most Booked'],
-      bio: 'Certified yoga instructor with 8+ years of experience in vinyasa, hatha, and restorative yoga.'
-    },
-    {
-      id: '2', 
-      name: 'Michael Rodriguez',
-      tagline: '🔥 High-intensity training for maximum results',
-      specialties: ['HIIT', 'Strength Training', 'CrossFit'],
-      location: '📍 Mission District',
-      rating: 4.8,
-      reviewCount: 89,
-      hourlyRate: 45,
-      imageUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=face',
-      experience: '6+ years',
-      languages: ['🇺🇸 English'],
-      certifications: ['NASM-CPT', 'CrossFit Level 2'],
-      videoIntro: false,
-      totalClasses: 156,
-      availability: 'Available Tomorrow',
-      nextClass: 'Wed 6:00 PM',
-      featured: true,
-      achievements: ['💪 Strength Expert', '🎯 Results Driven'],
-      bio: 'HIIT specialist with 6+ years of experience in high-intensity training and functional fitness.'
-    },
-    {
-      id: '3',
+  // Fetch instructors from API
+  const fetchInstructors = async () => {
+    try {
+      const response = await fetch('/server-api/marketplace/instructors')
+      
+      if (response.ok) {
+        const data = await response.json()
+        setInstructors(data.instructors || [])
+      } else {
+        console.error('Failed to fetch instructors')
+        // Set empty array as fallback
+        setInstructors([])
+      }
+    } catch (error) {
+      console.error('Error fetching instructors:', error)
+      setInstructors([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchInstructors()
+  }, [])
+
+  // Filter instructors based on search and filters
+  const filteredInstructors = instructors.filter(instructor => {
+    const matchesSearch = !searchQuery || 
+      instructor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      instructor.specialties?.some(specialty => 
+        specialty.toLowerCase().includes(searchQuery.toLowerCase())
+      ) ||
+      instructor.location?.toLowerCase().includes(searchQuery.toLowerCase())
+    
+    const matchesFilters = (
+      (filters.classType.length === 0 || 
+       instructor.specialties?.some(specialty => 
+         filters.classType.includes(specialty)
+       )) &&
+      (filters.location === '' || 
+       instructor.location?.toLowerCase().includes(filters.location.toLowerCase())) &&
+      (instructor.hourlyRate || 0) >= filters.priceRange[0] &&
+      (instructor.hourlyRate || 0) <= filters.priceRange[1] &&
+      (instructor.rating || 0) >= filters.rating
+    )
+    
+    return matchesSearch && matchesFilters
+  })
       name: 'Emma Thompson',
       tagline: '💃 Dance your way to fitness and joy',
       specialties: ['Dance Fitness', 'Zumba', 'Cardio Dance'],
