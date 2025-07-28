@@ -1058,13 +1058,31 @@ export default function MerchantDashboard() {
                     <CardContent className="p-6">
                       <div className="text-center">
                         <Bot className="h-12 w-12 text-blue-400 mx-auto mb-4" />
+                        <h4 className="text-lg font-semibold text-white mb-2">Smart Data Importer</h4>
+                        <p className="text-blue-200 text-sm mb-4">AI-powered data import for seamless studio onboarding</p>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="border-white/20 text-white hover:bg-white/10"
+                          onClick={() => router.push('/data-import')}
+                        >
+                          Import Data
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
+                    <CardContent className="p-6">
+                      <div className="text-center">
+                        <Bot className="h-12 w-12 text-green-400 mx-auto mb-4" />
                         <h4 className="text-lg font-semibold text-white mb-2">Smart Recommendations</h4>
                         <p className="text-blue-200 text-sm mb-4">AI-generated class recommendations based on booking patterns</p>
                         <Button 
                           variant="outline" 
                           size="sm" 
                           className="border-white/20 text-white hover:bg-white/10"
-                          onClick={() => toast.info('AI Recommendations coming soon!')}
+                          onClick={() => router.push('/ai-dashboard')}
                         >
                           Get Recommendations
                         </Button>
@@ -1093,7 +1111,7 @@ export default function MerchantDashboard() {
                   <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
                     <CardContent className="p-6">
                       <div className="text-center">
-                        <TrendingUp className="h-12 w-12 text-green-400 mx-auto mb-4" />
+                        <TrendingUp className="h-12 w-12 text-orange-400 mx-auto mb-4" />
                         <h4 className="text-lg font-semibold text-white mb-2">Predictive Analytics</h4>
                         <p className="text-blue-200 text-sm mb-4">Churn risk analysis and high-ROI time slot predictions</p>
                         <Button 
