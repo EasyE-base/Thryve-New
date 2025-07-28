@@ -19,7 +19,6 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import moment from 'moment'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
 import StudioStaffingDashboard from '@/components/StudioStaffingDashboard'
-import DebugUserRole from '@/components/DebugUserRole'
 
 export default function MerchantDashboard() {
   const { user, role, loading: authLoading } = useAuth()
