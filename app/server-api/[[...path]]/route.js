@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import Stripe from 'stripe'
+import AIConfigurationWizard from '../../../lib/ai-configuration-wizard.js'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2024-06-20',
