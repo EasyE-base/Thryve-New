@@ -1103,6 +1103,122 @@ async function handleGET(request) {
     }
 
     // ========================================
+    // PROFILE AND STUDIO DATA ENDPOINTS
+    // ========================================
+
+    // Get user profile
+    if (path === '/profile') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const profile = await database.collection('profiles').findOne({
+          userId: firebaseUser.uid
+        })
+
+        if (!profile) {
+          return NextResponse.json({ error: 'Profile not found' }, { status: 404 })
+        }
+
+        return NextResponse.json({
+          profile: {
+            userId: profile.userId,
+            email: profile.email,
+            role: profile.role,
+            name: profile.name,
+            studioName: profile.studioName,
+            onboarding_complete: profile.onboarding_complete,
+            createdAt: profile.createdAt,
+            updatedAt: profile.updatedAt
+          }
+        })
+      } catch (error) {
+        console.error('Profile fetch error:', error)
+        return NextResponse.json({ error: 'Failed to fetch profile' }, { status: 500 })
+      }
+    }
+
+    // Get dashboard analytics
+    if (path === '/analytics/dashboard') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        // Get recent bookings for analytics
+        const bookings = await database.collection('bookings').find({
+          studioId: firebaseUser.uid,
+          createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } // Last 30 days
+        }).toArray()
+
+        // Calculate basic analytics
+        const totalRevenue = bookings.reduce((sum, booking) => sum + (booking.amount || 0), 0)
+        const totalBookings = bookings.length
+        const newClients = new Set(bookings.map(b => b.userId)).size
+
+        // Get recent activity
+        const recentActivity = await database.collection('activity_log').find({
+          studioId: firebaseUser.uid
+        }).sort({ timestamp: -1 }).limit(10).toArray()
+
+        return NextResponse.json({
+          totalRevenue,
+          totalBookings,
+          newClients,
+          recentActivity: recentActivity.map(activity => ({
+            message: activity.message,
+            time: activity.timestamp,
+            type: activity.type
+          }))
+        })
+      } catch (error) {
+        console.error('Analytics fetch error:', error)
+        return NextResponse.json({ 
+          totalRevenue: 0,
+          totalBookings: 0,
+          newClients: 0,
+          recentActivity: []
+        })
+      }
+    }
+
+    // Get studio classes
+    if (path === '/classes') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const classes = await database.collection('studio_classes').find({
+          studioId: firebaseUser.uid
+        }).toArray()
+
+        return NextResponse.json({
+          classes: classes.map(cls => ({
+            id: cls._id,
+            title: cls.title,
+            type: cls.type,
+            time: cls.time,
+            duration: cls.duration,
+            capacity: cls.capacity,
+            price: cls.price,
+            instructor: cls.instructor,
+            status: cls.status,
+            enrolled: cls.enrolled || 0,
+            createdAt: cls.createdAt
+          }))
+        })
+      } catch (error) {
+        console.error('Classes fetch error:', error)
+        return NextResponse.json({ error: 'Failed to fetch classes' }, { status: 500 })
+      }
+    }
+
+    // ========================================
     // AI CONFIGURATION WIZARD ENDPOINTS (GET)
     // ========================================
 
