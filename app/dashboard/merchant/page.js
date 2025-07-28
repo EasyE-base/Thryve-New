@@ -12,6 +12,7 @@ import { Building2, Users, Calendar as CalendarIcon, DollarSign, Plus, BarChart3
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import DebugUserRole from '@/components/DebugUserRole'
 import { format, addDays, startOfWeek, endOfWeek, isSameDay, isToday } from 'date-fns'
 import { Calendar, momentLocalizer } from 'react-big-calendar'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell, AreaChart, Area } from 'recharts'
