@@ -133,16 +133,22 @@ export default function MerchantOnboarding() {
         throw new Error('User not authenticated')
       }
 
-      // Use user.uid and role from context, with fallback
-      const userRole = role || 'merchant' // Default to merchant if role is still loading
+      const userRole = role || 'merchant'
       
       console.log('🔥 Merchant Onboarding: Completing onboarding for user:', user.uid, 'role:', userRole)
 
-      const response = await fetch('/server-api/onboarding/complete', {
+      // Optimistic UI update - immediately show success and redirect
+      toast.success('Setting up your studio profile...')
+      
+      // Get auth token once and reuse
+      const authToken = await user.getIdToken()
+      
+      // Start the API call
+      const apiCall = fetch('/server-api/onboarding/complete', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${await user.getIdToken()}`
+          'Authorization': `Bearer ${authToken}`
         },
         body: JSON.stringify({
           role: userRole,
@@ -150,9 +156,30 @@ export default function MerchantOnboarding() {
         })
       })
 
-      // Handle 502 API routing issues gracefully
-      if (response.status === 502) {
-        // Store onboarding completion data locally as fallback
+      // Immediate feedback and redirect - don't wait for API
+      setTimeout(() => {
+        toast.success('Welcome to Thryve! Your studio profile is complete.')
+        router.push('/dashboard/merchant')
+      }, 500)
+
+      // Handle API response in background
+      apiCall.then(async (response) => {
+        if (!response.ok) {
+          console.warn('Onboarding API delayed, but user already redirected')
+          // Store data locally as backup
+          const onboardingData = {
+            uid: user.uid,
+            email: user.email,
+            role: userRole,
+            profileData: formData,
+            onboarding_complete: true,
+            completed_at: new Date().toISOString()
+          }
+          localStorage.setItem('onboardingComplete', JSON.stringify(onboardingData))
+        }
+      }).catch((error) => {
+        console.warn('Onboarding API error (user already redirected):', error)
+        // Store data locally as backup
         const onboardingData = {
           uid: user.uid,
           email: user.email,
@@ -161,83 +188,28 @@ export default function MerchantOnboarding() {
           onboarding_complete: true,
           completed_at: new Date().toISOString()
         }
-        
         localStorage.setItem('onboardingComplete', JSON.stringify(onboardingData))
-        localStorage.setItem('tempUserData', JSON.stringify({
-          uid: user.uid,
-          email: user.email,
-          role: userRole,
-          onboarding_complete: true
-        }))
+      })
 
-        toast.success('Onboarding completed! Due to server routing issues, your data has been saved locally and will sync when the server is fully available.')
-        
-        // Still redirect to dashboard
-        setTimeout(() => {
-          router.push('/dashboard/merchant')
-        }, 2000)
-        return
-      }
-
-      if (!response.ok) {
-        let errorMessage = 'Failed to complete onboarding'
-        
-        try {
-          const errorData = await response.json()
-          errorMessage = errorData.error || errorMessage
-        } catch (parseError) {
-          console.error('❌ Failed to parse error response:', parseError)
-          if (response.status === 502) {
-            errorMessage = 'Server routing issue - onboarding saved locally'
-          } else {
-            errorMessage = `Server error (${response.status})`
-          }
-        }
-        
-        throw new Error(errorMessage)
-      }
-
-      toast.success('Welcome to Thryve! Your studio profile is complete.')
-      
-      // Add a small delay to ensure the redirect works properly
-      setTimeout(() => {
-        router.push('/dashboard/merchant')
-      }, 1000)
     } catch (error) {
       console.error('Onboarding completion error:', error)
       
-      // Check if it's a network/API error and implement fallback
-      if (error.message.includes('Failed to fetch') || 
-          error.message.includes('Server routing issue') ||
-          error.message.includes('502')) {
-        
-        // Store onboarding completion data locally as fallback
-        const onboardingData = {
-          uid: user.uid,
-          email: user.email,
-          role: role || 'merchant',
-          profileData: formData,
-          onboarding_complete: true,
-          completed_at: new Date().toISOString()
-        }
-        
-        localStorage.setItem('onboardingComplete', JSON.stringify(onboardingData))
-        localStorage.setItem('tempUserData', JSON.stringify({
-          uid: user.uid,
-          email: user.email,
-          role: role || 'merchant',
-          onboarding_complete: true
-        }))
-
-        toast.success('API routing issue detected. Your onboarding has been completed locally and will sync when the server is available. Redirecting to dashboard...')
-        
-        // Still redirect to dashboard after a short delay
-        setTimeout(() => {
-          router.push('/dashboard/merchant')
-        }, 3000)
-      } else {
-        toast.error(error.message || 'Failed to complete onboarding')
+      // Fallback: save locally and redirect anyway for speed
+      const onboardingData = {
+        uid: user.uid,
+        email: user.email,
+        role: role || 'merchant',
+        profileData: formData,
+        onboarding_complete: true,
+        completed_at: new Date().toISOString()
       }
+      
+      localStorage.setItem('onboardingComplete', JSON.stringify(onboardingData))
+      
+      toast.success('Profile saved! Redirecting to dashboard...')
+      setTimeout(() => {
+        router.push('/dashboard/merchant')
+      }, 500)
     } finally {
       setLoading(false)
     }
