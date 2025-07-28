@@ -16,7 +16,7 @@ import StudioAnalyticsDashboard from '@/components/StudioAnalyticsDashboard'
 import { toast } from 'sonner'
 
 export default function SystemIntegrationTestPage() {
-  const { user, userRole } = useAuth()
+  const { user, role } = useAuth()
   const [activeTab, setActiveTab] = useState('upload')
   const [testResults, setTestResults] = useState({})
 
