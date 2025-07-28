@@ -842,7 +842,7 @@ export default function CustomerDashboard() {
                     <CardContent>
                       <div className="h-64">
                         <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={sampleData.weeklyAttendance}>
+                          <BarChart data={dashboardData.weeklyAttendance}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                             <XAxis dataKey="day" stroke="#9CA3AF" />
                             <YAxis stroke="#9CA3AF" />
