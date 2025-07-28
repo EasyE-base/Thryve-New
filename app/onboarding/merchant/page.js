@@ -112,8 +112,16 @@ export default function MerchantOnboarding() {
   }
 
   const nextStep = () => {
-    if (currentStep < totalSteps) {
+    if (currentStep < totalSteps && canProceed()) {
+      // Immediate UI feedback
       setCurrentStep(currentStep + 1)
+      
+      // Auto-save form data to localStorage for fast recovery
+      localStorage.setItem('onboardingFormData', JSON.stringify({
+        ...formData,
+        currentStep: currentStep + 1,
+        lastSaved: new Date().toISOString()
+      }))
     }
   }
 
