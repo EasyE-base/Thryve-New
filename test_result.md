@@ -883,6 +883,9 @@ backend:
         - working: true
           agent: "testing"
           comment: "✅ STUDIO STAFFING DASHBOARD TESTING COMPLETED: Dashboard functionality working correctly with comprehensive data. ✅ ENDPOINT FUNCTIONALITY: Successfully retrieves dashboard data with expected fields. ✅ DATA STRUCTURE: Returns proper dashboard structure with pendingSwaps, openCoverage, upcomingClasses, and staffingMetrics. ✅ BUSINESS LOGIC: Provides comprehensive staffing overview for studio management. ✅ DATABASE INTEGRATION: Successfully aggregates data from multiple collections. The studio staffing dashboard is functional and ready for production use."
+        - working: true
+          agent: "testing"
+          comment: "🎉 STAFFING AUTHENTICATION FIX VALIDATION COMPLETED: Comprehensive testing confirms the staffing management authentication fix is working correctly. ✅ ROLE FIELD VALIDATION: Backend correctly uses 'role' field (not 'userRole') in profile lookup query (line 738: role: 'merchant'). ✅ MERCHANT ACCESS: Users with merchant role can successfully access StudioStaffingDashboard without 'Studio Access Required' error. ✅ AUTHENTICATION PROTECTION: Dashboard properly protected with 401 Unauthorized for unauthenticated requests. ✅ DATA STRUCTURE: Returns complete dashboard data with all expected fields (classes, instructors, pendingSwaps, openCoverage, stats, dateRange). ✅ ERROR HANDLING: Proper error message 'Access denied: Merchant role required' for non-merchant users. The authentication fix resolves the userRole vs role variable mismatch issue mentioned in the review request."
 
   - task: "POST /server-api/staffing/chat - Staffing Chat System (Send Messages)"
     implemented: true
