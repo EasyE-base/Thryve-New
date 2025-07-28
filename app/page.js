@@ -335,10 +335,17 @@ export default function Home() {
                 </Link>
               ) : (
                 <>
-                  <Button variant="ghost" className="text-[#1C1C1E] hover:bg-[#EADBC8]/50">
+                  <Button 
+                    variant="ghost" 
+                    className="text-[#1C1C1E] hover:bg-[#EADBC8]/50"
+                    onClick={() => setShowSignInModal(true)}
+                  >
                     Sign In
                   </Button>
-                  <Button className="bg-[#1E90FF] hover:bg-[#1976D2] text-white px-6 py-2 rounded-full">
+                  <Button 
+                    className="bg-[#1E90FF] hover:bg-[#1976D2] text-white px-6 py-2 rounded-full"
+                    onClick={() => setShowSignInModal(true)}
+                  >
                     Get Started
                   </Button>
                 </>
