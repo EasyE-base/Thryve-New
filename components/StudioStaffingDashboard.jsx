@@ -17,7 +17,7 @@ import {
 import { toast } from 'sonner'
 
 export default function StudioStaffingDashboard() {
-  const { user, userRole } = useAuth()
+  const { user, role } = useAuth()
   const [loading, setLoading] = useState(true)
   const [dashboard, setDashboard] = useState(null)
   const [settings, setSettings] = useState(null)
