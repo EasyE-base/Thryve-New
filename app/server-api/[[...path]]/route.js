@@ -1106,51 +1106,7 @@ async function handleGET(request) {
     // PROFILE AND STUDIO DATA ENDPOINTS
     // ========================================
 
-    // Fix user role endpoint (temporary admin function)
-    if (path === '/admin/fix-user-role') {
-      const firebaseUser = await getFirebaseUser(request)
-      if (!firebaseUser) {
-        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
-      }
 
-      try {
-        const body = await request.json()
-        const { newRole, businessName } = body
-
-        if (!newRole || !['customer', 'instructor', 'merchant'].includes(newRole)) {
-          return NextResponse.json({ error: 'Valid role is required' }, { status: 400 })
-        }
-
-        // Update user profile with correct role
-        const updateData = {
-          role: newRole,
-          updatedAt: new Date()
-        }
-
-        if (newRole === 'merchant' && businessName) {
-          updateData.studioName = businessName
-          updateData.name = businessName
-          updateData.businessName = businessName
-        }
-
-        await database.collection('profiles').updateOne(
-          { userId: firebaseUser.uid },
-          { $set: updateData },
-          { upsert: true }
-        )
-
-        const updatedProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
-
-        return NextResponse.json({
-          message: 'Role updated successfully',
-          profile: updatedProfile,
-          timestamp: new Date().toISOString()
-        })
-      } catch (error) {
-        console.error('Fix user role error:', error)
-        return NextResponse.json({ error: 'Failed to fix user role' }, { status: 500 })
-      }
-    }
 
     // Debug user role endpoint
     if (path === '/debug/user-role') {
