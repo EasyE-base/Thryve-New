@@ -270,7 +270,9 @@ export default function MerchantDashboard() {
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1">
-                <p className="text-white font-medium text-sm">FitCore Studio</p>
+                <p className="text-white font-medium text-sm">
+                  {studioProfile?.studioName || studioProfile?.name || user?.email || 'Studio Manager'}
+                </p>
                 <p className="text-blue-200 text-xs">Studio Manager</p>
               </div>
             </div>
