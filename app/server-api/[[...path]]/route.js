@@ -1832,8 +1832,20 @@ async function handlePOST(request) {
 
         // Check if user is merchant/studio owner
         const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
-        if (!userProfile || userProfile.role !== 'merchant') {
-          return NextResponse.json({ error: 'Only studio owners can create classes' }, { status: 403 })
+        
+        // Debug logging
+        console.log('Class creation - User Profile:', JSON.stringify(userProfile, null, 2))
+        
+        if (!userProfile) {
+          return NextResponse.json({ error: 'User profile not found. Please complete onboarding first.' }, { status: 404 })
+        }
+        
+        if (userProfile.role !== 'merchant') {
+          return NextResponse.json({ 
+            error: `Access denied: You must be a studio owner to create classes. Current role: ${userProfile.role}`,
+            userRole: userProfile.role,
+            requiredRole: 'merchant'
+          }, { status: 403 })
         }
 
         // Create class data
