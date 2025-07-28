@@ -1106,6 +1106,28 @@ async function handleGET(request) {
     // PROFILE AND STUDIO DATA ENDPOINTS
     // ========================================
 
+    // Debug user role endpoint
+    if (path === '/debug/user-role') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        
+        return NextResponse.json({
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          profile: userProfile,
+          timestamp: new Date().toISOString()
+        })
+      } catch (error) {
+        console.error('Debug user role error:', error)
+        return NextResponse.json({ error: 'Failed to fetch user role' }, { status: 500 })
+      }
+    }
+
     // Get user profile
     if (path === '/profile') {
       const firebaseUser = await getFirebaseUser(request)
