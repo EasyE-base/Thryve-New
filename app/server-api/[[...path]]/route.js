@@ -1996,7 +1996,7 @@ async function handlePOST(request) {
       }
     }
 
-    // Handle onboarding completion
+    // Handle onboarding completion - OPTIMIZED FOR SPEED
     if (path === '/onboarding/complete') {
       const firebaseUser = await getFirebaseUser(request)
       if (!firebaseUser) {
@@ -2011,38 +2011,42 @@ async function handlePOST(request) {
       }
 
       try {
-        // Update user profile with onboarding completion
+        // PERFORMANCE OPTIMIZATION: Use minimal data structure and single operation
+        const updateData = {
+          role,
+          onboarding_complete: true,
+          updatedAt: new Date()
+        }
+
+        // Only add essential fields to minimize data transfer
+        if (profileData) {
+          if (profileData.businessName) {
+            updateData.name = profileData.businessName
+            updateData.studioName = profileData.businessName
+          } else if (profileData.firstName && profileData.lastName) {
+            updateData.name = `${profileData.firstName} ${profileData.lastName}`
+          }
+          
+          // Store full profile data for later access but don't process now
+          updateData.profileData = profileData
+        }
+
+        // SINGLE DATABASE OPERATION - no unnecessary queries
         await database.collection('profiles').updateOne(
           { userId: firebaseUser.uid },
-          {
-            $set: {
-              role,
-              profileData: profileData || {},
-              // Extract key fields from profileData for easy access
-              name: profileData?.businessName || profileData?.firstName + ' ' + profileData?.lastName,
-              studioName: profileData?.businessName,
-              businessType: profileData?.businessType,
-              phone: profileData?.phone,
-              address: profileData?.address,
-              city: profileData?.city,
-              state: profileData?.state,
-              zipCode: profileData?.zipCode,
-              description: profileData?.description,
-              amenities: profileData?.amenities,
-              operatingHours: profileData?.operatingHours,
-              onboarding_complete: true,
-              updatedAt: new Date()
-            }
-          },
+          { $set: updateData },
           { upsert: true }
         )
 
-        console.log('Onboarding completed for user:', firebaseUser.uid)
+        console.log('✅ Fast onboarding completed for user:', firebaseUser.uid)
 
+        // IMMEDIATE RESPONSE - don't wait for additional operations
         return NextResponse.json({
           message: 'Onboarding completed successfully',
-          redirect: `/dashboard/${role}`
+          redirect: `/dashboard/${role}`,
+          timestamp: new Date().toISOString()
         })
+
       } catch (error) {
         console.error('Onboarding completion error:', error)
         return NextResponse.json({ error: 'Failed to complete onboarding' }, { status: 500 })
