@@ -1,27 +1,8 @@
 #!/usr/bin/env python3
 
 """
-Backend API Testing for Role Authorization Debug
-Testing the debug endpoint to check what role the current user actually has
-and identify the role authorization issue.
-
-SPECIFIC INVESTIGATION:
-The user is getting "Access denied: You must be a studio owner to create classes" error 
-even though they logged in as a studio owner. This suggests a role mismatch issue.
-
-DEBUG ENDPOINT TO TEST:
-1. GET /server-api/debug/user-role - Check current user's role and profile data
-
-EXPECTED INVESTIGATION RESULTS:
-- User should have `role: 'merchant'` for studio owner access
-- Profile should contain proper businessName/studioName fields
-- onboarding_complete should be true
-
-VALIDATION POINTS:
-- Check if user role is 'merchant' (required for studio owner)
-- Check if profile exists and is properly structured
-- Check if onboarding was completed successfully
-- Identify any role mapping issues
+Comprehensive Backend Testing for Studio Dashboard Fixes
+Testing the critical fixes implemented for role authorization and debugging
 """
 
 import requests
@@ -32,6 +13,20 @@ from datetime import datetime
 # Configuration
 BASE_URL = "https://fc28d640-ef87-49de-b108-ffb68044b135.preview.emergentagent.com"
 SERVER_API_URL = f"{BASE_URL}/server-api"
+
+# Test authentication headers (mock Firebase token)
+AUTH_HEADERS = {
+    "Authorization": "Bearer mock-firebase-token",
+    "Content-Type": "application/json"
+}
+
+def log_test_result(test_name, success, details=""):
+    """Log test results with consistent formatting"""
+    status = "✅ PASS" if success else "❌ FAIL"
+    print(f"{status}: {test_name}")
+    if details:
+        print(f"   Details: {details}")
+    print()
 
 def test_debug_user_role():
     """
