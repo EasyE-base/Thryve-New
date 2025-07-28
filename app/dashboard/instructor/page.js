@@ -178,81 +178,8 @@ export default function InstructorDashboard() {
   }
 
   useEffect(() => {
-    const fetchInstructorData = async () => {
-      if (!user) {
-        router.push('/?signin=true')
-        return
-      }
-
-      if (role && role !== 'instructor') {
-        router.push(`/dashboard/${role}`)
-        return
-      }
-
-      try {
-        const token = await user.getIdToken()
-        
-        // Fetch instructor profile
-        const profileResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/server-api/instructor/profile`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        })
-        
-        if (profileResponse.ok) {
-          const instructorData = await profileResponse.json()
-          setInstructor(instructorData)
-          
-          // Check for Stripe Connect success/refresh parameters
-          const urlParams = new URLSearchParams(window.location.search)
-          if (urlParams.get('success') === 'true') {
-            setStripeConnectSuccess(true)
-            toast.success('Stripe account connected successfully!')
-            // Clean URL
-            window.history.replaceState({}, '', window.location.pathname)
-          }
-          
-          // Fetch payouts if instructor has active Stripe account
-          if (instructorData.stripeAccountStatus === 'active') {
-            const payoutsResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/server-api/instructor/payouts`, {
-              headers: {
-                'Authorization': `Bearer ${token}`
-              }
-            })
-            
-            if (payoutsResponse.ok) {
-              const payoutsData = await payoutsResponse.json()
-              setPayouts(payoutsData)
-            }
-          }
-
-          // Fetch instructor's classes
-          const classesResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/server-api/instructor/classes`, {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          })
-          
-          if (classesResponse.ok) {
-            const classesData = await classesResponse.json()
-            setInstructorClasses(classesData.classes || [])
-          }
-
-        } else if (profileResponse.status === 404) {
-          toast.error('Instructor profile not found. Please complete your instructor onboarding.')
-          router.push('/onboarding/instructor')
-          return
-        }
-      } catch (error) {
-        console.error('Error fetching instructor data:', error)
-        toast.error('Failed to load instructor data')
-      } finally {
-        setLoading(false)
-      }
-    }
-
     fetchInstructorData()
-  }, [user, role, router])
+  }, [user])
 
   const handleSignOut = async () => {
     try {
