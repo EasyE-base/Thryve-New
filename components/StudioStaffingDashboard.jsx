@@ -184,7 +184,7 @@ export default function StudioStaffingDashboard() {
     )
   }
 
-  if (userRole !== 'merchant') {
+  if (role !== 'merchant') {
     return (
       <div className="text-center py-12">
         <Building2 className="h-16 w-16 text-blue-400 mx-auto mb-4 opacity-50" />
