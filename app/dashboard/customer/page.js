@@ -582,7 +582,7 @@ export default function CustomerDashboard() {
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-                    {sampleData.favorites.map((favorite) => (
+                    {dashboardData.favorites.map((favorite) => (
                       <Card key={favorite.id} className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
                         <CardContent className="p-4">
                           <div className="text-center">
