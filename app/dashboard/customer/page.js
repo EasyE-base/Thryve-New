@@ -526,7 +526,7 @@ export default function CustomerDashboard() {
                                 fill="#8884d8"
                                 dataKey="value"
                               >
-                                {sampleData.classTypes.map((entry, index) => (
+                                {dashboardData.classTypes.map((entry, index) => (
                                   <Cell key={`cell-${index}`} fill={entry.color} />
                                 ))}
                               </Pie>
