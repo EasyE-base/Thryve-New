@@ -385,12 +385,15 @@ export default function Home() {
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
-            <Link href="/onboarding">
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-[#1C1C1E] px-8 py-4 rounded-full text-lg font-semibold">
-                Studio? Get Started
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-            </Link>
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className="border-white text-white hover:bg-white hover:text-[#1C1C1E] px-8 py-4 rounded-full text-lg font-semibold"
+              onClick={() => setShowSignInModal(true)}
+            >
+              Studio? Get Started
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
           </div>
 
           {/* Scroll Indicator */}
