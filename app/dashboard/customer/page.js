@@ -454,7 +454,7 @@ export default function CustomerDashboard() {
                       <div className="h-96">
                         <Calendar
                           localizer={localizer}
-                          events={sampleData.events}
+                          events={dashboardData.events}
                           startAccessor="start"
                           endAccessor="end"
                           style={{ height: '100%' }}
