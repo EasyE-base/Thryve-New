@@ -1103,6 +1103,201 @@ async function handleGET(request) {
     }
 
     // ========================================
+    // MARKETPLACE ENDPOINTS
+    // ========================================
+
+    // Get marketplace instructors
+    if (path === '/marketplace/instructors') {
+      try {
+        const instructors = await database.collection('profiles').find({
+          role: 'instructor'
+        }).toArray()
+
+        return NextResponse.json({
+          instructors: instructors.map(instructor => ({
+            id: instructor.userId,
+            name: instructor.name || instructor.email.split('@')[0],
+            tagline: instructor.tagline || 'Professional fitness instructor',
+            specialties: instructor.specialties || ['Fitness'],
+            location: instructor.location || 'Location not specified',
+            rating: instructor.rating || 4.5,
+            reviewCount: instructor.reviewCount || 0,
+            hourlyRate: instructor.hourlyRate || 35,
+            imageUrl: instructor.imageUrl || 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=400&fit=crop&crop=face',
+            experience: instructor.experience || '1+ years',
+            languages: instructor.languages || ['English'],
+            certifications: instructor.certifications || [],
+            videoIntro: instructor.videoIntro || false,
+            totalClasses: instructor.totalClasses || 0,
+            availability: instructor.availability || 'Available',
+            nextClass: instructor.nextClass || 'TBD',
+            featured: instructor.featured || false,
+            achievements: instructor.achievements || [],
+            bio: instructor.bio || 'Experienced fitness instructor'
+          }))
+        })
+      } catch (error) {
+        console.error('Marketplace instructors fetch error:', error)
+        return NextResponse.json({ error: 'Failed to fetch instructors' }, { status: 500 })
+      }
+    }
+
+    // ========================================
+    // INSTRUCTOR DATA ENDPOINTS
+    // ========================================
+
+    // Get instructor profile
+    if (path === '/instructor/profile') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const instructor = await database.collection('profiles').findOne({
+          userId: firebaseUser.uid,
+          role: 'instructor'
+        })
+
+        if (!instructor) {
+          return NextResponse.json({ error: 'Instructor profile not found' }, { status: 404 })
+        }
+
+        return NextResponse.json({
+          instructor: {
+            name: instructor.name || instructor.email.split('@')[0],
+            firstName: instructor.firstName || '',
+            lastName: instructor.lastName || '',
+            email: instructor.email || '',
+            role: instructor.role || 'Instructor',
+            bio: instructor.bio || '',
+            rating: instructor.rating || 0,
+            totalClasses: instructor.totalClasses || 0,
+            avatar: instructor.avatar || null,
+            specialties: instructor.specialties || [],
+            hourlyRate: instructor.hourlyRate || 35,
+            stripeAccountStatus: instructor.stripeAccountStatus || 'pending'
+          }
+        })
+      } catch (error) {
+        console.error('Instructor profile fetch error:', error)
+        return NextResponse.json({ error: 'Failed to fetch instructor profile' }, { status: 500 })
+      }
+    }
+
+    // Get instructor classes
+    if (path === '/instructor/classes') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const classes = await database.collection('studio_classes').find({
+          assignedInstructorId: firebaseUser.uid
+        }).toArray()
+
+        return NextResponse.json({
+          classes: classes.map(cls => ({
+            id: cls._id,
+            name: cls.title,
+            location: cls.location,
+            time: cls.time,
+            date: cls.date,
+            booked: cls.enrolled || 0,
+            capacity: cls.capacity || 10,
+            type: cls.type,
+            color: getClassColor(cls.type),
+            status: cls.status
+          }))
+        })
+      } catch (error) {
+        console.error('Instructor classes fetch error:', error)
+        return NextResponse.json({ error: 'Failed to fetch instructor classes' }, { status: 500 })
+      }
+    }
+
+    // Get instructor messages
+    if (path === '/instructor/messages') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const messages = await database.collection('messages').find({
+          recipientId: firebaseUser.uid
+        }).sort({ createdAt: -1 }).limit(20).toArray()
+
+        return NextResponse.json({
+          messages: messages.map(msg => ({
+            id: msg._id,
+            sender: msg.senderName || 'Unknown',
+            avatar: msg.senderName ? msg.senderName.split(' ').map(n => n[0]).join('') : 'U',
+            time: msg.createdAt,
+            message: msg.content,
+            unread: msg.unread || false
+          }))
+        })
+      } catch (error) {
+        console.error('Instructor messages fetch error:', error)
+        return NextResponse.json({ error: 'Failed to fetch messages' }, { status: 500 })
+      }
+    }
+
+    // Get instructor earnings
+    if (path === '/instructor/earnings') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const earnings = await database.collection('instructor_earnings').find({
+          instructorId: firebaseUser.uid
+        }).toArray()
+
+        const thisMonth = earnings.filter(e => {
+          const date = new Date(e.date)
+          const now = new Date()
+          return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()
+        }).reduce((sum, e) => sum + e.amount, 0)
+
+        const thisWeek = earnings.filter(e => {
+          const date = new Date(e.date)
+          const now = new Date()
+          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+          return date >= weekAgo
+        }).reduce((sum, e) => sum + e.amount, 0)
+
+        const total = earnings.reduce((sum, e) => sum + e.amount, 0)
+
+        return NextResponse.json({
+          earnings: {
+            thisMonth,
+            thisWeek,
+            total
+          }
+        })
+      } catch (error) {
+        console.error('Instructor earnings fetch error:', error)
+        return NextResponse.json({ error: 'Failed to fetch earnings' }, { status: 500 })
+      }
+    }
+
+    // Helper function to get class color
+    function getClassColor(type) {
+      const colors = {
+        'Yoga': 'green',
+        'HIIT': 'red',
+        'Pilates': 'blue',
+        'Strength': 'orange',
+        'Dance': 'purple'
+      }
+      return colors[type] || 'gray'
+    }
+
+    // ========================================
     // CUSTOMER DASHBOARD DATA ENDPOINTS
     // ========================================
 
