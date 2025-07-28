@@ -746,6 +746,9 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      {/* SignIn Modal */}
+      <SignInModal />
     </div>
   )
 }
