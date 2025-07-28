@@ -333,20 +333,63 @@ export default function MerchantDashboard() {
           {/* Content */}
           <div className="p-8 overflow-y-auto max-h-screen">
             
-            {/* Dashboard Overview */}
+            {/* Dashboard Section */}
             {activeSection === 'dashboard' && (
-              <div className="space-y-8">
-                {/* KPI Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-                  <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
+              <div className="space-y-6">
+                {/* Welcome Message */}
+                <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-xl p-6">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-purple-600 rounded-xl flex items-center justify-center">
+                      <Building2 className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-white text-xl font-semibold">
+                        Welcome to {studioProfile?.studioName || studioProfile?.name || 'Your Studio'}!
+                      </h3>
+                      <p className="text-blue-200">
+                        {studioClasses.length === 0 
+                          ? "Let's get your studio set up. Start by creating your first class or use our AI Configuration Wizard."
+                          : `You have ${studioClasses.length} classes configured and ready for bookings.`
+                        }
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {studioClasses.length === 0 && (
+                    <div className="mt-4 flex space-x-3">
+                      <Button 
+                        onClick={() => router.push('/studio/create-class')}
+                        className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create First Class
+                      </Button>
+                      <Button 
+                        onClick={() => router.push('/ai-configuration-wizard')}
+                        variant="outline"
+                        className="border-blue-400/50 text-blue-300 hover:bg-blue-500/20"
+                      >
+                        <Bot className="h-4 w-4 mr-2" />
+                        AI Setup Wizard
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {/* KPIs Section */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <Card className="bg-white/10 backdrop-blur-md border-white/20">
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-blue-200 font-medium text-sm">Total Revenue</p>
-                          <p className="text-2xl font-bold text-white">${merchantData.kpis.totalRevenue.value.toLocaleString()}</p>
-                          <div className="flex items-center mt-1">
-                            <TrendingUp className="h-3 w-3 text-green-400 mr-1" />
-                            <span className="text-green-400 text-xs">+{merchantData.kpis.totalRevenue.change}%</span>
+                          <h4 className="text-blue-200 text-sm font-medium">Total Revenue</h4>
+                          <p className="text-2xl font-bold text-white">
+                            ${dashboardData?.totalRevenue || '0'}
+                          </p>
+                          <div className="flex items-center text-xs mt-1">
+                            <span className="text-blue-300">
+                              {dashboardData?.totalRevenue ? 'this month' : 'No revenue data yet'}
+                            </span>
                           </div>
                         </div>
                         <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
@@ -356,15 +399,18 @@ export default function MerchantDashboard() {
                     </CardContent>
                   </Card>
 
-                  <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
+                  <Card className="bg-white/10 backdrop-blur-md border-white/20">
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-blue-200 font-medium text-sm">Total Bookings</p>
-                          <p className="text-2xl font-bold text-white">{merchantData.kpis.totalBookings.value.toLocaleString()}</p>
-                          <div className="flex items-center mt-1">
-                            <TrendingUp className="h-3 w-3 text-green-400 mr-1" />
-                            <span className="text-green-400 text-xs">+{merchantData.kpis.totalBookings.change}%</span>
+                          <h4 className="text-blue-200 text-sm font-medium">Total Bookings</h4>
+                          <p className="text-2xl font-bold text-white">
+                            {dashboardData?.totalBookings || '0'}
+                          </p>
+                          <div className="flex items-center text-xs mt-1">
+                            <span className="text-blue-300">
+                              {dashboardData?.totalBookings ? 'this month' : 'No bookings yet'}
+                            </span>
                           </div>
                         </div>
                         <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
@@ -374,55 +420,43 @@ export default function MerchantDashboard() {
                     </CardContent>
                   </Card>
 
-                  <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
+                  <Card className="bg-white/10 backdrop-blur-md border-white/20">
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-blue-200 font-medium text-sm">New Clients</p>
-                          <p className="text-2xl font-bold text-white">{merchantData.kpis.newClients.value}</p>
-                          <div className="flex items-center mt-1">
-                            <TrendingUp className="h-3 w-3 text-green-400 mr-1" />
-                            <span className="text-green-400 text-xs">+{merchantData.kpis.newClients.change}%</span>
+                          <h4 className="text-blue-200 text-sm font-medium">Active Classes</h4>
+                          <p className="text-2xl font-bold text-white">
+                            {studioClasses.length}
+                          </p>
+                          <div className="flex items-center text-xs mt-1">
+                            <span className="text-blue-300">
+                              {studioClasses.length > 0 ? 'currently scheduled' : 'Create your first class'}
+                            </span>
                           </div>
                         </div>
                         <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                          <Users className="h-5 w-5 text-purple-400" />
+                          <Activity className="h-5 w-5 text-purple-400" />
                         </div>
                       </div>
                     </CardContent>
                   </Card>
 
-                  <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
+                  <Card className="bg-white/10 backdrop-blur-md border-white/20">
                     <CardContent className="p-6">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-blue-200 font-medium text-sm">Class Utilization</p>
-                          <p className="text-2xl font-bold text-white">{merchantData.kpis.classUtilization.value}%</p>
-                          <div className="flex items-center mt-1">
-                            <TrendingUp className="h-3 w-3 text-green-400 mr-1" />
-                            <span className="text-green-400 text-xs">+{merchantData.kpis.classUtilization.change}%</span>
+                          <h4 className="text-blue-200 text-sm font-medium">New Clients</h4>
+                          <p className="text-2xl font-bold text-white">
+                            {dashboardData?.newClients || '0'}
+                          </p>
+                          <div className="flex items-center text-xs mt-1">
+                            <span className="text-blue-300">
+                              {dashboardData?.newClients ? 'this week' : 'No new clients yet'}
+                            </span>
                           </div>
                         </div>
-                        <div className="w-10 h-10 bg-yellow-500/20 rounded-lg flex items-center justify-center">
-                          <BarChart3 className="h-5 w-5 text-yellow-400" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-blue-200 font-medium text-sm">Cancellation Rate</p>
-                          <p className="text-2xl font-bold text-white">{merchantData.kpis.cancellationRate.value}%</p>
-                          <div className="flex items-center mt-1">
-                            <TrendingUp className="h-3 w-3 text-green-400 mr-1 rotate-180" />
-                            <span className="text-green-400 text-xs">{merchantData.kpis.cancellationRate.change}%</span>
-                          </div>
-                        </div>
-                        <div className="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center">
-                          <AlertCircle className="h-5 w-5 text-red-400" />
+                        <div className="w-10 h-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
+                          <Users className="h-5 w-5 text-orange-400" />
                         </div>
                       </div>
                     </CardContent>
@@ -430,194 +464,80 @@ export default function MerchantDashboard() {
                 </div>
 
                 {/* Quick Actions */}
-                <div>
-                  <h3 className="text-xl font-semibold text-white mb-4">Quick Actions</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <Button 
-                      className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white p-6 h-auto justify-start"
-                      onClick={() => toast.success('Create Class feature coming soon!')}
-                    >
-                      <Plus className="h-5 w-5 mr-2" />
-                      Create Class
-                    </Button>
-                    <Button 
-                      className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white p-6 h-auto justify-start"
-                      onClick={() => toast.success('Add Instructor feature coming soon!')}
-                    >
-                      <Plus className="h-5 w-5 mr-2" />
-                      Add Instructor
-                    </Button>
-                    <Button 
-                      className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white p-6 h-auto justify-start"
-                      onClick={() => toast.success('View Reports feature coming soon!')}
-                    >
-                      <BarChart3 className="h-5 w-5 mr-2" />
-                      View Reports
-                    </Button>
-                    <Button 
-                      className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white p-6 h-auto justify-start"
-                      onClick={() => toast.success('Manage Locations feature coming soon!')}
-                    >
-                      <MapPin className="h-5 w-5 mr-2" />
-                      Manage Locations
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Calendar & Scheduling Preview */}
-                <div>
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-xl font-semibold text-white">Calendar & Scheduling</h3>
-                    <button 
-                      className="text-blue-400 hover:text-blue-300 text-sm font-medium"
-                      onClick={() => setActiveSection('calendar')}
-                    >
-                      View Full Calendar →
-                    </button>
-                  </div>
-                  
-                  <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
                     <CardContent className="p-6">
-                      <div className="h-64">
-                        <Calendar
-                          localizer={localizer}
-                          events={merchantData.events}
-                          startAccessor="start"
-                          endAccessor="end"
-                          style={{ height: '100%' }}
-                          view="week"
-                          eventPropGetter={eventStyleGetter}
-                          onSelectEvent={(event) => {
-                            toast.info(`${event.title} - ${event.resource?.booked}/${event.resource?.capacity} booked`)
-                          }}
-                        />
+                      <div className="text-center">
+                        <Plus className="h-12 w-12 text-blue-400 mx-auto mb-4" />
+                        <h4 className="text-lg font-semibold text-white mb-2">Create New Class</h4>
+                        <p className="text-blue-200 text-sm mb-4">Add a new class to your schedule</p>
+                        <Button 
+                          onClick={() => router.push('/studio/create-class')}
+                          className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                        >
+                          Create Class
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
+                    <CardContent className="p-6">
+                      <div className="text-center">
+                        <Settings className="h-12 w-12 text-purple-400 mx-auto mb-4" />
+                        <h4 className="text-lg font-semibold text-white mb-2">Studio Settings</h4>
+                        <p className="text-blue-200 text-sm mb-4">Configure your studio preferences</p>
+                        <Button 
+                          onClick={() => setActiveSection('settings')}
+                          className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white"
+                        >
+                          Manage Settings
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
+                    <CardContent className="p-6">
+                      <div className="text-center">
+                        <BarChart3 className="h-12 w-12 text-green-400 mx-auto mb-4" />
+                        <h4 className="text-lg font-semibold text-white mb-2">View Analytics</h4>
+                        <p className="text-blue-200 text-sm mb-4">Track your studio performance</p>
+                        <Button 
+                          onClick={() => setActiveSection('analytics')}
+                          className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white"
+                        >
+                          View Analytics
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
                 </div>
 
-                {/* Advanced Analytics Preview */}
-                <div>
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-xl font-semibold text-white">Advanced Analytics</h3>
-                    <button 
-                      className="text-blue-400 hover:text-blue-300 text-sm font-medium"
-                      onClick={() => setActiveSection('analytics')}
-                    >
-                      View All Reports →
-                    </button>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Revenue Trends */}
-                    <Card className="bg-white/10 backdrop-blur-md border-white/20">
-                      <CardHeader>
-                        <CardTitle className="text-white text-lg">Revenue Trends</CardTitle>
-                        <div className="flex space-x-2">
-                          <Badge className="bg-blue-500/20 text-blue-200">Monthly</Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="h-48">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={merchantData.revenueData}>
-                              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                              <XAxis dataKey="date" stroke="#9CA3AF" />
-                              <YAxis stroke="#9CA3AF" />
-                              <Tooltip 
-                                contentStyle={{
-                                  backgroundColor: 'rgba(30, 41, 59, 0.9)',
-                                  border: '1px solid rgba(59, 130, 246, 0.2)',
-                                  borderRadius: '8px',
-                                  color: 'white'
-                                }}
-                              />
-                              <Line 
-                                type="monotone" 
-                                dataKey="revenue" 
-                                stroke="#10B981" 
-                                strokeWidth={3}
-                                dot={{ fill: '#10B981', strokeWidth: 2, r: 4 }}
-                              />
-                            </LineChart>
-                          </ResponsiveContainer>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* Class Fill Rates */}
-                    <Card className="bg-white/10 backdrop-blur-md border-white/20">
-                      <CardHeader>
-                        <CardTitle className="text-white text-lg">Class Fill Rates</CardTitle>
-                        <div className="flex space-x-2">
-                          <Badge className="bg-purple-500/20 text-purple-200">By Instructor</Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="h-48">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={merchantData.classFillRates}>
-                              <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                              <XAxis dataKey="time" stroke="#9CA3AF" />
-                              <YAxis stroke="#9CA3AF" />
-                              <Tooltip 
-                                contentStyle={{
-                                  backgroundColor: 'rgba(30, 41, 59, 0.9)',
-                                  border: '1px solid rgba(59, 130, 246, 0.2)',
-                                  borderRadius: '8px',
-                                  color: 'white'
-                                }}
-                              />
-                              <Bar dataKey="rate" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
-                            </BarChart>
-                          </ResponsiveContainer>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
-
-                {/* Client Management Preview */}
-                <div>
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-xl font-semibold text-white">Client Management</h3>
-                    <button 
-                      className="text-blue-400 hover:text-blue-300 text-sm font-medium"
-                      onClick={() => setActiveSection('clients')}
-                    >
-                      View All Clients →
-                    </button>
-                  </div>
-                  
+                {/* Recent Activity */}
+                {dashboardData?.recentActivity && dashboardData.recentActivity.length > 0 && (
                   <Card className="bg-white/10 backdrop-blur-md border-white/20">
-                    <CardContent className="p-6">
-                      <div className="space-y-4">
-                        {merchantData.clients.slice(0, 3).map((client) => (
-                          <div key={client.id} className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
-                            <div className="flex items-center space-x-4">
-                              <Avatar className="h-10 w-10 ring-2 ring-blue-400/50">
-                                <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white">
-                                  {client.name.split(' ').map(n => n[0]).join('')}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <h4 className="font-medium text-white">{client.name}</h4>
-                                <p className="text-sm text-blue-200">{client.email}</p>
-                                <p className="text-xs text-blue-300">{client.lastVisit}</p>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <Badge className={`${client.status === 'Active' ? 'bg-green-500/20 text-green-200' : 'bg-red-500/20 text-red-200'}`}>
-                                {client.status}
-                              </Badge>
-                              <p className="text-sm text-blue-200 mt-1">{client.attendance}</p>
+                    <CardHeader>
+                      <CardTitle className="text-white">Recent Activity</CardTitle>
+                      <CardDescription className="text-blue-200">
+                        Latest updates from your studio
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {dashboardData.recentActivity.map((activity, index) => (
+                          <div key={index} className="flex items-center space-x-3 p-3 bg-white/5 rounded-lg">
+                            <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                            <div className="flex-1">
+                              <p className="text-white text-sm">{activity.message}</p>
+                              <p className="text-blue-300 text-xs">{activity.time}</p>
                             </div>
                           </div>
                         ))}
                       </div>
                     </CardContent>
                   </Card>
-                </div>
+                )}
               </div>
             )}
             
