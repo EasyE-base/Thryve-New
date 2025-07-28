@@ -61,24 +61,39 @@ export default function MerchantOnboarding() {
   ]
 
   useEffect(() => {
+    // Fast form data recovery from localStorage
+    const savedFormData = localStorage.getItem('onboardingFormData')
+    if (savedFormData) {
+      try {
+        const parsedData = JSON.parse(savedFormData)
+        if (parsedData.lastSaved) {
+          const savedTime = new Date(parsedData.lastSaved)
+          const now = new Date()
+          const timeDiff = now - savedTime
+          
+          // If saved within last 10 minutes, auto-restore
+          if (timeDiff < 10 * 60 * 1000) {
+            setFormData(parsedData)
+            setCurrentStep(parsedData.currentStep || 1)
+            toast.success('Form data restored from previous session')
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to restore form data:', error)
+      }
+    }
+
+    // Check authentication and redirect if needed
     if (authLoading) return
 
     if (!user) {
-      toast.error('Please sign in first')
       router.push('/')
       return
     }
 
-    // Only redirect if we have a definitive role that doesn't match AND it's not loading
-    // This prevents redirect loops when role data is still being loaded or updated
-    if (role && role !== 'merchant' && !authLoading) {
-      // Add a small delay to ensure this isn't a race condition
-      const redirectTimer = setTimeout(() => {
-        console.log('🔄 Merchant onboarding: Redirecting user with role', role, 'to correct onboarding')
-        router.push(`/onboarding/${role}`)
-      }, 500)
-
-      return () => clearTimeout(redirectTimer)
+    if (role && role !== 'merchant') {
+      router.push(`/onboarding/${role}`)
+      return
     }
   }, [user, role, authLoading, router])
 
