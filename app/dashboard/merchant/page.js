@@ -100,9 +100,59 @@ export default function MerchantDashboard() {
   const [studioClasses, setStudioClasses] = useState([])
   const [availableInstructors, setAvailableInstructors] = useState([])
   const [studioProfile, setStudioProfile] = useState(null)
+  const [dashboardData, setDashboardData] = useState(null)
   const [calendarView, setCalendarView] = useState('week')
   const [selectedDate, setSelectedDate] = useState(new Date())
   const router = useRouter()
+
+  // Fetch studio profile and dashboard data
+  const fetchStudioData = async () => {
+    if (!user) return
+
+    try {
+      // Fetch studio profile
+      const token = await user.getIdToken()
+      const profileResponse = await fetch('/server-api/profile', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      
+      if (profileResponse.ok) {
+        const profileData = await profileResponse.json()
+        setStudioProfile(profileData.profile)
+      }
+
+      // Fetch dashboard analytics if available
+      const analyticsResponse = await fetch('/server-api/analytics/dashboard', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      
+      if (analyticsResponse.ok) {
+        const analyticsData = await analyticsResponse.json()
+        setDashboardData(analyticsData)
+      }
+
+      // Fetch studio classes
+      const classesResponse = await fetch('/server-api/classes', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      
+      if (classesResponse.ok) {
+        const classesData = await classesResponse.json()
+        setStudioClasses(classesData.classes || [])
+      }
+
+    } catch (error) {
+      console.error('Error fetching studio data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
     if (authLoading) return
@@ -117,10 +167,7 @@ export default function MerchantDashboard() {
       return
     }
 
-    // Simulate loading
-    setTimeout(() => {
-      setLoading(false)
-    }, 1000)
+    fetchStudioData()
   }, [user, role, authLoading, router])
 
   const handleSignOut = async () => {
