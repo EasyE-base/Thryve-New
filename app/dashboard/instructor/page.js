@@ -63,6 +63,120 @@ export default function InstructorDashboard() {
   const [calendarView, setCalendarView] = useState('week')
   const [checklist, setChecklist] = useState(instructorData.dailyChecklist)
 
+  // Fetch instructor data from API
+  const fetchInstructorData = async () => {
+    if (!user) return
+
+    try {
+      const token = await user.getIdToken()
+      
+      // Fetch instructor profile
+      const profileResponse = await fetch('/server-api/instructor/profile', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      
+      let instructorProfile = {
+        name: user.email?.split('@')[0] || 'Instructor',
+        firstName: '',
+        lastName: '',
+        email: user.email || '',
+        role: 'Instructor',
+        bio: '',
+        rating: 0,
+        totalClasses: 0,
+        avatar: null
+      }
+      
+      if (profileResponse.ok) {
+        const profileData = await profileResponse.json()
+        instructorProfile = { ...instructorProfile, ...profileData.instructor }
+      }
+
+      // Fetch instructor's classes
+      const classesResponse = await fetch('/server-api/instructor/classes', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      
+      let upcomingClasses = []
+      let performanceChart = []
+      let performance = {
+        classesThisMonth: 0,
+        fillRate: 0,
+        avgRating: 0,
+        fillRateChange: 0,
+        ratingChange: 0
+      }
+      
+      if (classesResponse.ok) {
+        const classesData = await classesResponse.json()
+        upcomingClasses = classesData.classes || []
+        
+        // Calculate performance metrics
+        const thisMonth = new Date()
+        const monthlyClasses = upcomingClasses.filter(cls => {
+          const classDate = new Date(cls.date)
+          return classDate.getMonth() === thisMonth.getMonth() && 
+                 classDate.getFullYear() === thisMonth.getFullYear()
+        })
+        
+        performance.classesThisMonth = monthlyClasses.length
+        performance.fillRate = monthlyClasses.reduce((sum, cls) => {
+          return sum + ((cls.booked || 0) / (cls.capacity || 1)) * 100
+        }, 0) / Math.max(monthlyClasses.length, 1)
+      }
+
+      // Fetch messages (if available)
+      const messagesResponse = await fetch('/server-api/instructor/messages', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      
+      let messages = []
+      if (messagesResponse.ok) {
+        const messagesData = await messagesResponse.json()
+        messages = messagesData.messages || []
+      }
+
+      // Fetch earnings (if available)
+      const earningsResponse = await fetch('/server-api/instructor/earnings', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      
+      let earnings = {
+        thisMonth: 0,
+        thisWeek: 0,
+        total: 0
+      }
+      
+      if (earningsResponse.ok) {
+        const earningsData = await earningsResponse.json()
+        earnings = earningsData.earnings || earnings
+      }
+
+      setInstructorData({
+        instructor: instructorProfile,
+        upcomingClasses,
+        dailyChecklist: [], // Can be populated from tasks API if available
+        performance,
+        performanceChart,
+        messages,
+        earnings
+      })
+
+    } catch (error) {
+      console.error('Error fetching instructor data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
     const fetchInstructorData = async () => {
       if (!user) {
