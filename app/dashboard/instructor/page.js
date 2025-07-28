@@ -179,8 +179,21 @@ export default function InstructorDashboard() {
   }
 
   useEffect(() => {
+    if (authLoading) return
+
+    if (!user) {
+      router.push('/?signin=true')
+      return
+    }
+
+    if (role && role !== 'instructor') {
+      router.push(`/dashboard/${role}`)
+      return
+    }
+
+    // Fetch real instructor data
     fetchInstructorData()
-  }, [user])
+  }, [user, role, authLoading, router])
 
   const handleSignOut = async () => {
     try {
