@@ -1044,6 +1044,13 @@ export default function MerchantDashboard() {
                 </div>
               </div>
             )}
+
+            {/* Debug Section */}
+            {activeSection === 'debug' && (
+              <div className="space-y-6">
+                <DebugUserRole />
+              </div>
+            )}
           </div>
         </div>
       </div>
