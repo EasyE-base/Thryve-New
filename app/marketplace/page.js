@@ -127,6 +127,14 @@ export default function MarketplacePage() {
     }
   }
 
+  // Filter instructors
+  const filteredInstructors = instructors.filter(instructor => {
+    return instructor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           instructor.specialties.some(specialty => 
+             specialty.toLowerCase().includes(searchQuery.toLowerCase())
+           )
+  })
+
   const featuredInstructors = filteredInstructors.filter(i => i.featured)
 
   // Auto-advance carousel
