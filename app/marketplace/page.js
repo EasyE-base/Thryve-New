@@ -439,133 +439,146 @@ export default function MarketplacePage() {
                 onTouchMove={onTouchMove}
                 onTouchEnd={onTouchEnd}
               >
-                <div 
-                  ref={swipeRef}
-                  className="flex transition-transform duration-500 ease-out"
-                  style={{ transform: `translateX(-${currentSwipe * 100}%)` }}
-                >
-                  {featuredInstructors.map((instructor) => (
-                    <div key={instructor.id} className="card-swipe">
-                      <Card className="card-modern overflow-hidden h-[500px]">
-                        <div 
-                          className="relative h-64 bg-cover bg-center"
-                          style={{
-                            backgroundImage: `linear-gradient(135deg, rgba(0,0,0,0.4), rgba(0,0,0,0.7)), url("${instructor.imageUrl}")`,
-                          }}
-                        >
-                          <div className="absolute top-4 left-4 flex space-x-2">
-                            <Badge className="bg-gradient-to-r from-green-500 to-green-600 text-white backdrop-blur-sm animate-pulse-glow">
-                              {instructor.availability}
-                            </Badge>
-                            {instructor.achievements.map((achievement, index) => (
-                              <Badge key={index} className="bg-gradient-to-r from-purple-500 to-purple-600 text-white backdrop-blur-sm">
-                                {achievement}
-                              </Badge>
-                            ))}
-                          </div>
-                          <div className="absolute top-4 right-4 flex space-x-2">
-                            {instructor.videoIntro && (
-                              <Badge className="bg-gradient-to-r from-blue-500 to-blue-600 text-white backdrop-blur-sm">
-                                <Play className="h-3 w-3 mr-1" />
-                                Video
-                              </Badge>
-                            )}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full tap-target"
-                              onClick={() => toast.success('Added to favorites! ❤️')}
+                {loading ? (
+                  <div className="flex justify-center items-center py-20">
+                    <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-400 border-t-transparent"></div>
+                  </div>
+                ) : featuredInstructors.length > 0 ? (
+                  <>
+                    <div 
+                      ref={swipeRef}
+                      className="flex transition-transform duration-500 ease-out"
+                      style={{ transform: `translateX(-${currentSwipe * 100}%)` }}
+                    >
+                      {featuredInstructors.map((instructor) => (
+                        <div key={instructor.id} className="card-swipe">
+                          <Card className="card-modern overflow-hidden h-[500px]">
+                            <div 
+                              className="relative h-64 bg-cover bg-center"
+                              style={{
+                                backgroundImage: `linear-gradient(135deg, rgba(0,0,0,0.4), rgba(0,0,0,0.7)), url("${instructor.imageUrl}")`,
+                              }}
                             >
-                              <Heart className="h-4 w-4 text-white" />
-                            </Button>
-                          </div>
-                          <div className="absolute bottom-4 left-4 right-4">
-                            <h3 className="text-3xl font-bold text-white mb-2 animate-fadeInUp">{instructor.name}</h3>
-                            <p className="text-blue-200 text-lg animate-fadeInUp delay-100">{instructor.tagline}</p>
-                          </div>
-                        </div>
-
-                        <CardContent className="p-6 space-y-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-4">
-                              <div className="flex items-center">
-                                <Star className="h-5 w-5 text-yellow-400 fill-current mr-1" />
-                                <span className="text-white font-bold text-lg">{instructor.rating}</span>
-                                <span className="text-blue-200 text-sm ml-1">({instructor.reviewCount} reviews)</span>
+                              <div className="absolute top-4 left-4 flex space-x-2">
+                                <Badge className="bg-gradient-to-r from-green-500 to-green-600 text-white backdrop-blur-sm animate-pulse-glow">
+                                  {instructor.availability}
+                                </Badge>
+                                {instructor.achievements.map((achievement, index) => (
+                                  <Badge key={index} className="bg-gradient-to-r from-purple-500 to-purple-600 text-white backdrop-blur-sm">
+                                    {achievement}
+                                  </Badge>
+                                ))}
+                              </div>
+                              <div className="absolute top-4 right-4 flex space-x-2">
+                                {instructor.videoIntro && (
+                                  <Badge className="bg-gradient-to-r from-blue-500 to-blue-600 text-white backdrop-blur-sm">
+                                    <Play className="h-3 w-3 mr-1" />
+                                    Video
+                                  </Badge>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full tap-target"
+                                  onClick={() => toast.success('Added to favorites! ❤️')}
+                                >
+                                  <Heart className="h-4 w-4 text-white" />
+                                </Button>
+                              </div>
+                              <div className="absolute bottom-4 left-4 right-4">
+                                <h3 className="text-3xl font-bold text-white mb-2 animate-fadeInUp">{instructor.name}</h3>
+                                <p className="text-blue-200 text-lg animate-fadeInUp delay-100">{instructor.tagline}</p>
                               </div>
                             </div>
-                            <div className="text-right">
-                              <div className="text-3xl font-bold text-gradient">${instructor.hourlyRate}</div>
-                              <div className="text-xs text-blue-200">per session</div>
-                            </div>
-                          </div>
 
-                          <div className="text-blue-200 text-sm flex items-center">
-                            <MapPin className="h-4 w-4 mr-1" />
-                            {instructor.location}
-                          </div>
+                            <CardContent className="p-6 space-y-4">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-4">
+                                  <div className="flex items-center">
+                                    <Star className="h-5 w-5 text-yellow-400 fill-current mr-1" />
+                                    <span className="text-white font-bold text-lg">{instructor.rating}</span>
+                                    <span className="text-blue-200 text-sm ml-1">({instructor.reviewCount} reviews)</span>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <div className="text-3xl font-bold text-gradient">${instructor.hourlyRate}</div>
+                                  <div className="text-xs text-blue-200">per session</div>
+                                </div>
+                              </div>
 
-                          <div className="flex flex-wrap gap-2">
-                            {instructor.specialties.map((specialty) => (
-                              <Badge key={specialty} className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-200 border border-blue-400/30">
-                                {specialty}
-                              </Badge>
-                            ))}
-                          </div>
+                              <div className="text-blue-200 text-sm flex items-center">
+                                <MapPin className="h-4 w-4 mr-1" />
+                                {instructor.location}
+                              </div>
 
-                          <div className="flex space-x-2">
-                            {instructor.videoIntro && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                className="btn-modern-small border-white/20 text-white hover:bg-white/10"
-                                onClick={() => toast.info('🎬 Video preview coming soon!')}
-                              >
-                                <Play className="h-4 w-4 mr-1" />
-                                Preview
-                              </Button>
-                            )}
-                            <Link href={`/instructor/${instructor.id}`}>
-                              <Button
-                                size="sm"
-                                className="btn-modern-small bg-gradient-to-r from-blue-500 to-blue-600 hover:scale-105"
-                              >
-                                View Profile
-                              </Button>
-                            </Link>
-                            <Link href={`/class/morning-vinyasa-flow`}>
-                              <Button
-                                size="sm"
-                                className="btn-modern-small bg-gradient-to-r from-purple-500 to-purple-600 hover:scale-105"
-                              >
-                                View Classes
-                              </Button>
-                            </Link>
-                            <Button
-                              size="sm"
-                              className="btn-modern-small bg-gradient-to-r from-green-500 to-green-600 hover:scale-105 flex-1"
-                              onClick={() => toast.success('🎯 Booking request sent!')}
-                            >
-                              Book Now
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
+                              <div className="flex flex-wrap gap-2">
+                                {instructor.specialties.map((specialty) => (
+                                  <Badge key={specialty} className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-200 border border-blue-400/30">
+                                    {specialty}
+                                  </Badge>
+                                ))}
+                              </div>
+
+                              <div className="flex space-x-2">
+                                {instructor.videoIntro && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="btn-modern-small border-white/20 text-white hover:bg-white/10"
+                                    onClick={() => toast.info('🎬 Video preview coming soon!')}
+                                  >
+                                    <Play className="h-4 w-4 mr-1" />
+                                    Preview
+                                  </Button>
+                                )}
+                                <Link href={`/instructor/${instructor.id}`}>
+                                  <Button
+                                    size="sm"
+                                    className="btn-modern-small bg-gradient-to-r from-blue-500 to-blue-600 hover:scale-105"
+                                  >
+                                    View Profile
+                                  </Button>
+                                </Link>
+                                <Link href={`/class/morning-vinyasa-flow`}>
+                                  <Button
+                                    size="sm"
+                                    className="btn-modern-small bg-gradient-to-r from-purple-500 to-purple-600 hover:scale-105"
+                                  >
+                                    View Classes
+                                  </Button>
+                                </Link>
+                                <Button
+                                  size="sm"
+                                  className="btn-modern-small bg-gradient-to-r from-green-500 to-green-600 hover:scale-105 flex-1"
+                                  onClick={() => toast.success('🎯 Booking request sent!')}
+                                >
+                                  Book Now
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </div>
+                    </div>
 
-              {/* Swipe Indicators */}
-              <div className="swipe-indicator mt-6">
-                {featuredInstructors.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => goToSlide(index)}
-                    className={`swipe-dot tap-target ${index === currentSwipe ? 'active' : ''}`}
-                  />
-                ))}
-              </div>
+                    {/* Swipe Indicators */}
+                    <div className="swipe-indicator mt-6">
+                      {featuredInstructors.map((_, index) => (
+                        <button
+                          key={index}
+                          onClick={() => goToSlide(index)}
+                          className={`swipe-dot tap-target ${index === currentSwipe ? 'active' : ''}`}
+                        />
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-20">
+                    <p className="text-white/60 text-lg">No featured instructors found matching your criteria</p>
+                    <p className="text-white/40 text-sm mt-2">Try adjusting your search or filters</p>
+                  </div>
+                )}
             </div>
 
             {/* All Instructors Grid */}
