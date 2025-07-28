@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 """
-ONBOARDING PERFORMANCE OPTIMIZATION TESTING
-Testing the performance improvements implemented for onboarding completion:
-- Optimistic UI Updates: Onboarding completes immediately with optimistic feedback
-- Background API Processing: API calls happen in background without blocking user
-- Optimized Backend Endpoint: Reduced database operations and data processing
-- Auto-save Functionality: Form data automatically saved to localStorage during progress
-- Form Data Recovery: Previous session data restored on page reload
+STAFFING MANAGEMENT AUTHENTICATION FIX TESTING
+Testing the authentication fix for StudioStaffingDashboard component:
+- Verify auth provider returns 'role' field correctly
+- Test merchant role access to staffing dashboard
+- Check staffing endpoints work with proper authentication
+- Validate role checking logic (role vs userRole fix)
 """
 
 import requests
