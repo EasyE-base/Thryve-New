@@ -12,7 +12,7 @@ import os
 from datetime import datetime
 
 # Configuration
-BASE_URL = "https://fc28d640-ef87-49de-b108-ffb68044b135.preview.emergentagent.com"
+BASE_URL = "https://3cb9b542-95ac-474d-a874-adf34a5d58c8.preview.emergentagent.com"
 SERVER_API_BASE = f"{BASE_URL}/server-api"
 
 class ComprehensiveBackendTester:
