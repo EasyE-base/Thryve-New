@@ -545,7 +545,7 @@ export default function CustomerDashboard() {
                       <CardContent>
                         <div className="h-48">
                           <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={sampleData.attendanceTrend}>
+                            <LineChart data={dashboardData.attendanceTrend}>
                               <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
                               <XAxis dataKey="month" stroke="#9CA3AF" />
                               <YAxis stroke="#9CA3AF" />
