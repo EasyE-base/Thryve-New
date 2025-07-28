@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Smart Data Importer Backend Testing Suite
-Tests the AI-powered data import and analysis endpoints
+AI Configuration Wizard Backend Testing Suite
+Tests the AI-powered studio configuration and analysis endpoints
 """
 
 import requests
