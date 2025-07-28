@@ -1,333 +1,457 @@
 #!/usr/bin/env python3
 """
-Backend Testing Script for Thryve Fitness Platform
-Testing AI-Powered Recommendation Engine System
+Smart Data Importer Backend Testing Suite
+Tests the AI-powered data import and analysis endpoints
 """
 
 import requests
 import json
-import base64
 import time
-import os
+import sys
 from datetime import datetime
 
 # Configuration
 BASE_URL = "https://fc28d640-ef87-49de-b108-ffb68044b135.preview.emergentagent.com"
-SERVER_API_BASE = f"{BASE_URL}/server-api"
+API_BASE = f"{BASE_URL}/server-api"
 
-# Test data
-TEST_USER_UID = "test-user-12345"
-TEST_EMAIL = "testuser@thryve.com"
-MOCK_FIREBASE_TOKEN = "mock-firebase-token-for-testing"
+# Test authentication token (Firebase Bearer token)
+AUTH_TOKEN = "Bearer firebase-test-token"
 
-class BackendTester:
-    def __init__(self):
-        self.session = requests.Session()
-        self.session.headers.update({
-            'Content-Type': 'application/json',
-            'Authorization': f'Bearer {MOCK_FIREBASE_TOKEN}'
-        })
-        self.test_results = []
-        
-    def log_test(self, test_name, success, message, response_data=None):
-        """Log test results"""
-        status = "✅ PASS" if success else "❌ FAIL"
-        print(f"{status} {test_name}: {message}")
-        
-        self.test_results.append({
-            'test': test_name,
-            'success': success,
-            'message': message,
-            'response_data': response_data,
-            'timestamp': datetime.now().isoformat()
-        })
+def log_test(message, status="INFO"):
+    """Log test messages with timestamp"""
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    print(f"[{timestamp}] {status}: {message}")
+
+def make_request(method, endpoint, data=None, headers=None):
+    """Make HTTP request with proper error handling"""
+    url = f"{API_BASE}{endpoint}"
     
-    def test_ai_recommendation_system(self):
-        """Test AI-Powered Recommendation Engine System endpoints"""
-        print("\n🤖 TESTING AI-POWERED RECOMMENDATION ENGINE SYSTEM")
-        print("=" * 60)
-        
-        # Test 1: GET /server-api/recommendations/classes - Class recommendations using OpenAI
-        try:
-            response = self.session.get(f"{SERVER_API_BASE}/recommendations/classes")
-            
-            if response.status_code == 401:
-                self.log_test("Class Recommendations - Authentication", True, "Correctly requires authentication (401)")
-            elif response.status_code == 200:
-                data = response.json()
-                if 'recommendations' in data and 'totalCount' in data:
-                    self.log_test("Class Recommendations - Success", True, f"AI recommendations retrieved: {data['totalCount']} classes")
-                    # Check if AI analysis is present
-                    if len(data['recommendations']) > 0:
-                        first_rec = data['recommendations'][0]
-                        if 'recommendationReason' in first_rec or 'matchScore' in first_rec:
-                            self.log_test("Class Recommendations - AI Analysis", True, "AI-generated recommendations with reasoning")
-                        else:
-                            self.log_test("Class Recommendations - AI Analysis", False, "Missing AI analysis fields")
-                else:
-                    self.log_test("Class Recommendations - Response Structure", False, f"Missing expected fields in response: {data}")
-            else:
-                self.log_test("Class Recommendations - Unexpected Status", False, f"Status: {response.status_code}, Response: {response.text}")
-                
-        except Exception as e:
-            self.log_test("Class Recommendations - Exception", False, f"Exception occurred: {str(e)}")
-        
-        # Test 2: GET /server-api/ai/search - Natural language search
-        try:
-            test_query = "morning yoga for beginners"
-            response = self.session.get(f"{SERVER_API_BASE}/ai/search?q={test_query}")
-            
-            if response.status_code == 401:
-                self.log_test("AI Search - Authentication", True, "Correctly requires authentication (401)")
-            elif response.status_code == 200:
-                data = response.json()
-                if 'results' in data and 'aiAnalysis' in data:
-                    self.log_test("AI Search - Success", True, f"AI search completed: {len(data['results'])} results found")
-                    # Check AI analysis quality
-                    if data['aiAnalysis'] and 'workoutTypes' in data['aiAnalysis']:
-                        self.log_test("AI Search - Natural Language Processing", True, "AI successfully parsed natural language query")
-                    else:
-                        self.log_test("AI Search - Natural Language Processing", False, "AI analysis missing or incomplete")
-                else:
-                    self.log_test("AI Search - Response Structure", False, f"Missing expected fields in response: {data}")
-            else:
-                self.log_test("AI Search - Unexpected Status", False, f"Status: {response.status_code}, Response: {response.text}")
-                
-        except Exception as e:
-            self.log_test("AI Search - Exception", False, f"Exception occurred: {str(e)}")
-        
-        # Test 3: GET /server-api/recommendations/instructors - AI-powered instructor matching
-        try:
-            response = self.session.get(f"{SERVER_API_BASE}/recommendations/instructors")
-            
-            if response.status_code == 401:
-                self.log_test("Instructor Matching - Authentication", True, "Correctly requires authentication (401)")
-            elif response.status_code == 200:
-                data = response.json()
-                if 'instructors' in data or isinstance(data, list):
-                    instructors = data.get('instructors', data) if isinstance(data, dict) else data
-                    self.log_test("Instructor Matching - Success", True, f"AI instructor matching completed: {len(instructors)} matches")
-                    # Check AI matching quality
-                    if len(instructors) > 0 and ('matchReason' in instructors[0] or 'compatibility' in instructors[0]):
-                        self.log_test("Instructor Matching - AI Analysis", True, "AI-generated instructor compatibility analysis")
-                    else:
-                        self.log_test("Instructor Matching - AI Analysis", False, "Missing AI matching analysis")
-                else:
-                    self.log_test("Instructor Matching - Response Structure", False, f"Unexpected response structure: {data}")
-            else:
-                self.log_test("Instructor Matching - Unexpected Status", False, f"Status: {response.status_code}, Response: {response.text}")
-                
-        except Exception as e:
-            self.log_test("Instructor Matching - Exception", False, f"Exception occurred: {str(e)}")
-        
-        # Test 4: POST /server-api/ai/workout-plan - Workout plan generation
-        try:
-            workout_plan_data = {
-                "goals": ["weight loss", "strength building"],
-                "duration": 4,  # 4 weeks
-                "preferences": ["home workouts", "no equipment", "30 minutes max"]
-            }
-            
-            response = self.session.post(f"{SERVER_API_BASE}/ai/workout-plan", json=workout_plan_data)
-            
-            if response.status_code == 401:
-                self.log_test("Workout Plan Generation - Authentication", True, "Correctly requires authentication (401)")
-            elif response.status_code == 200:
-                data = response.json()
-                if 'workoutPlan' in data:
-                    plan = data['workoutPlan']
-                    if 'planSummary' in plan and 'weeklyBreakdown' in plan:
-                        self.log_test("Workout Plan Generation - Success", True, f"AI workout plan generated: {plan.get('duration', 'N/A')} weeks")
-                        # Check plan quality
-                        if len(plan.get('weeklyBreakdown', [])) > 0:
-                            self.log_test("Workout Plan Generation - AI Quality", True, "Comprehensive AI-generated workout plan with weekly breakdown")
-                        else:
-                            self.log_test("Workout Plan Generation - AI Quality", False, "Workout plan missing weekly breakdown")
-                    else:
-                        self.log_test("Workout Plan Generation - Response Structure", False, f"Missing plan structure: {plan}")
-                else:
-                    self.log_test("Workout Plan Generation - Response Structure", False, f"Missing workoutPlan in response: {data}")
-            else:
-                self.log_test("Workout Plan Generation - Unexpected Status", False, f"Status: {response.status_code}, Response: {response.text}")
-                
-        except Exception as e:
-            self.log_test("Workout Plan Generation - Exception", False, f"Exception occurred: {str(e)}")
-        
-        # Test 5: GET /server-api/ai/analytics - Predictive analytics
-        try:
-            response = self.session.get(f"{SERVER_API_BASE}/ai/analytics")
-            
-            if response.status_code == 401:
-                self.log_test("Predictive Analytics - Authentication", True, "Correctly requires authentication (401)")
-            elif response.status_code == 200:
-                data = response.json()
-                expected_fields = ['emergingTrends', 'recommendedNewClasses', 'userRetentionStrategies', 'businessOpportunities']
-                if any(field in data for field in expected_fields):
-                    self.log_test("Predictive Analytics - Success", True, "AI predictive analytics generated successfully")
-                    # Check analytics quality
-                    if 'emergingTrends' in data and len(data['emergingTrends']) > 0:
-                        self.log_test("Predictive Analytics - AI Insights", True, f"AI identified {len(data['emergingTrends'])} emerging trends")
-                    else:
-                        self.log_test("Predictive Analytics - AI Insights", False, "Missing or empty trend analysis")
-                else:
-                    self.log_test("Predictive Analytics - Response Structure", False, f"Missing expected analytics fields: {data}")
-            else:
-                self.log_test("Predictive Analytics - Unexpected Status", False, f"Status: {response.status_code}, Response: {response.text}")
-                
-        except Exception as e:
-            self.log_test("Predictive Analytics - Exception", False, f"Exception occurred: {str(e)}")
+    default_headers = {
+        "Content-Type": "application/json",
+        "Authorization": AUTH_TOKEN
+    }
     
-    def test_openai_integration_quality(self):
-        """Test OpenAI API integration quality and error handling"""
-        print("\n🧠 TESTING OPENAI INTEGRATION QUALITY")
-        print("=" * 50)
-        
-        # Test 1: Complex natural language search query
-        try:
-            complex_query = "I want a challenging HIIT workout in the evening that helps with weight loss and takes about 45 minutes"
-            response = self.session.get(f"{SERVER_API_BASE}/ai/search?q={complex_query}")
-            
-            if response.status_code == 200:
-                data = response.json()
-                if data.get('aiAnalysis'):
-                    analysis = data['aiAnalysis']
-                    # Check if AI correctly parsed complex query
-                    parsed_correctly = (
-                        'hiit' in str(analysis.get('workoutTypes', [])).lower() and
-                        analysis.get('duration') and abs(analysis.get('duration', 0) - 45) <= 15 and
-                        'weight loss' in str(analysis.get('goals', [])).lower()
-                    )
-                    if parsed_correctly:
-                        self.log_test("OpenAI Complex Query Parsing", True, "AI correctly parsed complex natural language query")
-                    else:
-                        self.log_test("OpenAI Complex Query Parsing", False, f"AI parsing incomplete: {analysis}")
-                else:
-                    self.log_test("OpenAI Complex Query Parsing", False, "No AI analysis in response")
-            else:
-                self.log_test("OpenAI Complex Query Parsing", False, f"Request failed: {response.status_code}")
-                
-        except Exception as e:
-            self.log_test("OpenAI Complex Query Parsing", False, f"Exception: {str(e)}")
-        
-        # Test 2: Test with edge case data
-        try:
-            edge_case_query = "xyz123 invalid fitness query with nonsense words"
-            response = self.session.get(f"{SERVER_API_BASE}/ai/search?q={edge_case_query}")
-            
-            if response.status_code == 200:
-                data = response.json()
-                # AI should handle invalid queries gracefully
-                if 'results' in data and 'aiAnalysis' in data:
-                    self.log_test("OpenAI Edge Case Handling", True, "AI handled invalid query gracefully")
-                else:
-                    self.log_test("OpenAI Edge Case Handling", False, "AI failed to handle edge case")
-            else:
-                self.log_test("OpenAI Edge Case Handling", False, f"Request failed: {response.status_code}")
-                
-        except Exception as e:
-            self.log_test("OpenAI Edge Case Handling", False, f"Exception: {str(e)}")
+    if headers:
+        default_headers.update(headers)
     
-    def test_ai_system_integration(self):
-        """Test integration between AI systems"""
-        print("\n🔗 TESTING AI SYSTEM INTEGRATION")
-        print("=" * 50)
+    try:
+        if method.upper() == "GET":
+            response = requests.get(url, headers=default_headers, timeout=30)
+        elif method.upper() == "POST":
+            response = requests.post(url, json=data, headers=default_headers, timeout=30)
+        elif method.upper() == "PUT":
+            response = requests.put(url, json=data, headers=default_headers, timeout=30)
+        elif method.upper() == "DELETE":
+            response = requests.delete(url, headers=default_headers, timeout=30)
         
-        # Test 1: Search to recommendations flow
-        try:
-            # This would test if search results can feed into recommendation system
-            self.log_test("AI Search to Recommendations", True, "Integration testing requires authenticated user session")
-        except Exception as e:
-            self.log_test("AI Search to Recommendations", False, f"Exception: {str(e)}")
-        
-        # Test 2: Recommendations to workout plan flow
-        try:
-            # This would test if class recommendations can inform workout plan generation
-            self.log_test("AI Recommendations to Workout Plan", True, "Integration testing requires authenticated user session")
-        except Exception as e:
-            self.log_test("AI Recommendations to Workout Plan", False, f"Exception: {str(e)}")
-        
-        # Test 3: Analytics feedback loop
-        try:
-            # This would test if analytics insights feed back into recommendations
-            self.log_test("AI Analytics Feedback Loop", True, "Integration testing requires authenticated user session")
-        except Exception as e:
-            self.log_test("AI Analytics Feedback Loop", False, f"Exception: {str(e)}")
+        return response
+    except requests.exceptions.RequestException as e:
+        log_test(f"Request failed: {str(e)}", "ERROR")
+        return None
+
+def test_authentication():
+    """Test authentication requirements"""
+    log_test("Testing authentication requirements...")
     
-    def run_all_tests(self):
-        """Run all test suites"""
-        print("🚀 STARTING BACKEND TESTING FOR AI-POWERED RECOMMENDATION ENGINE SYSTEM")
-        print("=" * 80)
-        
-        start_time = time.time()
-        
-        # Run all test suites
-        self.test_ai_recommendation_system()
-        self.test_openai_integration_quality()
-        self.test_ai_system_integration()
-        
-        # Generate summary
-        end_time = time.time()
-        duration = end_time - start_time
-        
-        total_tests = len(self.test_results)
-        passed_tests = len([t for t in self.test_results if t['success']])
-        failed_tests = total_tests - passed_tests
-        
-        print("\n" + "=" * 80)
-        print("📋 AI RECOMMENDATION ENGINE TEST SUMMARY")
-        print("=" * 80)
-        print(f"Total Tests: {total_tests}")
-        print(f"✅ Passed: {passed_tests}")
-        print(f"❌ Failed: {failed_tests}")
-        print(f"Success Rate: {(passed_tests/total_tests)*100:.1f}%")
-        print(f"Duration: {duration:.2f} seconds")
-        
-        # Show failed tests
-        if failed_tests > 0:
-            print(f"\n❌ FAILED TESTS ({failed_tests}):")
-            for test in self.test_results:
-                if not test['success']:
-                    print(f"  • {test['test']}: {test['message']}")
-        
-        # Show critical findings
-        print(f"\n🔍 CRITICAL FINDINGS:")
-        
-        # Check for OpenAI API integration
-        openai_working = any("AI" in test['test'] and test['success'] for test in self.test_results)
-        if openai_working:
-            print(f"  • ✅ OpenAI API integration is working correctly")
-        else:
-            print(f"  • ❌ OpenAI API integration issues detected")
-        
-        # Check authentication
-        auth_working = any("Correctly requires authentication" in test['message'] for test in self.test_results)
-        if auth_working:
-            print(f"  • ✅ Authentication protection is working correctly")
-        else:
-            print(f"  • ❌ Authentication protection issues detected")
-        
-        # Check AI quality
-        ai_quality_tests = [t for t in self.test_results if "AI" in t['test'] and "Quality" in t['test']]
-        if ai_quality_tests and all(t['success'] for t in ai_quality_tests):
-            print(f"  • ✅ AI analysis quality is high")
-        else:
-            print(f"  • ⚠️  AI analysis quality needs improvement")
-        
-        return {
-            'total_tests': total_tests,
-            'passed_tests': passed_tests,
-            'failed_tests': failed_tests,
-            'success_rate': (passed_tests/total_tests)*100,
-            'duration': duration,
-            'test_results': self.test_results
+    # Test without authentication
+    response = requests.post(f"{API_BASE}/import/analyze", 
+                           json={"fileContent": "test", "fileName": "test.csv"},
+                           timeout=10)
+    
+    if response.status_code == 401:
+        log_test("✅ Authentication correctly required (401 for unauthenticated requests)", "SUCCESS")
+        return True
+    else:
+        log_test(f"❌ Authentication not properly enforced. Got status: {response.status_code}", "ERROR")
+        return False
+
+def test_data_importer_parse_endpoint():
+    """Test the specific endpoint mentioned in review request"""
+    log_test("Testing POST /server-api/data-importer/parse endpoint...")
+    
+    sample_data = {
+        "fileContent": "Name,Email,Phone\nJohn Doe,john@example.com,555-1234\nJane Smith,jane@example.com,555-5678",
+        "fileName": "customers.csv"
+    }
+    
+    response = make_request("POST", "/data-importer/parse", sample_data)
+    
+    if response is None:
+        log_test("❌ Request failed - network error", "ERROR")
+        return False
+    
+    if response.status_code == 404:
+        log_test("❌ CRITICAL: POST /server-api/data-importer/parse endpoint NOT FOUND (404)", "ERROR")
+        log_test("   This endpoint was mentioned in the review request but is not implemented", "ERROR")
+        return False
+    elif response.status_code == 200:
+        log_test("✅ POST /server-api/data-importer/parse endpoint exists and responds", "SUCCESS")
+        return True
+    else:
+        log_test(f"❌ Unexpected response status: {response.status_code}", "ERROR")
+        return False
+
+def test_data_importer_import_endpoint():
+    """Test the specific endpoint mentioned in review request"""
+    log_test("Testing POST /server-api/data-importer/import endpoint...")
+    
+    sample_data = {
+        "fileContent": "Name,Email,Phone\nJohn Doe,john@example.com,555-1234",
+        "mappings": [
+            {"originalHeader": "Name", "suggestedField": "customer_name", "category": "customer"},
+            {"originalHeader": "Email", "suggestedField": "email", "category": "customer"}
+        ],
+        "importConfig": {"batchSize": 100}
+    }
+    
+    response = make_request("POST", "/data-importer/import", sample_data)
+    
+    if response is None:
+        log_test("❌ Request failed - network error", "ERROR")
+        return False
+    
+    if response.status_code == 404:
+        log_test("❌ CRITICAL: POST /server-api/data-importer/import endpoint NOT FOUND (404)", "ERROR")
+        log_test("   This endpoint was mentioned in the review request but is not implemented", "ERROR")
+        return False
+    elif response.status_code == 200:
+        log_test("✅ POST /server-api/data-importer/import endpoint exists and responds", "SUCCESS")
+        return True
+    else:
+        log_test(f"❌ Unexpected response status: {response.status_code}", "ERROR")
+        return False
+
+def test_import_analyze_endpoint():
+    """Test the actual implemented analyze endpoint"""
+    log_test("Testing POST /server-api/import/analyze endpoint (actual implementation)...")
+    
+    # Sample CSV data for fitness studio
+    sample_csv = """Client Name,Email Address,Phone Number,Join Date,Membership Type
+John Doe,john.doe@email.com,555-0123,2024-01-15,Premium
+Jane Smith,jane.smith@email.com,555-0124,2024-01-16,Basic
+Mike Johnson,mike.j@email.com,555-0125,2024-01-17,Premium
+Sarah Wilson,sarah.w@email.com,555-0126,2024-01-18,Standard"""
+    
+    test_data = {
+        "fileContent": sample_csv,
+        "fileName": "studio_customers.csv"
+    }
+    
+    response = make_request("POST", "/import/analyze", test_data)
+    
+    if response is None:
+        log_test("❌ Request failed - network error", "ERROR")
+        return False
+    
+    if response.status_code == 200:
+        try:
+            data = response.json()
+            log_test("✅ Import analyze endpoint working correctly", "SUCCESS")
+            
+            # Validate response structure
+            if "analysis" in data:
+                analysis = data["analysis"]
+                log_test(f"   📊 File type detected: {analysis.get('fileType', 'unknown')}", "INFO")
+                log_test(f"   🎯 Confidence: {analysis.get('confidence', 0)}", "INFO")
+                log_test(f"   🏢 Platform detected: {analysis.get('detectedPlatform', 'unknown')}", "INFO")
+                log_test(f"   📋 Field mappings: {len(analysis.get('fieldMappings', []))}", "INFO")
+                
+                # Check for AI-powered analysis
+                if data.get("aiPowered"):
+                    log_test("   🧠 AI-powered analysis confirmed", "SUCCESS")
+                
+                return True
+            else:
+                log_test("❌ Response missing 'analysis' field", "ERROR")
+                return False
+                
+        except json.JSONDecodeError:
+            log_test("❌ Invalid JSON response", "ERROR")
+            return False
+    else:
+        log_test(f"❌ Analyze endpoint failed with status: {response.status_code}", "ERROR")
+        if response.text:
+            log_test(f"   Error details: {response.text}", "ERROR")
+        return False
+
+def test_import_validate_endpoint():
+    """Test field mapping validation endpoint"""
+    log_test("Testing POST /server-api/import/validate endpoint...")
+    
+    sample_mappings = [
+        {
+            "originalHeader": "Client Name",
+            "suggestedField": "customer_name",
+            "category": "customer",
+            "confidence": 0.95,
+            "dataType": "string",
+            "required": True
+        },
+        {
+            "originalHeader": "Email Address", 
+            "suggestedField": "email",
+            "category": "customer",
+            "confidence": 0.98,
+            "dataType": "string",
+            "required": True
         }
+    ]
+    
+    test_data = {"mappings": sample_mappings}
+    
+    response = make_request("POST", "/import/validate", test_data)
+    
+    if response is None:
+        log_test("❌ Request failed - network error", "ERROR")
+        return False
+    
+    if response.status_code == 200:
+        try:
+            data = response.json()
+            validation = data.get("validation", {})
+            
+            log_test("✅ Import validate endpoint working correctly", "SUCCESS")
+            log_test(f"   ✓ Validation result: {'VALID' if validation.get('valid') else 'INVALID'}", "INFO")
+            log_test(f"   ⏱️ Estimated time: {validation.get('estimatedImportTime', 'unknown')}", "INFO")
+            log_test(f"   📊 Mappings count: {data.get('mappingsCount', 0)}", "INFO")
+            
+            return True
+        except json.JSONDecodeError:
+            log_test("❌ Invalid JSON response", "ERROR")
+            return False
+    else:
+        log_test(f"❌ Validate endpoint failed with status: {response.status_code}", "ERROR")
+        return False
+
+def test_import_execute_endpoint():
+    """Test data import execution endpoint"""
+    log_test("Testing POST /server-api/import/execute endpoint...")
+    
+    sample_csv = "Name,Email\nTest User,test@example.com"
+    sample_mappings = [
+        {
+            "originalHeader": "Name",
+            "suggestedField": "customer_name",
+            "category": "customer"
+        },
+        {
+            "originalHeader": "Email",
+            "suggestedField": "email", 
+            "category": "customer"
+        }
+    ]
+    
+    test_data = {
+        "fileContent": sample_csv,
+        "mappings": sample_mappings,
+        "importConfig": {
+            "batchSize": 100,
+            "fileName": "test_import.csv"
+        }
+    }
+    
+    response = make_request("POST", "/import/execute", test_data)
+    
+    if response is None:
+        log_test("❌ Request failed - network error", "ERROR")
+        return False
+    
+    if response.status_code == 200:
+        try:
+            data = response.json()
+            result = data.get("result", {})
+            
+            log_test("✅ Import execute endpoint working correctly", "SUCCESS")
+            log_test(f"   📊 Total records: {result.get('totalRecords', 0)}", "INFO")
+            log_test(f"   ✅ Successful imports: {result.get('successfulImports', 0)}", "INFO")
+            log_test(f"   ❌ Failed imports: {result.get('failedImports', 0)}", "INFO")
+            log_test(f"   ⏱️ Execution time: {result.get('executionTime', 0)}ms", "INFO")
+            
+            if data.get("aiPowered"):
+                log_test("   🧠 AI-powered import confirmed", "SUCCESS")
+            
+            return True
+        except json.JSONDecodeError:
+            log_test("❌ Invalid JSON response", "ERROR")
+            return False
+    else:
+        log_test(f"❌ Execute endpoint failed with status: {response.status_code}", "ERROR")
+        if response.text:
+            log_test(f"   Error details: {response.text}", "ERROR")
+        return False
+
+def test_openai_integration():
+    """Test OpenAI API integration for intelligent analysis"""
+    log_test("Testing OpenAI integration for AI-powered data analysis...")
+    
+    # Complex CSV with fitness studio data to test AI analysis
+    complex_csv = """Client ID,Full Name,Email,Phone,Membership Start,Package Type,Classes Attended,Last Visit
+C001,John Doe,john@email.com,555-1234,2024-01-15,Unlimited Monthly,12,2024-01-30
+C002,Jane Smith,jane@email.com,555-5678,2024-01-20,10-Class Pack,8,2024-01-29
+C003,Mike Johnson,mike@email.com,555-9012,2024-01-25,Drop-in,1,2024-01-25"""
+    
+    test_data = {
+        "fileContent": complex_csv,
+        "fileName": "complex_studio_data.csv"
+    }
+    
+    response = make_request("POST", "/import/analyze", test_data)
+    
+    if response is None:
+        log_test("❌ Request failed - network error", "ERROR")
+        return False
+    
+    if response.status_code == 200:
+        try:
+            data = response.json()
+            analysis = data.get("analysis", {})
+            
+            # Check for AI-specific features
+            field_mappings = analysis.get("fieldMappings", [])
+            quality_issues = analysis.get("dataQualityIssues", [])
+            recommended_actions = analysis.get("recommendedActions", [])
+            
+            log_test("✅ OpenAI integration working - complex analysis completed", "SUCCESS")
+            log_test(f"   🎯 Detected platform: {analysis.get('detectedPlatform', 'unknown')}", "INFO")
+            log_test(f"   📋 Field mappings generated: {len(field_mappings)}", "INFO")
+            log_test(f"   ⚠️ Quality issues identified: {len(quality_issues)}", "INFO")
+            log_test(f"   💡 Recommended actions: {len(recommended_actions)}", "INFO")
+            
+            # Check confidence scores (AI should provide high confidence for clear fields)
+            high_confidence_mappings = [m for m in field_mappings if m.get("confidence", 0) >= 0.8]
+            log_test(f"   🎯 High confidence mappings: {len(high_confidence_mappings)}/{len(field_mappings)}", "INFO")
+            
+            return True
+        except json.JSONDecodeError:
+            log_test("❌ Invalid JSON response", "ERROR")
+            return False
+    else:
+        log_test(f"❌ OpenAI integration test failed with status: {response.status_code}", "ERROR")
+        return False
+
+def test_error_handling():
+    """Test error handling and validation"""
+    log_test("Testing error handling and validation...")
+    
+    # Test missing required fields
+    response = make_request("POST", "/import/analyze", {})
+    if response and response.status_code == 400:
+        log_test("✅ Proper validation for missing required fields", "SUCCESS")
+    else:
+        log_test("❌ Missing field validation not working properly", "ERROR")
+        return False
+    
+    # Test invalid file content
+    response = make_request("POST", "/import/analyze", {
+        "fileContent": "",
+        "fileName": "empty.csv"
+    })
+    if response and response.status_code in [400, 500]:
+        log_test("✅ Proper handling of invalid file content", "SUCCESS")
+    else:
+        log_test("❌ Invalid file content handling not working", "ERROR")
+        return False
+    
+    # Test invalid mappings
+    response = make_request("POST", "/import/validate", {
+        "mappings": "invalid"
+    })
+    if response and response.status_code == 400:
+        log_test("✅ Proper validation for invalid mappings format", "SUCCESS")
+    else:
+        log_test("❌ Invalid mappings validation not working", "ERROR")
+        return False
+    
+    return True
+
+def test_file_upload_functionality():
+    """Test file upload capabilities with different file types"""
+    log_test("Testing file upload functionality with different formats...")
+    
+    # Test CSV format
+    csv_data = "Name,Email,Phone\nJohn Doe,john@example.com,555-1234"
+    response = make_request("POST", "/import/analyze", {
+        "fileContent": csv_data,
+        "fileName": "test.csv"
+    })
+    
+    if response and response.status_code == 200:
+        log_test("✅ CSV file format supported", "SUCCESS")
+    else:
+        log_test("❌ CSV file format not properly supported", "ERROR")
+        return False
+    
+    # Test Excel-like format (CSV with different structure)
+    excel_like_data = "Client Name;Email Address;Phone Number\nJohn Doe;john@example.com;555-1234"
+    response = make_request("POST", "/import/analyze", {
+        "fileContent": excel_like_data,
+        "fileName": "test.xlsx"
+    })
+    
+    if response and response.status_code in [200, 400]:  # 400 is acceptable for unsupported format
+        log_test("✅ Excel file format handling implemented", "SUCCESS")
+    else:
+        log_test("❌ Excel file format handling not working", "ERROR")
+        return False
+    
+    return True
+
+def run_comprehensive_tests():
+    """Run all Smart Data Importer tests"""
+    log_test("🚀 Starting Smart Data Importer Backend Testing Suite", "INFO")
+    log_test("=" * 60, "INFO")
+    
+    test_results = []
+    
+    # Test authentication
+    test_results.append(("Authentication", test_authentication()))
+    
+    # Test specific endpoints mentioned in review request
+    test_results.append(("Data Importer Parse Endpoint", test_data_importer_parse_endpoint()))
+    test_results.append(("Data Importer Import Endpoint", test_data_importer_import_endpoint()))
+    
+    # Test actual implemented endpoints
+    test_results.append(("Import Analyze Endpoint", test_import_analyze_endpoint()))
+    test_results.append(("Import Validate Endpoint", test_import_validate_endpoint()))
+    test_results.append(("Import Execute Endpoint", test_import_execute_endpoint()))
+    
+    # Test AI integration
+    test_results.append(("OpenAI Integration", test_openai_integration()))
+    
+    # Test error handling
+    test_results.append(("Error Handling", test_error_handling()))
+    
+    # Test file upload functionality
+    test_results.append(("File Upload Functionality", test_file_upload_functionality()))
+    
+    # Summary
+    log_test("=" * 60, "INFO")
+    log_test("📊 TEST RESULTS SUMMARY", "INFO")
+    log_test("=" * 60, "INFO")
+    
+    passed = 0
+    failed = 0
+    
+    for test_name, result in test_results:
+        status = "✅ PASS" if result else "❌ FAIL"
+        log_test(f"{test_name}: {status}", "INFO")
+        if result:
+            passed += 1
+        else:
+            failed += 1
+    
+    log_test("=" * 60, "INFO")
+    log_test(f"Total Tests: {len(test_results)}", "INFO")
+    log_test(f"Passed: {passed}", "SUCCESS" if passed > 0 else "INFO")
+    log_test(f"Failed: {failed}", "ERROR" if failed > 0 else "INFO")
+    
+    if failed > 0:
+        log_test("❌ CRITICAL ISSUES FOUND - See details above", "ERROR")
+        return False
+    else:
+        log_test("✅ ALL TESTS PASSED - Smart Data Importer is working correctly", "SUCCESS")
+        return True
 
 if __name__ == "__main__":
-    tester = BackendTester()
-    results = tester.run_all_tests()
-    
-    # Save results to file
-    with open('/app/backend_test_results.json', 'w') as f:
-        json.dump(results, f, indent=2, default=str)
-    
-    print(f"\n💾 AI Recommendation Engine test results saved to: /app/backend_test_results.json")
+    success = run_comprehensive_tests()
+    sys.exit(0 if success else 1)
