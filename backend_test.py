@@ -1,12 +1,19 @@
 #!/usr/bin/env python3
 
 """
-Backend Testing Script for Onboarding Bug Fixes
-Tests the specific endpoints mentioned in the review request:
-1. POST /server-api/onboarding/complete - Test businessName extraction and studioName saving
-2. GET /server-api/profile - Test studioName field return
-3. GET /server-api/analytics/dashboard - Test real data or proper empty state
-4. GET /server-api/classes - Test proper data or empty array
+Backend API Testing for Class Creation Select Component Fix
+Testing the specific fix for React Select component where value="" was changed to value="none"
+
+ENDPOINTS TO TEST:
+1. GET /server-api/studio/instructors - Should return available instructors for the studio
+2. POST /server-api/studio/classes - Should create a new class successfully
+
+TEST SCENARIOS:
+- Create Class with No Instructor (assignedInstructorId: "", assignedInstructorName: "")
+- Create Class with Assigned Instructor
+- Get Available Instructors
+- Verify proper authentication protection
+- Test Select component fix scenarios (handling "none" value)
 """
 
 import requests
