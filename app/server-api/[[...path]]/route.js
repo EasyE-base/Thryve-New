@@ -1118,6 +1118,122 @@ async function handlePOST(request) {
     console.log('SERVER-API POST Request:', path)
 
     // ========================================
+    // AI CONFIGURATION WIZARD ENDPOINTS
+    // ========================================
+
+    // Analyze studio requirements for intelligent configuration
+    if (path === '/ai-wizard/analyze') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { studioData } = body
+
+        if (!studioData) {
+          return NextResponse.json({ error: 'Studio data is required' }, { status: 400 })
+        }
+
+        const analysis = await AIConfigurationWizard.analyzeStudioRequirements(studioData)
+        
+        return NextResponse.json({
+          ...analysis,
+          userId: firebaseUser.uid,
+          timestamp: new Date().toISOString()
+        })
+      } catch (error) {
+        console.error('Studio analysis error:', error)
+        return NextResponse.json({ error: error.message }, { status: 500 })
+      }
+    }
+
+    // Generate complete studio configuration
+    if (path === '/ai-wizard/generate-config') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { analysisResults, preferences } = body
+
+        if (!analysisResults) {
+          return NextResponse.json({ error: 'Analysis results are required' }, { status: 400 })
+        }
+
+        const configuration = await AIConfigurationWizard.generateStudioConfiguration(analysisResults, preferences)
+        
+        return NextResponse.json({
+          ...configuration,
+          userId: firebaseUser.uid,
+          timestamp: new Date().toISOString()
+        })
+      } catch (error) {
+        console.error('Configuration generation error:', error)
+        return NextResponse.json({ error: error.message }, { status: 500 })
+      }
+    }
+
+    // Apply generated configuration to studio
+    if (path === '/ai-wizard/apply-config') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { configuration } = body
+
+        if (!configuration) {
+          return NextResponse.json({ error: 'Configuration is required' }, { status: 400 })
+        }
+
+        const result = await AIConfigurationWizard.applyConfiguration(firebaseUser.uid, configuration)
+        
+        return NextResponse.json({
+          ...result,
+          userId: firebaseUser.uid,
+          timestamp: new Date().toISOString()
+        })
+      } catch (error) {
+        console.error('Configuration application error:', error)
+        return NextResponse.json({ error: error.message }, { status: 500 })
+      }
+    }
+
+    // Generate configuration alternatives
+    if (path === '/ai-wizard/alternatives') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { currentConfig, preferences } = body
+
+        if (!currentConfig) {
+          return NextResponse.json({ error: 'Current configuration is required' }, { status: 400 })
+        }
+
+        const alternatives = await AIConfigurationWizard.generateConfigurationAlternatives(currentConfig, preferences)
+        
+        return NextResponse.json({
+          ...alternatives,
+          userId: firebaseUser.uid,
+          timestamp: new Date().toISOString()
+        })
+      } catch (error) {
+        console.error('Configuration alternatives error:', error)
+        return NextResponse.json({ error: error.message }, { status: 500 })
+      }
+    }
+
+    // ========================================
     // AI-POWERED SMART DATA IMPORTER ENDPOINTS
     // ========================================
 
