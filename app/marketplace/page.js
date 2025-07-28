@@ -487,7 +487,7 @@ export default function MarketplacePage() {
                     <p className="text-white/40 text-sm mt-2">Try adjusting your search or filters</p>
                   </div>
                 )}
-            </div>
+              </div>
 
             {/* All Instructors Grid */}
             <div className="animate-fadeInUp delay-500">
