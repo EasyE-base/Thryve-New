@@ -976,7 +976,7 @@ export default function CustomerDashboard() {
                 <h2 className="text-3xl font-bold text-white mb-6">Notifications</h2>
                 
                 <div className="space-y-4">
-                  {sampleData.notifications.map((notification) => (
+                  {dashboardData.notifications.map((notification) => (
                     <Card key={notification.id} className="bg-white/10 backdrop-blur-md border-white/20">
                       <CardContent className="p-4">
                         <div className="flex items-start space-x-3">
