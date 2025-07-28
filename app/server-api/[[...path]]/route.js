@@ -1103,6 +1103,71 @@ async function handleGET(request) {
     }
 
     // ========================================
+    // CUSTOMER DASHBOARD DATA ENDPOINTS
+    // ========================================
+
+    // Get user's bookings for dashboard analytics
+    if (path === '/user/bookings') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const bookings = await database.collection('bookings').find({
+          userId: firebaseUser.uid
+        }).sort({ createdAt: -1 }).toArray()
+
+        return NextResponse.json({
+          bookings: bookings.map(booking => ({
+            id: booking._id,
+            title: booking.title,
+            className: booking.className,
+            type: booking.type,
+            date: booking.date,
+            time: booking.time,
+            instructor: booking.instructor,
+            studio: booking.studio,
+            amount: booking.amount,
+            status: booking.status,
+            createdAt: booking.createdAt
+          }))
+        })
+      } catch (error) {
+        console.error('User bookings fetch error:', error)
+        return NextResponse.json({ error: 'Failed to fetch bookings' }, { status: 500 })
+      }
+    }
+
+    // Get user's favorites
+    if (path === '/user/favorites') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const favorites = await database.collection('user_favorites').find({
+          userId: firebaseUser.uid
+        }).toArray()
+
+        return NextResponse.json({
+          favorites: favorites.map(favorite => ({
+            id: favorite._id,
+            name: favorite.name,
+            type: favorite.type,
+            rating: favorite.rating,
+            image: favorite.image,
+            createdAt: favorite.createdAt
+          }))
+        })
+      } catch (error) {
+        console.error('User favorites fetch error:', error)
+        return NextResponse.json({ error: 'Failed to fetch favorites' }, { status: 500 })
+      }
+    }
+
+    // ========================================
     // PROFILE AND STUDIO DATA ENDPOINTS
     // ========================================
 
