@@ -25,6 +25,287 @@ AUTH_HEADERS = {
     'Content-Type': 'application/json'
 }
 
+def test_onboarding_completion_fix():
+    """
+    Test the onboarding completion fix mentioned in the review request:
+    - POST /server-api/onboarding/complete with proper authentication
+    - POST /server-api/onboarding/complete without authentication (should return 401)
+    - Verify businessName is extracted and saved as studioName
+    - Verify onboarding_complete is set to true
+    """
+    
+    print("🧪 TESTING: ONBOARDING COMPLETION FIX")
+    print("=" * 80)
+    
+    # Test data for onboarding completion
+    test_data = {
+        "role": "merchant",
+        "profileData": {
+            "firstName": "John",
+            "lastName": "Doe", 
+            "businessName": "Test Studio",
+            "businessType": "Gym/Fitness Center",
+            "phone": "555-123-4567",
+            "address": "123 Main St",
+            "city": "New York",
+            "state": "NY",
+            "zipCode": "10001",
+            "description": "A modern fitness studio",
+            "amenities": ["Parking", "Showers"],
+            "operatingHours": {
+                "monday": {"open": "06:00", "close": "22:00"},
+                "tuesday": {"open": "06:00", "close": "22:00"}
+            }
+        }
+    }
+    
+    # Test 1: Onboarding completion without authentication (should return 401)
+    print("\n🔒 TEST 1: Onboarding completion without authentication")
+    print("-" * 50)
+    
+    try:
+        response = requests.post(
+            f"{SERVER_API_BASE}/onboarding/complete",
+            headers={"Content-Type": "application/json"},
+            json=test_data,
+            timeout=10
+        )
+        
+        success = response.status_code == 401
+        message = "Correctly returns 401 Unauthorized" if success else f"Expected 401, got {response.status_code}"
+        status_icon = "✅" if success else "❌"
+        print(f"{status_icon} POST /server-api/onboarding/complete (no auth)")
+        print(f"   Status: {response.status_code}")
+        print(f"   Result: {message}")
+        
+        if not success:
+            print(f"   Response: {response.text}")
+            
+    except Exception as e:
+        print(f"❌ POST /server-api/onboarding/complete (no auth)")
+        print(f"   Status: ERROR")
+        print(f"   Result: Request failed: {str(e)}")
+    
+    # Test 2: Onboarding completion with authentication
+    print("\n🔐 TEST 2: Onboarding completion with proper authentication")
+    print("-" * 50)
+    
+    try:
+        response = requests.post(
+            f"{SERVER_API_BASE}/onboarding/complete",
+            headers=AUTH_HEADERS,
+            json=test_data,
+            timeout=10
+        )
+        
+        success = response.status_code == 200
+        if success:
+            try:
+                response_data = response.json()
+                has_required_fields = "message" in response_data and "redirect" in response_data
+                if has_required_fields:
+                    expected_redirect = "/dashboard/merchant"
+                    correct_redirect = response_data.get('redirect') == expected_redirect
+                    message = f"Success - Message: {response_data.get('message')}, Redirect: {response_data.get('redirect')}"
+                    if not correct_redirect:
+                        success = False
+                        message += f" (Expected redirect: {expected_redirect})"
+                else:
+                    success = False
+                    message = "Missing required response fields (message, redirect)"
+            except:
+                success = False
+                message = "Invalid JSON response"
+        else:
+            message = f"Expected 200, got {response.status_code}"
+            
+        status_icon = "✅" if success else "❌"
+        print(f"{status_icon} POST /server-api/onboarding/complete (with auth)")
+        print(f"   Status: {response.status_code}")
+        print(f"   Result: {message}")
+        
+        if not success:
+            print(f"   Response: {response.text}")
+            
+    except Exception as e:
+        print(f"❌ POST /server-api/onboarding/complete (with auth)")
+        print(f"   Status: ERROR")
+        print(f"   Result: Request failed: {str(e)}")
+    
+    # Test 3: Verify profile data is saved correctly (businessName -> studioName)
+    print("\n📊 TEST 3: Verify profile data is saved correctly")
+    print("-" * 50)
+    
+    try:
+        response = requests.get(
+            f"{SERVER_API_BASE}/profile",
+            headers=AUTH_HEADERS,
+            timeout=10
+        )
+        
+        success = response.status_code == 200
+        if success:
+            try:
+                profile_data = response.json()
+                profile = profile_data.get('profile', {})
+                
+                # Check if businessName was saved as studioName
+                studio_name = profile.get('studioName')
+                expected_studio_name = test_data['profileData']['businessName']
+                
+                # Check if onboarding_complete is set to true
+                onboarding_complete = profile.get('onboarding_complete')
+                
+                # Check role is correct
+                role = profile.get('role')
+                
+                checks = []
+                if studio_name == expected_studio_name:
+                    checks.append(f"✅ studioName: {studio_name}")
+                else:
+                    checks.append(f"❌ studioName: expected '{expected_studio_name}', got '{studio_name}'")
+                
+                if onboarding_complete is True:
+                    checks.append("✅ onboarding_complete: true")
+                else:
+                    checks.append(f"❌ onboarding_complete: expected true, got {onboarding_complete}")
+                
+                if role == 'merchant':
+                    checks.append("✅ role: merchant")
+                else:
+                    checks.append(f"❌ role: expected 'merchant', got '{role}'")
+                
+                message = "Profile validation: " + ", ".join(checks)
+                success = all("✅" in check for check in checks)
+                
+            except Exception as e:
+                success = False
+                message = f"Failed to parse profile data: {str(e)}"
+        else:
+            message = f"Could not retrieve profile data, status: {response.status_code}"
+            
+        status_icon = "✅" if success else "❌"
+        print(f"{status_icon} GET /server-api/profile")
+        print(f"   Status: {response.status_code}")
+        print(f"   Result: {message}")
+        
+        if not success:
+            print(f"   Response: {response.text}")
+            
+    except Exception as e:
+        print(f"❌ GET /server-api/profile")
+        print(f"   Status: ERROR")
+        print(f"   Result: Request failed: {str(e)}")
+    
+    # Test 4: Test with different role (customer)
+    print("\n👤 TEST 4: Test onboarding completion with customer role")
+    print("-" * 50)
+    
+    customer_data = {
+        "role": "customer",
+        "profileData": {
+            "firstName": "Jane",
+            "lastName": "Smith",
+            "phone": "555-987-6543",
+            "emergencyContact": {
+                "name": "John Smith",
+                "phone": "555-111-2222"
+            }
+        }
+    }
+    
+    try:
+        response = requests.post(
+            f"{SERVER_API_BASE}/onboarding/complete",
+            headers=AUTH_HEADERS,
+            json=customer_data,
+            timeout=10
+        )
+        
+        success = response.status_code == 200
+        if success:
+            try:
+                response_data = response.json()
+                expected_redirect = "/dashboard/customer"
+                correct_redirect = response_data.get('redirect') == expected_redirect
+                message = f"Customer onboarding - Redirect: {response_data.get('redirect')}"
+                if not correct_redirect:
+                    success = False
+                    message += f" (Expected: {expected_redirect})"
+            except:
+                success = False
+                message = "Invalid JSON response"
+        else:
+            message = f"Expected 200, got {response.status_code}"
+            
+        status_icon = "✅" if success else "❌"
+        print(f"{status_icon} POST /server-api/onboarding/complete (customer)")
+        print(f"   Status: {response.status_code}")
+        print(f"   Result: {message}")
+        
+        if not success:
+            print(f"   Response: {response.text}")
+            
+    except Exception as e:
+        print(f"❌ POST /server-api/onboarding/complete (customer)")
+        print(f"   Status: ERROR")
+        print(f"   Result: Request failed: {str(e)}")
+    
+    # Test 5: Test missing role parameter
+    print("\n⚠️  TEST 5: Test missing role parameter")
+    print("-" * 50)
+    
+    invalid_data = {
+        "profileData": {
+            "firstName": "Test",
+            "lastName": "User"
+        }
+    }
+    
+    try:
+        response = requests.post(
+            f"{SERVER_API_BASE}/onboarding/complete",
+            headers=AUTH_HEADERS,
+            json=invalid_data,
+            timeout=10
+        )
+        
+        success = response.status_code == 400
+        message = "Correctly returns 400 for missing role" if success else f"Expected 400, got {response.status_code}"
+        status_icon = "✅" if success else "❌"
+        print(f"{status_icon} POST /server-api/onboarding/complete (missing role)")
+        print(f"   Status: {response.status_code}")
+        print(f"   Result: {message}")
+        
+        if not success:
+            print(f"   Response: {response.text}")
+            
+    except Exception as e:
+        print(f"❌ POST /server-api/onboarding/complete (missing role)")
+        print(f"   Status: ERROR")
+        print(f"   Result: Request failed: {str(e)}")
+
+def main():
+    """Main test execution"""
+    print("🚀 STARTING ONBOARDING COMPLETION FIX TESTING")
+    print(f"🌐 Base URL: {BASE_URL}")
+    print(f"🔗 Server API URL: {SERVER_API_BASE}")
+    print(f"📅 Test Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    
+    try:
+        test_onboarding_completion_fix()
+        
+        print("\n" + "=" * 80)
+        print("🎯 ONBOARDING COMPLETION FIX TESTING COMPLETED")
+        print("=" * 80)
+        
+    except Exception as e:
+        print(f"\n❌ CRITICAL ERROR: {str(e)}")
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
+
 def print_test_header(test_name):
     """Print formatted test header"""
     print(f"\n{'='*80}")
