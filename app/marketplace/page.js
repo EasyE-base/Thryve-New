@@ -488,6 +488,7 @@ export default function MarketplacePage() {
                   </div>
                 )}
               </div>
+            </div>
 
             {/* All Instructors Grid */}
             <div className="animate-fadeInUp delay-500">
