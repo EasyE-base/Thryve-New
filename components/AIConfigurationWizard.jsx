@@ -844,7 +844,7 @@ const AIConfigurationWizard = () => {
             {steps.map((step, index) => {
               const Icon = step.icon
               const isActive = index === currentStep
-              const isCompleted = index < currentStep || isCompleted
+              const isStepCompleted = index < currentStep || isCompleted
               
               return (
                 <div key={index} className="flex items-center">
