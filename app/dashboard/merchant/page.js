@@ -152,7 +152,8 @@ export default function MerchantDashboard() {
     { id: 'payments', label: 'Payments', icon: CreditCard },
     { id: 'packages', label: 'Packages', icon: Package },
     { id: 'settings', label: 'Settings', icon: Settings },
-    { id: 'ai-tools', label: 'AI Tools', icon: Bot }
+    { id: 'ai-tools', label: 'AI Tools', icon: Bot },
+    { id: 'debug', label: 'Profile Debug', icon: Settings }
   ]
 
   return (
