@@ -1688,6 +1688,18 @@ async function handlePOST(request) {
             $set: {
               role,
               profileData: profileData || {},
+              // Extract key fields from profileData for easy access
+              name: profileData?.businessName || profileData?.firstName + ' ' + profileData?.lastName,
+              studioName: profileData?.businessName,
+              businessType: profileData?.businessType,
+              phone: profileData?.phone,
+              address: profileData?.address,
+              city: profileData?.city,
+              state: profileData?.state,
+              zipCode: profileData?.zipCode,
+              description: profileData?.description,
+              amenities: profileData?.amenities,
+              operatingHours: profileData?.operatingHours,
               onboarding_complete: true,
               updatedAt: new Date()
             }
