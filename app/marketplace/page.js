@@ -469,7 +469,6 @@ export default function MarketplacePage() {
                         </div>
                       ))}
                     </div>
-                    </div>
 
                     {/* Swipe Indicators */}
                     <div className="swipe-indicator mt-6">
