@@ -20,134 +20,47 @@ import StaffingChatComponent from '@/components/StaffingChatComponent'
 
 const localizer = momentLocalizer(moment)
 
-// Sample instructor data
-const instructorData = {
-  instructor: {
-    name: 'Jane',
-    firstName: 'Jane',
-    lastName: 'Doe',
-    email: 'jane.doe@thryve.com',
-    role: 'Yoga Instructor',
-    bio: 'Certified yoga instructor with 5+ years experience',
-    rating: 4.8,
-    totalClasses: 342,
-    avatar: null
-  },
-  upcomingClasses: [
-    {
-      id: 1,
-      name: 'Morning Flow Yoga',
-      location: 'Studio A',
-      time: '9:00 AM',
-      date: 'Today',
-      booked: 12,
-      capacity: 15,
-      type: 'Yoga',
-      color: 'green'
-    },
-    {
-      id: 2,
-      name: 'HIIT Express',
-      location: 'Studio B',
-      time: '12:30 PM',
-      date: 'Today',
-      booked: 8,
-      capacity: 10,
-      type: 'HIIT',
-      color: 'red'
-    },
-    {
-      id: 3,
-      name: 'Private Session - Sarah M.',
-      location: 'Private Room 2',
-      time: '3:00 PM',
-      date: 'Today',
-      booked: 1,
-      capacity: 1,
-      type: 'Private',
-      color: 'blue'
-    }
-  ],
-  dailyChecklist: [
-    { id: 1, task: 'Prepare Morning Flow sequence', completed: false, priority: 'high', note: 'Focus on gentle warm-up for beginners' },
-    { id: 2, task: 'Client Alert: Sarah M.', completed: false, priority: 'medium', note: 'Wrist injury - Modify poses for private session' },
-    { id: 3, task: 'Welcome New Students', completed: false, priority: 'low', note: 'First-timers in Morning Flow' },
-    { id: 4, task: 'Client Birthday: Michael T.', completed: false, priority: 'medium', note: 'Attending HIIT Express' },
-    { id: 5, task: 'Update HIIT playlist', completed: false, priority: 'low', note: 'Add new tracks for today\'s session' }
-  ],
-  performance: {
-    classesThisMonth: 42,
-    fillRate: 87,
-    avgRating: 4.8,
-    fillRateChange: 12,
-    ratingChange: 5
-  },
-  performanceChart: [
-    { week: 'Week 1', classes: 12, fillRate: 85 },
-    { week: 'Week 2', classes: 15, fillRate: 88 },
-    { week: 'Week 3', classes: 9, fillRate: 82 },
-    { week: 'Week 4', classes: 18, fillRate: 90 },
-    { week: 'Week 5', classes: 16, fillRate: 87 },
-    { week: 'Week 6', classes: 14, fillRate: 89 },
-    { week: 'Week 7', classes: 17, fillRate: 91 },
-    { week: 'Week 8', classes: 10, fillRate: 85 }
-  ],
-  messages: [
-    { id: 1, sender: 'Sarah M.', avatar: 'SM', time: '10:23 AM', message: 'Hi Jane, just wanted to confirm our private session today at 3 PM. Also, my wrist is feeling better!', unread: true },
-    { id: 2, sender: 'John W.', avatar: 'JW', time: 'Yesterday', message: 'Thanks for the great HIIT class yesterday! I was wondering if you could share the playlist?', unread: false },
-    { id: 3, sender: 'Thryve Studio', avatar: 'TS', time: '2 days ago', message: 'Reminder: Staff meeting this Friday at 2 PM. We\'ll be discussing the new class schedule.', unread: false }
-  ],
-  earnings: {
-    monthlyTotal: 2450,
-    monthlyChange: 15,
-    classes: [
-      { name: 'Morning Flow Yoga', classes: 12, earnings: 960, rate: 80 },
-      { name: 'HIIT Express', classes: 8, earnings: 720, rate: 90 },
-      { name: 'Private Sessions', classes: 5, earnings: 750, rate: 150 }
-    ],
-    bonuses: [
-      { name: 'High Attendance Bonus', progress: 75, target: 100 },
-      { name: 'Perfect Attendance', progress: 100, target: 100 },
-      { name: 'New Client Referrals', progress: 40, target: 100 }
-    ]
-  },
-  events: [
-    {
-      id: 1,
-      title: 'Morning Flow Yoga',
-      start: new Date(2024, 5, 17, 9, 0),
-      end: new Date(2024, 5, 17, 10, 0),
-      resource: { type: 'Yoga', location: 'Studio A', booked: 12, capacity: 15 }
-    },
-    {
-      id: 2,
-      title: 'HIIT Express',
-      start: new Date(2024, 5, 17, 12, 30),
-      end: new Date(2024, 5, 17, 13, 30),
-      resource: { type: 'HIIT', location: 'Studio B', booked: 8, capacity: 10 }
-    },
-    {
-      id: 3,
-      title: 'Private Session',
-      start: new Date(2024, 5, 17, 15, 0),
-      end: new Date(2024, 5, 17, 16, 0),
-      resource: { type: 'Private', location: 'Private Room 2', booked: 1, capacity: 1 }
-    }
-  ]
-}
-
 export default function InstructorDashboard() {
-  const { user, role } = useAuth()
+  const { user, role, loading: authLoading } = useAuth()
+  const [loading, setLoading] = useState(true)
+  const [activeSection, setActiveSection] = useState('dashboard')
+  const [selectedDate, setSelectedDate] = useState(new Date())
+  const [instructorData, setInstructorData] = useState({
+    instructor: {
+      name: 'Loading...',
+      firstName: '',
+      lastName: '',
+      email: '',
+      role: 'Instructor',
+      bio: '',
+      rating: 0,
+      totalClasses: 0,
+      avatar: null
+    },
+    upcomingClasses: [],
+    dailyChecklist: [],
+    performance: {
+      classesThisMonth: 0,
+      fillRate: 0,
+      avgRating: 0,
+      fillRateChange: 0,
+      ratingChange: 0
+    },
+    performanceChart: [],
+    messages: [],
+    earnings: {
+      thisMonth: 0,
+      thisWeek: 0,
+      total: 0
+    }
+  })
   const router = useRouter()
   const [activeTab, setActiveTab] = useState('overview')
   const [instructor, setInstructor] = useState(null)
   const [payouts, setPayouts] = useState([])
   const [instructorClasses, setInstructorClasses] = useState([])
-  const [loading, setLoading] = useState(true)
   const [stripeConnectSuccess, setStripeConnectSuccess] = useState(false)
-  const [activeSection, setActiveSection] = useState('dashboard')
   const [calendarView, setCalendarView] = useState('week')
-  const [selectedDate, setSelectedDate] = useState(new Date())
   const [checklist, setChecklist] = useState(instructorData.dailyChecklist)
 
   useEffect(() => {
