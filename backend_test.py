@@ -22,7 +22,7 @@ import sys
 from datetime import datetime
 
 # Configuration
-BASE_URL = "https://fc28d640-ef87-49de-b108-ffb68044b135.preview.emergentagent.com"
+BASE_URL = "http://localhost:3000"
 SERVER_API_BASE = f"{BASE_URL}/server-api"
 
 # Test authentication token (mock Firebase token)
