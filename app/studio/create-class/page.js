@@ -272,7 +272,7 @@ export default function StudioCreateClassPage() {
                     <SelectValue placeholder="Choose an instructor (optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No instructor assigned</SelectItem>
+                    <SelectItem value="none">No instructor assigned</SelectItem>
                     {availableInstructors.map((instructor) => (
                       <SelectItem key={instructor.userId} value={instructor.userId}>
                         {instructor.name || instructor.email.split('@')[0]} 
