@@ -1102,6 +1102,31 @@ async function handleGET(request) {
       }
     }
 
+    // ========================================
+    // AI CONFIGURATION WIZARD ENDPOINTS (GET)
+    // ========================================
+
+    // Get ongoing recommendations for studio optimization
+    if (path === '/ai-wizard/recommendations') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const recommendations = await AIConfigurationWizard.getOngoingRecommendations(firebaseUser.uid)
+        
+        return NextResponse.json({
+          ...recommendations,
+          userId: firebaseUser.uid,
+          timestamp: new Date().toISOString()
+        })
+      } catch (error) {
+        console.error('Ongoing recommendations error:', error)
+        return NextResponse.json({ error: error.message }, { status: 500 })
+      }
+    }
+
     return NextResponse.json({ error: 'Endpoint not found' }, { status: 404 })
   } catch (error) {
     console.error('GET Error:', error)
