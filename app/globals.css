@@ -1,8 +1,44 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Manrope:wght@400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Klipsan Brand Colors */
+:root {
+  --deep-charcoal: #1C1C1E;
+  --off-white: #FAF9F6;
+  --electric-blue: #1E90FF;
+  --warm-sand: #EADBC8;
+  --soft-slate: #7A7A7A;
+}
+
+/* Custom base styles */
+@layer base {
+  body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--off-white);
+    color: var(--deep-charcoal);
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Manrope', sans-serif;
+    font-weight: 700;
+  }
+  
+  .hero-gradient {
+    background: linear-gradient(135deg, var(--deep-charcoal) 0%, #2A2A2E 100%);
+  }
+  
+  .text-gradient {
+    background: linear-gradient(135deg, var(--electric-blue), #4A90E2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
 
 /* Modern Design System for Thryve Fitness */
 @layer base {
