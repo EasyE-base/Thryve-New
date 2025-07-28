@@ -138,9 +138,12 @@ export default function MerchantOnboarding() {
       
       console.log('🔥 Merchant Onboarding: Completing onboarding for user:', user.uid, 'role:', userRole)
 
-      const response = await fetch('/api/onboarding/complete', {
+      const response = await fetch('/server-api/onboarding/complete', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await user.getIdToken()}`
+        },
         body: JSON.stringify({
           role: userRole,
           profileData: formData
