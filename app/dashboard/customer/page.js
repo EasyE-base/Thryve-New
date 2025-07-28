@@ -19,74 +19,177 @@ import 'react-big-calendar/lib/css/react-big-calendar.css'
 
 const localizer = momentLocalizer(moment)
 
-// Sample data for the dashboard
-const sampleData = {
-  weeklyAttendance: [
-    { day: 'Mon', classes: 2 },
-    { day: 'Tue', classes: 1 },
-    { day: 'Wed', classes: 3 },
-    { day: 'Thu', classes: 2 },
-    { day: 'Fri', classes: 1 },
-    { day: 'Sat', classes: 4 },
-    { day: 'Sun', classes: 2 }
-  ],
-  classTypes: [
-    { name: 'Yoga', value: 40, color: '#8B5CF6' },
-    { name: 'HIIT', value: 30, color: '#EF4444' },
-    { name: 'Pilates', value: 20, color: '#10B981' },
-    { name: 'Strength', value: 10, color: '#F59E0B' }
-  ],
-  attendanceTrend: [
-    { month: 'Jan', classes: 12 },
-    { month: 'Feb', classes: 15 },
-    { month: 'Mar', classes: 18 },
-    { month: 'Apr', classes: 22 },
-    { month: 'May', classes: 25 },
-    { month: 'Jun', classes: 28 }
-  ],
-  favorites: [
-    { id: 1, name: 'Zen Yoga Studio', type: 'studio', rating: 4.9, image: null },
-    { id: 2, name: 'Sarah Johnson', type: 'instructor', rating: 4.8, image: null },
-    { id: 3, name: 'FitCore Gym', type: 'studio', rating: 4.7, image: null },
-    { id: 4, name: 'Mike Rodriguez', type: 'instructor', rating: 4.9, image: null }
-  ],
-  notifications: [
-    { id: 1, type: 'reminder', message: 'Morning Yoga starts in 30 minutes', time: '30m ago' },
-    { id: 2, type: 'waitlist', message: 'Spot available in HIIT Bootcamp', time: '2h ago' },
-    { id: 3, type: 'change', message: 'Instructor changed for Pilates class', time: '1d ago' }
-  ],
-  events: [
-    {
-      id: 1,
-      title: 'Morning Yoga',
-      start: new Date(2024, 5, 15, 8, 0),
-      end: new Date(2024, 5, 15, 9, 0),
-      resource: { type: 'Yoga', instructor: 'Sarah Johnson' }
-    },
-    {
-      id: 2,
-      title: 'HIIT Bootcamp',
-      start: new Date(2024, 5, 15, 18, 0),
-      end: new Date(2024, 5, 15, 19, 0),
-      resource: { type: 'HIIT', instructor: 'Mike Rodriguez' }
-    },
-    {
-      id: 3,
-      title: 'Pilates Core',
-      start: new Date(2024, 5, 16, 10, 0),
-      end: new Date(2024, 5, 16, 11, 0),
-      resource: { type: 'Pilates', instructor: 'Emma Chen' }
-    }
-  ]
-}
-
 export default function CustomerDashboard() {
   const { user, role, loading: authLoading } = useAuth()
   const [loading, setLoading] = useState(true)
   const [activeSection, setActiveSection] = useState('overview')
   const [calendarView, setCalendarView] = useState('month')
   const [selectedDate, setSelectedDate] = useState(new Date())
+  const [dashboardData, setDashboardData] = useState({
+    weeklyAttendance: [],
+    classTypes: [],
+    attendanceTrend: [],
+    favorites: [],
+    notifications: [],
+    events: []
+  })
   const router = useRouter()
+
+  // Fetch dashboard data from API
+  const fetchDashboardData = async () => {
+    if (!user) return
+
+    try {
+      const token = await user.getIdToken()
+      
+      // Fetch user's booking/attendance data
+      const bookingsResponse = await fetch('/server-api/user/bookings', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      
+      let weeklyAttendance = []
+      let classTypes = []
+      let attendanceTrend = []
+      let events = []
+      
+      if (bookingsResponse.ok) {
+        const bookingsData = await bookingsResponse.json()
+        const bookings = bookingsData.bookings || []
+        
+        // Process bookings for charts
+        weeklyAttendance = processWeeklyAttendance(bookings)
+        classTypes = processClassTypes(bookings)
+        attendanceTrend = processAttendanceTrend(bookings)
+        events = processEventsFromBookings(bookings)
+      }
+
+      // Fetch user's favorites
+      const favoritesResponse = await fetch('/server-api/user/favorites', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      
+      let favorites = []
+      if (favoritesResponse.ok) {
+        const favoritesData = await favoritesResponse.json()
+        favorites = favoritesData.favorites || []
+      }
+
+      // Fetch notifications
+      const notificationsResponse = await fetch('/server-api/notifications/inbox', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      
+      let notifications = []
+      if (notificationsResponse.ok) {
+        const notificationsData = await notificationsResponse.json()
+        notifications = notificationsData.notifications || []
+      }
+
+      setDashboardData({
+        weeklyAttendance,
+        classTypes,
+        attendanceTrend,
+        favorites,
+        notifications,
+        events
+      })
+
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error)
+      // Set empty data structure on error
+      setDashboardData({
+        weeklyAttendance: [],
+        classTypes: [],
+        attendanceTrend: [],
+        favorites: [],
+        notifications: [],
+        events: []
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Helper function to process weekly attendance from bookings
+  const processWeeklyAttendance = (bookings) => {
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    const weekData = days.map(day => ({ day, classes: 0 }))
+    
+    bookings.forEach(booking => {
+      if (booking.date) {
+        const bookingDate = new Date(booking.date)
+        const dayIndex = (bookingDate.getDay() + 6) % 7 // Convert to Mon=0 format
+        weekData[dayIndex].classes += 1
+      }
+    })
+    
+    return weekData
+  }
+
+  // Helper function to process class types from bookings
+  const processClassTypes = (bookings) => {
+    const typeColors = {
+      'Yoga': '#8B5CF6',
+      'HIIT': '#EF4444', 
+      'Pilates': '#10B981',
+      'Strength': '#F59E0B',
+      'Dance': '#EC4899',
+      'Other': '#6B7280'
+    }
+    
+    const typeCounts = {}
+    bookings.forEach(booking => {
+      const type = booking.type || 'Other'
+      typeCounts[type] = (typeCounts[type] || 0) + 1
+    })
+    
+    return Object.entries(typeCounts).map(([name, value]) => ({
+      name,
+      value,
+      color: typeColors[name] || typeColors['Other']
+    }))
+  }
+
+  // Helper function to process attendance trend from bookings
+  const processAttendanceTrend = (bookings) => {
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    const currentYear = new Date().getFullYear()
+    const trendData = []
+    
+    for (let i = 0; i < 6; i++) {
+      const date = new Date(currentYear, new Date().getMonth() - 5 + i, 1)
+      const monthName = months[date.getMonth()]
+      const classCount = bookings.filter(booking => {
+        if (!booking.date) return false
+        const bookingDate = new Date(booking.date)
+        return bookingDate.getMonth() === date.getMonth() && bookingDate.getFullYear() === date.getFullYear()
+      }).length
+      
+      trendData.push({ month: monthName, classes: classCount })
+    }
+    
+    return trendData
+  }
+
+  // Helper function to process events from bookings
+  const processEventsFromBookings = (bookings) => {
+    return bookings.slice(0, 10).map(booking => ({
+      id: booking.id,
+      title: booking.title || booking.className || 'Class',
+      start: new Date(booking.date + 'T' + (booking.time || '09:00')),
+      end: new Date(booking.date + 'T' + (booking.time || '09:00')),
+      resource: {
+        type: booking.type || 'Class',
+        instructor: booking.instructor || 'TBD'
+      }
+    })).filter(event => !isNaN(event.start))
+  }
 
   useEffect(() => {
     if (authLoading) return
