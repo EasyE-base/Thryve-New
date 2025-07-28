@@ -7,8 +7,12 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Building2, Users, Calendar as CalendarIcon, DollarSign, Plus, BarChart3, Settings, LogOut, User, TrendingUp, Activity, CreditCard, Package, Bot, Search, Bell, ChevronUp, ChevronDown, Eye, Edit, Trash2, Download, Filter, MapPin, Clock, Star, AlertCircle } from 'lucide-react'
+import { 
+  Building2, Users, Calendar as CalendarIcon, DollarSign, Plus, BarChart3, Settings, LogOut, 
+  User, TrendingUp, Activity, CreditCard, Package, Bot, Search, Bell, ChevronUp, ChevronDown, 
+  Eye, Edit, Trash2, Download, Filter, MapPin, Clock, Star, AlertCircle, Home, Menu, X,
+  ArrowUpRight, ArrowDownRight, Zap, Target, Award, CheckCircle
+} from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import Link from 'next/link'
@@ -30,6 +34,7 @@ export default function MerchantDashboard() {
   const [dashboardData, setDashboardData] = useState(null)
   const [calendarView, setCalendarView] = useState('week')
   const [selectedDate, setSelectedDate] = useState(new Date())
+  const [sidebarOpen, setSidebarOpen] = useState(true)
   const router = useRouter()
 
   // Fetch studio profile and dashboard data
@@ -102,87 +107,188 @@ export default function MerchantDashboard() {
       await signOut()
       router.push('/')
     } catch (error) {
-      console.error('Sign out error:', error)
-      toast.error('Failed to sign out')
-    }
-  }
-
-  const eventStyleGetter = (event, start, end, isSelected) => {
-    const typeColors = {
-      'Yoga': '#8B5CF6',
-      'HIIT': '#EF4444',
-      'Pilates': '#10B981',
-      'Strength': '#F59E0B'
-    }
-    
-    const backgroundColor = typeColors[event.resource?.type] || '#3B82F6'
-    
-    return {
-      style: {
-        backgroundColor,
-        borderRadius: '6px',
-        opacity: 0.8,
-        color: 'white',
-        border: '0px',
-        display: 'block'
-      }
+      console.error('Error signing out:', error)
+      toast.error('Error signing out')
     }
   }
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-400 border-t-transparent mx-auto mb-4"></div>
-          <p className="text-white text-xl font-light">Loading Merchant Dashboard...</p>
+      <div className="min-h-screen bg-[#FAF9F6] flex items-center justify-center">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="w-12 h-12 border-4 border-[#1E90FF] border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-[#7A7A7A]">Loading your studio dashboard...</p>
         </div>
       </div>
     )
   }
 
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: Activity },
-    { id: 'classes', label: 'Classes', icon: CalendarIcon },
-    { id: 'staffing', label: 'Staffing', icon: Users },
-    { id: 'calendar', label: 'Calendar', icon: CalendarIcon },
-    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-    { id: 'clients', label: 'Clients', icon: User },
-    { id: 'instructors', label: 'Instructors', icon: User },
-    { id: 'payments', label: 'Payments', icon: CreditCard },
-    { id: 'packages', label: 'Packages', icon: Package },
-    { id: 'settings', label: 'Settings', icon: Settings },
-    { id: 'ai-tools', label: 'AI Tools', icon: Bot },
-    { id: 'debug', label: 'Profile Debug', icon: Settings }
+    { id: 'dashboard', label: 'Overview', icon: Home, color: 'bg-[#1E90FF]/10 text-[#1E90FF]' },
+    { id: 'classes', label: 'Classes', icon: CalendarIcon, color: 'bg-green-500/10 text-green-600' },
+    { id: 'staffing', label: 'Staff', icon: Users, color: 'bg-purple-500/10 text-purple-600' },
+    { id: 'calendar', label: 'Calendar', icon: CalendarIcon, color: 'bg-orange-500/10 text-orange-600' },
+    { id: 'analytics', label: 'Analytics', icon: BarChart3, color: 'bg-pink-500/10 text-pink-600' },
+    { id: 'clients', label: 'Clients', icon: User, color: 'bg-indigo-500/10 text-indigo-600' },
+    { id: 'instructors', label: 'Instructors', icon: User, color: 'bg-teal-500/10 text-teal-600' },
+    { id: 'payments', label: 'Payments', icon: CreditCard, color: 'bg-emerald-500/10 text-emerald-600' },
+    { id: 'ai-tools', label: 'AI Tools', icon: Bot, color: 'bg-violet-500/10 text-violet-600' },
+    { id: 'settings', label: 'Settings', icon: Settings, color: 'bg-gray-500/10 text-gray-600' }
+  ]
+
+  // Mock data for dashboard stats
+  const statsData = [
+    {
+      title: 'Total Revenue',
+      value: '$12,486',
+      change: '+12.5%',
+      trend: 'up',
+      icon: DollarSign,
+      color: 'text-green-600'
+    },
+    {
+      title: 'Bookings Today',
+      value: '42',
+      change: '+8.2%',
+      trend: 'up',
+      icon: CalendarIcon,
+      color: 'text-[#1E90FF]'
+    },
+    {
+      title: 'Active Members',
+      value: '1,247',
+      change: '+5.7%',
+      trend: 'up',
+      icon: Users,
+      color: 'text-purple-600'
+    },
+    {
+      title: 'Class Fill Rate',
+      value: '87%',
+      change: '-2.1%',
+      trend: 'down',
+      icon: Target,
+      color: 'text-orange-600'
+    }
+  ]
+
+  // Mock recent classes data
+  const recentClasses = [
+    {
+      id: 1,
+      name: 'Morning Yoga Flow',
+      instructor: 'Sarah Johnson',
+      time: '7:00 AM',
+      date: 'Today',
+      booked: 15,
+      capacity: 20,
+      status: 'active'
+    },
+    {
+      id: 2,
+      name: 'HIIT Bootcamp',
+      instructor: 'Mike Rodriguez',
+      time: '6:30 PM',
+      date: 'Today',
+      booked: 18,
+      capacity: 18,
+      status: 'full'
+    },
+    {
+      id: 3,
+      name: 'Pilates Fundamentals',
+      instructor: 'Emma Chen',
+      time: '12:00 PM',
+      date: 'Tomorrow',
+      booked: 8,
+      capacity: 15,
+      status: 'active'
+    }
   ]
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+    <div className="min-h-screen bg-[#FAF9F6]">
+      {/* Top Navigation */}
+      <nav className="bg-white border-b border-[#EADBC8]/30 px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="p-2 hover:bg-[#EADBC8]/20 rounded-lg transition-colors lg:hidden"
+            >
+              {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+            <Link href="/" className="text-2xl font-bold text-[#1C1C1E]">
+              Thryve
+            </Link>
+            <Badge className="bg-[#1E90FF]/10 text-[#1E90FF] border-[#1E90FF]/20">
+              Studio Owner
+            </Badge>
+          </div>
+
+          <div className="flex items-center space-x-4">
+            <div className="relative hidden md:block">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#7A7A7A] h-4 w-4" />
+              <input
+                type="text"
+                placeholder="Search classes, members..."
+                className="bg-[#FAF9F6] border border-[#EADBC8] rounded-xl pl-10 pr-4 py-2 text-[#1C1C1E] placeholder-[#7A7A7A] focus:outline-none focus:ring-2 focus:ring-[#1E90FF]/20 focus:border-[#1E90FF] w-64"
+              />
+            </div>
+            
+            <div className="relative">
+              <Button variant="ghost" size="sm" className="p-2">
+                <Bell className="h-5 w-5 text-[#7A7A7A]" />
+                <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full"></span>
+              </Button>
+            </div>
+
+            <div className="flex items-center space-x-3">
+              <Avatar className="h-10 w-10 ring-2 ring-[#1E90FF]/20">
+                <AvatarFallback className="bg-[#1E90FF] text-white">
+                  {studioProfile?.studioName?.[0] || 'S'}
+                </AvatarFallback>
+              </Avatar>
+              <div className="hidden md:block">
+                <p className="text-sm font-medium text-[#1C1C1E]">
+                  {studioProfile?.studioName || 'Studio Owner'}
+                </p>
+                <p className="text-xs text-[#7A7A7A]">Welcome back!</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </nav>
+
       <div className="flex">
         {/* Sidebar */}
-        <div className="w-64 bg-black/20 backdrop-blur-md border-r border-white/10 min-h-screen">
+        <div className={`${sidebarOpen ? 'w-72' : 'w-20'} bg-white border-r border-[#EADBC8]/30 min-h-screen transition-all duration-300`}>
           <div className="p-6">
-            <div className="flex items-center space-x-3 mb-8">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center">
-                <Building2 className="h-6 w-6 text-white" />
-              </div>
-              <span className="text-xl font-bold text-white">Thryve</span>
+            <div className={`${sidebarOpen ? 'block' : 'hidden'} mb-8`}>
+              <h3 className="text-lg font-semibold text-[#1C1C1E] mb-2">Studio Management</h3>
+              <p className="text-sm text-[#7A7A7A]">Everything you need to run your studio</p>
             </div>
             
             <nav className="space-y-2">
               {navItems.map((item) => {
                 const Icon = item.icon
+                const isActive = activeSection === item.id
                 return (
                   <button
                     key={item.id}
                     onClick={() => setActiveSection(item.id)}
-                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                      activeSection === item.id
-                        ? 'bg-blue-500/20 text-blue-200 border-l-2 border-blue-400'
-                        : 'text-white/70 hover:text-white hover:bg-white/10'
+                    className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+                      isActive
+                        ? 'bg-[#1E90FF]/10 text-[#1E90FF] shadow-md border-l-4 border-[#1E90FF]'
+                        : 'text-[#7A7A7A] hover:text-[#1C1C1E] hover:bg-[#EADBC8]/20'
                     }`}
                   >
-                    <Icon className="h-5 w-5" />
-                    <span className="font-medium">{item.label}</span>
+                    <div className={`p-2 rounded-lg ${isActive ? item.color : 'bg-gray-100 text-gray-500 group-hover:bg-[#EADBC8]/40'}`}>
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    {sidebarOpen && (
+                      <span className="font-medium">{item.label}</span>
+                    )}
                   </button>
                 )
               })}
@@ -190,867 +296,377 @@ export default function MerchantDashboard() {
           </div>
           
           {/* User Profile in Sidebar */}
-          <div className="absolute bottom-0 w-64 p-6 border-t border-white/10 bg-black/10">
-            <div className="flex items-center space-x-3 mb-4">
-              <Avatar className="h-10 w-10 ring-2 ring-blue-400/50">
-                <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white">
-                  <Building2 className="h-5 w-5" />
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <p className="text-white font-medium text-sm">
-                  {studioProfile?.studioName || studioProfile?.name || user?.email || 'Studio Manager'}
-                </p>
-                <p className="text-blue-200 text-xs">Studio Manager</p>
+          {sidebarOpen && (
+            <div className="absolute bottom-0 w-72 p-6 border-t border-[#EADBC8]/30 bg-white">
+              <div className="flex items-center space-x-3 mb-4">
+                <Avatar className="h-12 w-12 ring-2 ring-[#1E90FF]/20">
+                  <AvatarFallback className="bg-gradient-to-br from-[#1E90FF] to-[#4A90E2] text-white">
+                    {studioProfile?.studioName?.[0] || 'S'}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-[#1C1C1E] truncate">
+                    {studioProfile?.studioName || 'Your Studio'}
+                  </p>
+                  <p className="text-xs text-[#7A7A7A] truncate">
+                    {studioProfile?.businessType || 'Fitness Studio'}
+                  </p>
+                </div>
               </div>
+              <Button
+                onClick={handleSignOut}
+                variant="outline"
+                size="sm"
+                className="w-full border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
             </div>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={handleSignOut}
-              className="w-full text-white hover:text-blue-400 hover:bg-white/10 border border-white/20"
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign Out
-            </Button>
-          </div>
+          )}
         </div>
 
         {/* Main Content */}
-        <div className="flex-1">
-          {/* Header */}
-          <header className="bg-black/10 backdrop-blur-md border-b border-white/10 px-8 py-6">
-            <div className="flex justify-between items-center">
+        <div className="flex-1 overflow-hidden">
+          {/* Content Header */}
+          <div className="bg-white border-b border-[#EADBC8]/30 px-8 py-6">
+            <div className="flex justify-between items-start">
               <div>
-                <h1 className="text-3xl font-bold text-white">
+                <h1 className="text-3xl font-bold text-[#1C1C1E] mb-2">
                   {activeSection === 'dashboard' && 'Dashboard Overview'}
                   {activeSection === 'classes' && 'Class Management'}
-                  {activeSection === 'staffing' && 'Staffing Management'}
+                  {activeSection === 'staffing' && 'Staff Management'}
                   {activeSection === 'calendar' && 'Calendar & Scheduling'}
-                  {activeSection === 'analytics' && 'Advanced Analytics'}
-                  {activeSection === 'clients' && 'Client Management'}
+                  {activeSection === 'analytics' && 'Analytics & Insights'}
+                  {activeSection === 'clients' && 'Member Management'}
                   {activeSection === 'instructors' && 'Instructor Management'}
-                  {activeSection === 'payments' && 'Payments & Financials'}
-                  {activeSection === 'packages' && 'Packages & Memberships'}
-                  {activeSection === 'settings' && 'Settings & Customization'}
-                  {activeSection === 'ai-tools' && 'AI Tools & Insights'}
-                  {activeSection === 'debug' && 'Profile Debug'}
+                  {activeSection === 'payments' && 'Payments & Revenue'}
+                  {activeSection === 'ai-tools' && 'AI-Powered Tools'}
+                  {activeSection === 'settings' && 'Studio Settings'}
                 </h1>
-                <p className="text-blue-200">Welcome to your studio management hub</p>
+                <p className="text-[#7A7A7A]">
+                  {activeSection === 'dashboard' && 'Track your studio performance at a glance'}
+                  {activeSection === 'classes' && 'Create, manage, and optimize your class schedule'}
+                  {activeSection === 'staffing' && 'Manage your team and instructor schedules'}
+                  {activeSection === 'calendar' && 'View and manage all your studio activities'}
+                  {activeSection === 'analytics' && 'Deep insights into your studio performance'}
+                  {activeSection === 'clients' && 'Manage your member base and relationships'}
+                  {activeSection === 'instructors' && 'Manage your instructor team and assignments'}
+                  {activeSection === 'payments' && 'Track revenue, payments, and financial metrics'}
+                  {activeSection === 'ai-tools' && 'AI-powered features to grow your studio'}
+                  {activeSection === 'settings' && 'Customize your studio preferences and setup'}
+                </p>
               </div>
-              <div className="flex items-center space-x-4">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-400 h-4 w-4" />
-                  <input
-                    type="text"
-                    placeholder="Search..."
-                    className="bg-white/10 backdrop-blur-md border-white/20 border rounded-lg pl-10 pr-4 py-2 text-white placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
-                  />
-                </div>
-                <div className="relative">
-                  <Bell className="h-6 w-6 text-white" />
-                  <span className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full"></span>
-                </div>
-                <div className="flex items-center space-x-2 bg-white/10 backdrop-blur-md rounded-lg px-3 py-2">
-                  <span className="text-white font-medium">This Month</span>
-                  <ChevronDown className="h-4 w-4 text-white" />
-                </div>
+              <div className="flex space-x-3">
+                <Button size="sm" variant="outline" className="border-[#EADBC8] text-[#7A7A7A] hover:bg-[#EADBC8]/20">
+                  <Download className="h-4 w-4 mr-2" />
+                  Export
+                </Button>
+                <Button size="sm" className="bg-[#1E90FF] hover:bg-[#1976D2] text-white">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Quick Action
+                </Button>
               </div>
             </div>
-          </header>
+          </div>
 
-          {/* Content */}
-          <div className="p-8 overflow-y-auto max-h-screen">
+          {/* Content Area */}
+          <div className="p-8 overflow-y-auto max-h-[calc(100vh-180px)]">
             
-            {/* Dashboard Section */}
+            {/* Dashboard Overview */}
             {activeSection === 'dashboard' && (
-              <div className="space-y-6">
-                {/* Welcome Message */}
-                <div className="bg-gradient-to-r from-blue-600/20 to-purple-600/20 border border-blue-500/30 rounded-xl p-6">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-purple-600 rounded-xl flex items-center justify-center">
-                      <Building2 className="h-6 w-6 text-white" />
+              <div className="space-y-8">
+                {/* Welcome Card */}
+                <Card className="border-0 shadow-lg bg-gradient-to-r from-[#1E90FF] to-[#4A90E2] text-white">
+                  <CardContent className="p-8">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h2 className="text-2xl font-bold mb-2">
+                          Welcome back, {studioProfile?.studioName || 'Studio Owner'}! 🎉
+                        </h2>
+                        <p className="text-blue-100 text-lg">
+                          {studioClasses.length === 0 
+                            ? "Ready to set up your studio? Let's get your first classes live!"
+                            : `Your studio is thriving with ${studioClasses.length} active classes.`
+                          }
+                        </p>
+                      </div>
+                      <div className="hidden md:block">
+                        <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center">
+                          <Building2 className="h-12 w-12" />
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-white text-xl font-semibold">
-                        Welcome to {studioProfile?.studioName || studioProfile?.name || 'Your Studio'}!
-                      </h3>
-                      <p className="text-blue-200">
-                        {studioClasses.length === 0 
-                          ? "Let's get your studio set up. Start by creating your first class or use our AI Configuration Wizard."
-                          : `You have ${studioClasses.length} classes configured and ready for bookings.`
-                        }
-                      </p>
-                    </div>
-                  </div>
-                  
-                  {studioClasses.length === 0 && (
-                    <div className="mt-4 flex space-x-3">
-                      <Button 
-                        onClick={() => router.push('/studio/create-class')}
-                        className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Create First Class
-                      </Button>
-                      <Button 
-                        onClick={() => router.push('/ai-configuration-wizard')}
-                        variant="outline"
-                        className="border-blue-400/50 text-blue-300 hover:bg-blue-500/20"
-                      >
-                        <Bot className="h-4 w-4 mr-2" />
-                        AI Setup Wizard
-                      </Button>
-                    </div>
-                  )}
-                </div>
-
-                {/* KPIs Section */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  <Card className="bg-white/10 backdrop-blur-md border-white/20">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="text-blue-200 text-sm font-medium">Total Revenue</h4>
-                          <p className="text-2xl font-bold text-white">
-                            ${dashboardData?.totalRevenue || '0'}
-                          </p>
-                          <div className="flex items-center text-xs mt-1">
-                            <span className="text-blue-300">
-                              {dashboardData?.totalRevenue ? 'this month' : 'No revenue data yet'}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="w-10 h-10 bg-green-500/20 rounded-lg flex items-center justify-center">
-                          <DollarSign className="h-5 w-5 text-green-400" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="bg-white/10 backdrop-blur-md border-white/20">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="text-blue-200 text-sm font-medium">Total Bookings</h4>
-                          <p className="text-2xl font-bold text-white">
-                            {dashboardData?.totalBookings || '0'}
-                          </p>
-                          <div className="flex items-center text-xs mt-1">
-                            <span className="text-blue-300">
-                              {dashboardData?.totalBookings ? 'this month' : 'No bookings yet'}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                          <CalendarIcon className="h-5 w-5 text-blue-400" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="bg-white/10 backdrop-blur-md border-white/20">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="text-blue-200 text-sm font-medium">Active Classes</h4>
-                          <p className="text-2xl font-bold text-white">
-                            {studioClasses.length}
-                          </p>
-                          <div className="flex items-center text-xs mt-1">
-                            <span className="text-blue-300">
-                              {studioClasses.length > 0 ? 'currently scheduled' : 'Create your first class'}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                          <Activity className="h-5 w-5 text-purple-400" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="bg-white/10 backdrop-blur-md border-white/20">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h4 className="text-blue-200 text-sm font-medium">New Clients</h4>
-                          <p className="text-2xl font-bold text-white">
-                            {dashboardData?.newClients || '0'}
-                          </p>
-                          <div className="flex items-center text-xs mt-1">
-                            <span className="text-blue-300">
-                              {dashboardData?.newClients ? 'this week' : 'No new clients yet'}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="w-10 h-10 bg-orange-500/20 rounded-lg flex items-center justify-center">
-                          <Users className="h-5 w-5 text-orange-400" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Quick Actions */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
-                    <CardContent className="p-6">
-                      <div className="text-center">
-                        <Plus className="h-12 w-12 text-blue-400 mx-auto mb-4" />
-                        <h4 className="text-lg font-semibold text-white mb-2">Create New Class</h4>
-                        <p className="text-blue-200 text-sm mb-4">Add a new class to your schedule</p>
+                    
+                    {studioClasses.length === 0 && (
+                      <div className="mt-6 flex space-x-3">
                         <Button 
                           onClick={() => router.push('/studio/create-class')}
-                          className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
+                          className="bg-white text-[#1E90FF] hover:bg-gray-100"
                         >
-                          Create Class
+                          <Plus className="h-4 w-4 mr-2" />
+                          Create First Class
                         </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
-                    <CardContent className="p-6">
-                      <div className="text-center">
-                        <Settings className="h-12 w-12 text-purple-400 mx-auto mb-4" />
-                        <h4 className="text-lg font-semibold text-white mb-2">Studio Settings</h4>
-                        <p className="text-blue-200 text-sm mb-4">Configure your studio preferences</p>
                         <Button 
-                          onClick={() => setActiveSection('settings')}
-                          className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white"
+                          onClick={() => router.push('/ai-configuration-wizard')}
+                          variant="outline"
+                          className="border-white text-white hover:bg-white/20"
                         >
-                          Manage Settings
+                          <Bot className="h-4 w-4 mr-2" />
+                          Use AI Wizard
                         </Button>
                       </div>
-                    </CardContent>
-                  </Card>
+                    )}
+                  </CardContent>
+                </Card>
 
-                  <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
-                    <CardContent className="p-6">
-                      <div className="text-center">
-                        <BarChart3 className="h-12 w-12 text-green-400 mx-auto mb-4" />
-                        <h4 className="text-lg font-semibold text-white mb-2">View Analytics</h4>
-                        <p className="text-blue-200 text-sm mb-4">Track your studio performance</p>
-                        <Button 
-                          onClick={() => setActiveSection('analytics')}
-                          className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white"
-                        >
-                          View Analytics
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Recent Activity */}
-                {dashboardData?.recentActivity && dashboardData.recentActivity.length > 0 && (
-                  <Card className="bg-white/10 backdrop-blur-md border-white/20">
-                    <CardHeader>
-                      <CardTitle className="text-white">Recent Activity</CardTitle>
-                      <CardDescription className="text-blue-200">
-                        Latest updates from your studio
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-3">
-                        {dashboardData.recentActivity.map((activity, index) => (
-                          <div key={index} className="flex items-center space-x-3 p-3 bg-white/5 rounded-lg">
-                            <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                            <div className="flex-1">
-                              <p className="text-white text-sm">{activity.message}</p>
-                              <p className="text-blue-300 text-xs">{activity.time}</p>
+                {/* Stats Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {statsData.map((stat, index) => {
+                    const Icon = stat.icon
+                    return (
+                      <Card key={index} className="border-0 shadow-md hover:shadow-lg transition-shadow">
+                        <CardContent className="p-6">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-sm text-[#7A7A7A] font-medium">{stat.title}</p>
+                              <p className="text-3xl font-bold text-[#1C1C1E] mt-2">{stat.value}</p>
+                              <div className="flex items-center mt-2">
+                                {stat.trend === 'up' ? (
+                                  <ArrowUpRight className="h-4 w-4 text-green-600 mr-1" />
+                                ) : (
+                                  <ArrowDownRight className="h-4 w-4 text-red-500 mr-1" />
+                                )}
+                                <span className={`text-sm font-medium ${
+                                  stat.trend === 'up' ? 'text-green-600' : 'text-red-500'
+                                }`}>
+                                  {stat.change}
+                                </span>
+                                <span className="text-sm text-[#7A7A7A] ml-1">vs last month</span>
+                              </div>
+                            </div>
+                            <div className={`p-3 rounded-xl bg-gray-50 ${stat.color}`}>
+                              <Icon className="h-6 w-6" />
                             </div>
                           </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
+                        </CardContent>
+                      </Card>
+                    )
+                  })}
+                </div>
+
+                {/* Main Dashboard Content */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  {/* Recent Classes */}
+                  <div className="lg:col-span-2">
+                    <Card className="border-0 shadow-lg">
+                      <CardHeader className="pb-4">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-xl font-bold text-[#1C1C1E]">Recent Classes</CardTitle>
+                          <Button size="sm" variant="ghost" className="text-[#1E90FF] hover:bg-[#1E90FF]/10">
+                            View All
+                          </Button>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {recentClasses.map((cls) => (
+                            <div key={cls.id} className="flex items-center justify-between p-4 bg-[#FAF9F6] rounded-xl">
+                              <div className="flex items-center space-x-4">
+                                <div className="w-12 h-12 bg-gradient-to-br from-[#1E90FF] to-[#4A90E2] rounded-xl flex items-center justify-center">
+                                  <CalendarIcon className="h-6 w-6 text-white" />
+                                </div>
+                                <div>
+                                  <h4 className="font-semibold text-[#1C1C1E]">{cls.name}</h4>
+                                  <p className="text-sm text-[#7A7A7A]">with {cls.instructor}</p>
+                                  <p className="text-xs text-[#7A7A7A]">{cls.date} at {cls.time}</p>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="flex items-center space-x-2">
+                                  <Badge className={`${
+                                    cls.status === 'full' 
+                                      ? 'bg-red-100 text-red-700' 
+                                      : 'bg-green-100 text-green-700'
+                                  }`}>
+                                    {cls.booked}/{cls.capacity}
+                                  </Badge>
+                                  {cls.status === 'full' && (
+                                    <Badge className="bg-red-100 text-red-700">Full</Badge>
+                                  )}
+                                </div>
+                                <div className="mt-1">
+                                  <div className="w-16 bg-gray-200 rounded-full h-2">
+                                    <div 
+                                      className="bg-[#1E90FF] h-2 rounded-full" 
+                                      style={{ width: `${(cls.booked / cls.capacity) * 100}%` }}
+                                    ></div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Quick Actions */}
+                  <div>
+                    <Card className="border-0 shadow-lg">
+                      <CardHeader>
+                        <CardTitle className="text-xl font-bold text-[#1C1C1E]">Quick Actions</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <Button className="w-full justify-start bg-[#1E90FF]/10 text-[#1E90FF] hover:bg-[#1E90FF]/20 h-12">
+                          <Plus className="h-4 w-4 mr-3" />
+                          Create New Class
+                        </Button>
+                        <Button className="w-full justify-start bg-green-500/10 text-green-600 hover:bg-green-500/20 h-12">
+                          <Users className="h-4 w-4 mr-3" />
+                          Manage Staff
+                        </Button>
+                        <Button className="w-full justify-start bg-purple-500/10 text-purple-600 hover:bg-purple-500/20 h-12">
+                          <BarChart3 className="h-4 w-4 mr-3" />
+                          View Analytics
+                        </Button>
+                        <Button className="w-full justify-start bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 h-12">
+                          <Settings className="h-4 w-4 mr-3" />
+                          Studio Settings
+                        </Button>
+                      </CardContent>
+                    </Card>
+
+                    {/* Performance Summary */}
+                    <Card className="border-0 shadow-lg mt-6">
+                      <CardHeader>
+                        <CardTitle className="text-xl font-bold text-[#1C1C1E]">This Month</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[#7A7A7A]">Total Bookings</span>
+                          <span className="font-bold text-[#1C1C1E]">342</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[#7A7A7A]">Revenue</span>
+                          <span className="font-bold text-green-600">$12,486</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[#7A7A7A]">New Members</span>
+                          <span className="font-bold text-[#1E90FF]">28</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[#7A7A7A]">Avg. Class Fill</span>
+                          <span className="font-bold text-purple-600">87%</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
               </div>
             )}
             
-            {/* Staffing Management */}
+            {/* Class Management */}
+            {activeSection === 'classes' && (
+              <div className="space-y-6">
+                <Card className="border-0 shadow-lg">
+                  <CardHeader>
+                    <CardTitle className="text-xl font-bold text-[#1C1C1E]">Class Management</CardTitle>
+                    <CardDescription>Create, edit, and manage your studio classes</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-12">
+                      <CalendarIcon className="h-16 w-16 text-[#7A7A7A] mx-auto mb-4 opacity-50" />
+                      <h3 className="text-xl font-semibold text-[#1C1C1E] mb-2">Class Management System</h3>
+                      <p className="text-[#7A7A7A] mb-6">Full class management interface coming soon</p>
+                      <Button onClick={() => router.push('/studio/create-class')} className="bg-[#1E90FF] hover:bg-[#1976D2] text-white">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Create New Class
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Staff Management */}
             {activeSection === 'staffing' && (
               <div className="space-y-6">
                 <StudioStaffingDashboard />
               </div>
             )}
-
-            {/* Calendar Section */}
+            
+            {/* Calendar View */}
             {activeSection === 'calendar' && (
               <div className="space-y-6">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-xl font-semibold text-white">Filters</h3>
-                  <div className="flex items-center space-x-4">
-                    <div className="flex bg-white/10 backdrop-blur-md rounded-lg p-1">
-                      <button
-                        onClick={() => setCalendarView('day')}
-                        className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
-                          calendarView === 'day' 
-                            ? 'bg-blue-500 text-white' 
-                            : 'text-blue-200 hover:text-white'
-                        }`}
-                      >
-                        Day
-                      </button>
-                      <button
-                        onClick={() => setCalendarView('week')}
-                        className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
-                          calendarView === 'week' 
-                            ? 'bg-blue-500 text-white' 
-                            : 'text-blue-200 hover:text-white'
-                        }`}
-                      >
-                        Week
-                      </button>
-                      <button
-                        onClick={() => setCalendarView('month')}
-                        className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
-                          calendarView === 'month' 
-                            ? 'bg-blue-500 text-white' 
-                            : 'text-blue-200 hover:text-white'
-                        }`}
-                      >
-                        Month
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                  <div className="flex items-center space-x-2">
-                    <User className="h-4 w-4 text-blue-400" />
-                    <select className="bg-white/10 backdrop-blur-md border-white/20 border rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-400">
-                      <option>All Instructors</option>
-                      <option>Sarah Johnson</option>
-                      <option>Mike Rodriguez</option>
-                    </select>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <MapPin className="h-4 w-4 text-blue-400" />
-                    <select className="bg-white/10 backdrop-blur-md border-white/20 border rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-400">
-                      <option>All Locations</option>
-                      <option>Studio A</option>
-                      <option>Studio B</option>
-                    </select>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Filter className="h-4 w-4 text-blue-400" />
-                    <select className="bg-white/10 backdrop-blur-md border-white/20 border rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-400">
-                      <option>All Classes</option>
-                      <option>Yoga</option>
-                      <option>HIIT</option>
-                      <option>Pilates</option>
-                    </select>
-                  </div>
-                </div>
-
-                <Card className="bg-white/10 backdrop-blur-md border-white/20">
-                  <CardContent className="p-6">
-                    <div className="h-96">
-                      <Calendar
-                        localizer={localizer}
-                        events={merchantData.events}
-                        startAccessor="start"
-                        endAccessor="end"
-                        style={{ height: '100%' }}
-                        view={calendarView}
-                        onView={setCalendarView}
-                        eventPropGetter={eventStyleGetter}
-                        onSelectEvent={(event) => {
-                          toast.info(`${event.title} - ${event.resource?.booked}/${event.resource?.capacity} booked`)
-                        }}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-
-            {/* Analytics Section */}
-            {activeSection === 'analytics' && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Revenue Trends */}
-                  <Card className="bg-white/10 backdrop-blur-md border-white/20">
-                    <CardHeader>
-                      <CardTitle className="text-white">Revenue Trends</CardTitle>
-                      <div className="flex space-x-2">
-                        <Badge className="bg-blue-500/20 text-blue-200">Daily</Badge>
-                        <Badge className="bg-purple-500/20 text-purple-200">Monthly</Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="h-64">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={merchantData.revenueData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                            <XAxis dataKey="date" stroke="#9CA3AF" />
-                            <YAxis stroke="#9CA3AF" />
-                            <Tooltip 
-                              contentStyle={{
-                                backgroundColor: 'rgba(30, 41, 59, 0.9)',
-                                border: '1px solid rgba(59, 130, 246, 0.2)',
-                                borderRadius: '8px',
-                                color: 'white'
-                              }}
-                            />
-                            <Line 
-                              type="monotone" 
-                              dataKey="revenue" 
-                              stroke="#10B981" 
-                              strokeWidth={3}
-                              dot={{ fill: '#10B981', strokeWidth: 2, r: 4 }}
-                            />
-                          </LineChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Class Fill Rates */}
-                  <Card className="bg-white/10 backdrop-blur-md border-white/20">
-                    <CardHeader>
-                      <CardTitle className="text-white">Class Fill Rates</CardTitle>
-                      <div className="flex space-x-2">
-                        <Badge className="bg-green-500/20 text-green-200">By Time</Badge>
-                        <Badge className="bg-yellow-500/20 text-yellow-200">By Instructor</Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="h-64">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={merchantData.classFillRates}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                            <XAxis dataKey="time" stroke="#9CA3AF" />
-                            <YAxis stroke="#9CA3AF" />
-                            <Tooltip 
-                              contentStyle={{
-                                backgroundColor: 'rgba(30, 41, 59, 0.9)',
-                                border: '1px solid rgba(59, 130, 246, 0.2)',
-                                borderRadius: '8px',
-                                color: 'white'
-                              }}
-                            />
-                            <Bar dataKey="rate" fill="#8B5CF6" radius={[4, 4, 0, 0]} />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Client Retention & Booking Heatmap */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <Card className="bg-white/10 backdrop-blur-md border-white/20">
-                    <CardHeader>
-                      <CardTitle className="text-white">Client Retention</CardTitle>
-                      <div className="flex space-x-2">
-                        <Badge className="bg-blue-500/20 text-blue-200">30 Days</Badge>
-                        <Badge className="bg-green-500/20 text-green-200">90 Days</Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="h-64 flex items-center justify-center">
-                        <div className="text-center">
-                          <Users className="h-16 w-16 text-blue-400 mx-auto mb-4" />
-                          <p className="text-white text-lg font-medium">Client Retention Analytics</p>
-                          <p className="text-blue-200">Coming soon with cohort analysis</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="bg-white/10 backdrop-blur-md border-white/20">
-                    <CardHeader>
-                      <CardTitle className="text-white">Booking Heatmap</CardTitle>
-                      <div className="flex space-x-2">
-                        <Badge className="bg-purple-500/20 text-purple-200">Week</Badge>
-                        <Badge className="bg-yellow-500/20 text-yellow-200">Month</Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="h-64 flex items-center justify-center">
-                        <div className="text-center">
-                          <Clock className="h-16 w-16 text-purple-400 mx-auto mb-4" />
-                          <p className="text-white text-lg font-medium">Booking Heatmap</p>
-                          <p className="text-blue-200">Popular time slots visualization</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </div>
-            )}
-
-            {/* Clients Section */}
-            {activeSection === 'clients' && (
-              <div className="space-y-6">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center space-x-4">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-blue-400 h-4 w-4" />
-                      <input
-                        type="text"
-                        placeholder="Search clients..."
-                        className="bg-white/10 backdrop-blur-md border-white/20 border rounded-lg pl-10 pr-4 py-2 text-white placeholder-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                      />
-                    </div>
-                    <div className="flex space-x-2">
-                      <Badge className="bg-blue-500/20 text-blue-200">All</Badge>
-                      <Badge className="bg-green-500/20 text-green-200">Active</Badge>
-                      <Badge className="bg-yellow-500/20 text-yellow-200">New</Badge>
-                    </div>
-                  </div>
-                </div>
-
-                <Card className="bg-white/10 backdrop-blur-md border-white/20">
-                  <CardContent className="p-6">
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="text-left text-blue-200 border-b border-white/10">
-                            <th className="pb-3 font-medium">Client</th>
-                            <th className="pb-3 font-medium">Package Status</th>
-                            <th className="pb-3 font-medium">Last Visit</th>
-                            <th className="pb-3 font-medium">Attendance</th>
-                            <th className="pb-3 font-medium">Action</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {merchantData.clients.map((client) => (
-                            <tr key={client.id} className="border-b border-white/5">
-                              <td className="py-4">
-                                <div className="flex items-center space-x-3">
-                                  <Avatar className="h-10 w-10 ring-2 ring-blue-400/50">
-                                    <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white">
-                                      {client.name.split(' ').map(n => n[0]).join('')}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <div>
-                                    <p className="font-medium text-white">{client.name}</p>
-                                    <p className="text-sm text-blue-200">{client.email}</p>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="py-4">
-                                <Badge className={`${client.status === 'Active' ? 'bg-green-500/20 text-green-200' : 'bg-red-500/20 text-red-200'}`}>
-                                  {client.package}
-                                </Badge>
-                              </td>
-                              <td className="py-4">
-                                <p className="text-white">{client.lastVisit}</p>
-                              </td>
-                              <td className="py-4">
-                                <p className="text-white">{client.attendance}</p>
-                              </td>
-                              <td className="py-4">
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  className="border-white/20 text-white hover:bg-white/10"
-                                  onClick={() => toast.info(`Viewing details for ${client.name}`)}
-                                >
-                                  View Details
-                                </Button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-
-            {/* Instructors Section */}
-            {activeSection === 'instructors' && (
-              <div className="space-y-6">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-xl font-semibold text-white">Instructor & Staff Management</h3>
-                  <Button 
-                    className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
-                    onClick={() => toast.success('Add Instructor feature coming soon!')}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Instructor
-                  </Button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {merchantData.instructors.map((instructor) => (
-                    <Card key={instructor.id} className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
-                      <CardContent className="p-6">
-                        <div className="text-center">
-                          <Avatar className="h-16 w-16 mx-auto mb-4 ring-2 ring-blue-400/50">
-                            <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white">
-                              {instructor.name.split(' ').map(n => n[0]).join('')}
-                            </AvatarFallback>
-                          </Avatar>
-                          <h4 className="text-lg font-semibold text-white mb-1">{instructor.name}</h4>
-                          <p className="text-blue-200 text-sm mb-3">{instructor.role}</p>
-                          <div className="flex items-center justify-center mb-3">
-                            <Star className="h-4 w-4 text-yellow-400 fill-current" />
-                            <span className="text-blue-200 ml-1">{instructor.rating}</span>
-                          </div>
-                          <p className="text-sm text-blue-300 mb-4">{instructor.classes} classes this month</p>
-                          <div className="flex space-x-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="border-white/20 text-white hover:bg-white/10 flex-1"
-                              onClick={() => toast.info(`Assigning classes to ${instructor.name}`)}
-                            >
-                              Assign Classes
-                            </Button>
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="border-white/20 text-white hover:bg-white/10"
-                              onClick={() => toast.info(`Viewing ${instructor.name}'s performance`)}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Payments Section */}
-            {activeSection === 'payments' && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <Card className="bg-white/10 backdrop-blur-md border-white/20">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-blue-200 font-medium text-sm">Next Payout</p>
-                          <p className="text-2xl font-bold text-white">$2,450</p>
-                          <p className="text-sm text-blue-300">in 3 days</p>
-                        </div>
-                        <div className="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center">
-                          <DollarSign className="h-6 w-6 text-green-400" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="bg-white/10 backdrop-blur-md border-white/20">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-blue-200 font-medium text-sm">This Week</p>
-                          <p className="text-2xl font-bold text-white">$1,890</p>
-                          <p className="text-sm text-blue-300">+12% from last week</p>
-                        </div>
-                        <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                          <TrendingUp className="h-6 w-6 text-blue-400" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="bg-white/10 backdrop-blur-md border-white/20">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-blue-200 font-medium text-sm">This Month</p>
-                          <p className="text-2xl font-bold text-white">$8,420</p>
-                          <p className="text-sm text-blue-300">+8% from last month</p>
-                        </div>
-                        <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                          <CreditCard className="h-6 w-6 text-purple-400" />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                <Card className="bg-white/10 backdrop-blur-md border-white/20">
+                <Card className="border-0 shadow-lg">
                   <CardHeader>
-                    <CardTitle className="text-white">Transaction History</CardTitle>
-                    <div className="flex justify-between items-center">
-                      <div className="flex space-x-2">
-                        <Badge className="bg-blue-500/20 text-blue-200">All</Badge>
-                        <Badge className="bg-green-500/20 text-green-200">Completed</Badge>
-                        <Badge className="bg-yellow-500/20 text-yellow-200">Pending</Badge>
-                      </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="border-white/20 text-white hover:bg-white/10"
-                        onClick={() => toast.success('Export feature coming soon!')}
-                      >
-                        <Download className="h-4 w-4 mr-2" />
-                        Export CSV
-                      </Button>
-                    </div>
+                    <CardTitle className="text-xl font-bold text-[#1C1C1E]">Studio Calendar</CardTitle>
+                    <CardDescription>View and manage your class schedule</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="text-center py-12">
-                      <CreditCard className="h-16 w-16 text-blue-400 mx-auto mb-4" />
-                      <p className="text-white text-lg font-medium">Payment History</p>
-                      <p className="text-blue-200">Transaction history will appear here</p>
+                      <CalendarIcon className="h-16 w-16 text-[#7A7A7A] mx-auto mb-4 opacity-50" />
+                      <h3 className="text-xl font-semibold text-[#1C1C1E] mb-2">Interactive Calendar</h3>
+                      <p className="text-[#7A7A7A]">Drag-and-drop calendar interface coming soon</p>
                     </div>
                   </CardContent>
                 </Card>
               </div>
             )}
 
-            {/* Packages Section */}
-            {activeSection === 'packages' && (
+            {/* Analytics */}
+            {activeSection === 'analytics' && (
               <div className="space-y-6">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-xl font-semibold text-white">Packages & Memberships</h3>
-                  <Button 
-                    className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
-                    onClick={() => toast.success('Create Package feature coming soon!')}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Package
-                  </Button>
-                </div>
-
-                <div className="text-center py-12">
-                  <Package className="h-16 w-16 text-blue-400 mx-auto mb-4" />
-                  <p className="text-white text-lg font-medium">Package Management</p>
-                  <p className="text-blue-200">Create and manage class packages, memberships, and pricing</p>
-                </div>
-              </div>
-            )}
-
-            {/* Settings Section */}
-            {activeSection === 'settings' && (
-              <div className="space-y-6">
-                <Card className="bg-white/10 backdrop-blur-md border-white/20">
-                  <CardContent className="p-6">
-                    <div className="text-center">
-                      <Settings className="h-12 w-12 text-blue-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-white mb-2">Studio Settings</h3>
-                      <p className="text-blue-200">
-                        Configure your studio settings, branding, and policies
-                      </p>
-                      <Button 
-                        className="mt-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white"
-                        onClick={() => router.push('/settings')}
-                      >
-                        Go to Settings
-                      </Button>
+                <Card className="border-0 shadow-lg">
+                  <CardHeader>
+                    <CardTitle className="text-xl font-bold text-[#1C1C1E]">Analytics Dashboard</CardTitle>
+                    <CardDescription>Deep insights into your studio performance</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-12">
+                      <BarChart3 className="h-16 w-16 text-[#7A7A7A] mx-auto mb-4 opacity-50" />
+                      <h3 className="text-xl font-semibold text-[#1C1C1E] mb-2">Advanced Analytics</h3>
+                      <p className="text-[#7A7A7A]">Comprehensive analytics dashboard coming soon</p>
                     </div>
                   </CardContent>
                 </Card>
               </div>
             )}
 
-            {/* AI Tools Section */}
-            {activeSection === 'ai-tools' && (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
-                    <CardContent className="p-6">
-                      <div className="text-center">
-                        <Bot className="h-12 w-12 text-blue-400 mx-auto mb-4" />
-                        <h4 className="text-lg font-semibold text-white mb-2">Smart Data Importer</h4>
-                        <p className="text-blue-200 text-sm mb-4">AI-powered data import for seamless studio onboarding</p>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="border-white/20 text-white hover:bg-white/10"
-                          onClick={() => router.push('/data-import')}
-                        >
-                          Import Data
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
-                    <CardContent className="p-6">
-                      <div className="text-center">
-                        <Settings className="h-12 w-12 text-purple-400 mx-auto mb-4" />
-                        <h4 className="text-lg font-semibold text-white mb-2">AI Configuration Wizard</h4>
-                        <p className="text-blue-200 text-sm mb-4">Intelligent studio setup with AI recommendations</p>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="border-white/20 text-white hover:bg-white/10"
-                          onClick={() => router.push('/ai-configuration-wizard')}
-                        >
-                          Configure Studio
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
-                    <CardContent className="p-6">
-                      <div className="text-center">
-                        <Bot className="h-12 w-12 text-green-400 mx-auto mb-4" />
-                        <h4 className="text-lg font-semibold text-white mb-2">Smart Recommendations</h4>
-                        <p className="text-blue-200 text-sm mb-4">AI-generated class recommendations based on booking patterns</p>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="border-white/20 text-white hover:bg-white/10"
-                          onClick={() => router.push('/ai-dashboard')}
-                        >
-                          Get Recommendations
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
-                    <CardContent className="p-6">
-                      <div className="text-center">
-                        <CalendarIcon className="h-12 w-12 text-purple-400 mx-auto mb-4" />
-                        <h4 className="text-lg font-semibold text-white mb-2">Schedule Optimization</h4>
-                        <p className="text-blue-200 text-sm mb-4">Smart schedule optimization for maximum utilization</p>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="border-white/20 text-white hover:bg-white/10"
-                          onClick={() => toast.info('Schedule Optimization coming soon!')}
-                        >
-                          Optimize Schedule
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white/15 transition-all duration-300">
-                    <CardContent className="p-6">
-                      <div className="text-center">
-                        <TrendingUp className="h-12 w-12 text-orange-400 mx-auto mb-4" />
-                        <h4 className="text-lg font-semibold text-white mb-2">Predictive Analytics</h4>
-                        <p className="text-blue-200 text-sm mb-4">Churn risk analysis and high-ROI time slot predictions</p>
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="border-white/20 text-white hover:bg-white/10"
-                          onClick={() => toast.info('Predictive Analytics coming soon!')}
-                        >
-                          View Predictions
-                        </Button>
+            {/* Other sections with similar structure */}
+            {['clients', 'instructors', 'payments', 'ai-tools', 'settings'].map((section) => (
+              activeSection === section && (
+                <div key={section} className="space-y-6">
+                  <Card className="border-0 shadow-lg">
+                    <CardHeader>
+                      <CardTitle className="text-xl font-bold text-[#1C1C1E] capitalize">
+                        {section === 'ai-tools' ? 'AI Tools' : section} Management
+                      </CardTitle>
+                      <CardDescription>
+                        {section === 'clients' && 'Manage your member base and relationships'}
+                        {section === 'instructors' && 'Manage your instructor team'}
+                        {section === 'payments' && 'Track revenue and payment processing'}
+                        {section === 'ai-tools' && 'AI-powered features for your studio'}
+                        {section === 'settings' && 'Configure your studio preferences'}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-center py-12">
+                        <div className="h-16 w-16 bg-[#7A7A7A]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <div className="h-8 w-8 bg-[#7A7A7A]/20 rounded-full"></div>
+                        </div>
+                        <h3 className="text-xl font-semibold text-[#1C1C1E] mb-2 capitalize">
+                          {section === 'ai-tools' ? 'AI Tools' : section} System
+                        </h3>
+                        <p className="text-[#7A7A7A]">Advanced {section} management coming soon</p>
                       </div>
                     </CardContent>
                   </Card>
                 </div>
-              </div>
-            )}
+              )
+            ))}
 
-            {/* Debug Section */}
-            {activeSection === 'debug' && (
-              <div className="space-y-6">
-                <DebugUserRole />
-              </div>
-            )}
           </div>
         </div>
       </div>
