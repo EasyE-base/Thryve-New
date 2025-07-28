@@ -204,10 +204,8 @@ export default function CustomerDashboard() {
       return
     }
 
-    // Simulate loading
-    setTimeout(() => {
-      setLoading(false)
-    }, 1000)
+    // Fetch real dashboard data
+    fetchDashboardData()
   }, [user, role, authLoading, router])
 
   const handleSignOut = async () => {
