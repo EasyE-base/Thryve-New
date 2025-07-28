@@ -387,10 +387,10 @@ backend:
           agent: "testing"
           comment: "COMPREHENSIVE TESTING COMPLETED: Class by ID API is working perfectly with all enhanced functionality. ✅ TESTED ALL SAMPLE CLASSES: Successfully tested morning-vinyasa-flow, hiit-cardio-blast, and strength-training-basics - all return detailed class data. ✅ AUTO-POPULATED FIELDS: Reviews, benefits, and FAQs are automatically added to class data with proper structure. ✅ REVIEWS STRUCTURE: Complete review objects with id, userId, userName, rating, date, comment, verified status, helpful count, and attendance tracking. ✅ BENEFITS & FAQS: Proper array structures with comprehensive content. ✅ ERROR HANDLING: Non-existent class IDs correctly return 404 status. ✅ DATA INTEGRITY: Class ID matching validated, all enhanced fields present. ✅ COMPREHENSIVE DATA: Each class includes full instructor details, sessions, amenities, requirements, highlights, tags, location info, and auto-populated reviews/benefits/FAQs. API supports both custom ID and MongoDB _id lookup. External URL has 502 infrastructure issues but localhost API is fully functional."
 
-  - task: "POST /api/onboarding/complete - Complete user onboarding process"
+  - task: "POST /server-api/onboarding/complete - Complete user onboarding process (FIXED ROUTING)"
     implemented: true
     working: true
-    file: "app/api/[[...path]]/route.js"
+    file: "app/server-api/[[...path]]/route.js"
     stuck_count: 0
     priority: "high"
     needs_retesting: false
@@ -398,6 +398,9 @@ backend:
         - working: true
           agent: "testing"
           comment: "Endpoint properly implemented with authentication protection. Returns 401 Unauthorized when no auth token provided, which is correct behavior. Accepts role and profileData in request body."
+        - working: true
+          agent: "testing"
+          comment: "🎉 ONBOARDING COMPLETION FIX TESTING COMPLETED SUCCESSFULLY: Comprehensive testing of the specific onboarding routing fix has been completed with PERFECT RESULTS (100% success rate, 5/5 tests passed)! ✅ ROUTING FIX VALIDATED: Successfully changed from /api/onboarding/complete to /server-api/onboarding/complete - no more 502 server routing errors. ✅ AUTHENTICATION PROTECTION: Correctly requires Firebase authentication (401 for unauthenticated requests) with proper Authorization: Bearer token header. ✅ MERCHANT ONBOARDING: Successfully processes merchant onboarding with profileData containing businessName='Test Studio' and saves it as studioName in user profile. Returns proper redirect to /dashboard/merchant upon completion. ✅ CUSTOMER ONBOARDING: Successfully processes customer onboarding and redirects to /dashboard/customer. ✅ DATA PERSISTENCE: Profile data correctly saved with businessName extracted as studioName, onboarding_complete set to true, and proper role assignment. ✅ ERROR HANDLING: Correctly returns 400 for missing role parameter and 401 for missing authentication. ✅ NO MORE FALLBACK TO LOCAL STORAGE: Server routing issue resolved, eliminating the need for localStorage fallback mechanisms. The onboarding completion fix is working perfectly and resolves the critical server routing issue that was preventing users from properly completing their studio profiles."
 
   - task: "POST /api/stripe/create-payment-intent - Create payment intent for class booking"
     implemented: true
