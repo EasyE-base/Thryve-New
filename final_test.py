@@ -7,7 +7,7 @@ import requests
 import json
 import time
 
-BASE_URL = "https://07dbb15a-6291-46a7-941f-21934bb5cdb1.preview.emergentagent.com"
+BASE_URL = "https://fc28d640-ef87-49de-b108-ffb68044b135.preview.emergentagent.com"
 SERVER_API_URL = f"{BASE_URL}/server-api"
 
 AUTH_HEADERS = {

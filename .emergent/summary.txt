@@ -1,26 +1,21 @@
 <analysis>
-The AI engineer successfully evolved the Thryve fitness platform from an MVP to a robust, feature-rich application. Initial efforts focused on resolving critical authentication issues by migrating to Firebase Auth and implementing a premium UI/UX. The development then progressed through comprehensive dashboard creation (Customer, Merchant, Instructor), a marketplace, class detail pages, and a functional Stripe payment system. A significant phase involved building and testing the My Bookings system, including backend APIs and frontend integration. Crucially, the engineer identified and resolved a Kubernetes ingress routing issue for  endpoints by implementing a  proxy. Following this, the business model for class creation was corrected, moving it from instructors to studios/merchants. The final major phase involved implementing advanced business logic for no-show fees, Thryve X Pass, and pricing models, along with core backend and initial frontend components. The engineer is currently working on a parallel implementation of notification, analytics, and file upload systems, demonstrating iterative development and adaptability to user feedback.
+The previous AI engineer successfully transformed the Thryve fitness platform from an MVP to a feature-rich application. Key initial achievements included resolving authentication issues by migrating to Firebase Auth, establishing a premium UI, and developing comprehensive dashboards for customers, merchants, and instructors, alongside a functional Stripe payment system and marketplace. A critical step involved rectifying Kubernetes ingress routing for  endpoints by introducing a  proxy, centralizing all backend logic there. The business model for class creation was also corrected, moving from instructors to studios. Subsequent major efforts focused on implementing complex business logic, including no-show fees, Thryve X Pass, and various pricing models. Immediately prior to this summary, the engineer finalized and fully tested the parallel implementation of the notification, analytics, and file upload systems. Following this, significant work was done on the Instructor Staffing & Shift Swap System, with backend APIs and frontend components integrated, though frontend testing revealed an authentication flow issue. Most recently, the AI-Powered Recommendation Engine was fully implemented and tested, overcoming OpenAI API key and database connection issues. The engineer has now begun work on the revolutionary AI Studio Onboarding & Growth Assistant, starting with the Smart Data Importer.
 </analysis>
 
 <product_requirements>
-The Thryve project aims to be a multi-role fitness platform (Customer, Instructor, Merchant) providing seamless user experience from discovery to booking and payment. The core problem was establishing a robust, scalable platform with distinct user journeys, with the Aha Moment being a customer successfully booking and paying via Stripe. The application uses Next.js 14 (App Router), Tailwind CSS, and shadcn/ui. Firebase Auth was adopted to resolve prior authentication stability issues. The UI/UX was revamped for a premium, mobile-first aesthetic with gradients and rounded elements.
-
-Key business logic includes:
-- **No-Show/Late Cancellation Fee Logic**: Deducting class credits and/or applying fees based on membership type (Class Pack vs. Unlimited Membership) for missed classes, with configurable admin settings (cancellation window, grace period, fee amount).
-- **Thryve X Pass System**: A multi-studio credit system where users purchase packs (5/10/15 credits) redeemable at any participating studio. Thryve takes a 5-10% flat booking fee at redemption. Studios can opt-in and tag eligible classes.
-- **Pricing Model Logic**: A 3.75% core platform transaction fee on all transactions, plus specific business plan tiers (Starter, Business+, Enterprise) and a Thryve Member+ model with a flat 5% fee for studios.
-- **Unlimited Product Billing Cycle Logic**: Allows bookings up to 30 days past the billing cycle for unlimited monthly auto-pay products to overcome typical booking restrictions.
+The Thryve project aims to be a multi-role fitness platform (Customer, Instructor, Merchant) providing a seamless user experience. The core problem was establishing a robust, scalable platform. The application uses Next.js 14, Tailwind CSS, shadcn/ui, and Firebase Auth for stability. Key business logic includes No-Show/Late Cancellation Fee Logic, Thryve X Pass multi-studio credit system, diverse Pricing Model Logic (transaction fees, business tiers), and Unlimited Product Billing Cycle Logic allowing extended bookings. Recently requested features include the **Instructor Staffing & Schedule Management** system, enabling shift coverage, real-time communication, and instructor swaps with optional studio approval and conflict detection. The latest vision is the **AI Studio Onboarding & Growth Assistant**, a game-changing system designed to eliminate onboarding friction and provide intelligent, real-time growth recommendations. This includes an AI-powered data importer for seamless migration, an AI configuration wizard for quick setup, an AI-driven website builder, customer migration intelligence, an ongoing AI growth coach, and AI-powered class optimization.
 </product_requirements>
 
 <key_technical_concepts>
 - Next.js 14 (App Router, Server/Client Components, API Routes)
 - Firebase Auth (Authentication)
 - MongoDB (Database)
-- Stripe (Payments, Connect, Elements, Webhooks)
+- Stripe (Payments, Connect)
 - Tailwind CSS & shadcn/ui (Styling, UI components)
 - Role-Based Access Control (RBAC)
-- Mobile-First Design & Responsive UI
 - Server-side API Proxy ()
+- OpenAI API (AI-Powered features)
+- LangChain/Semantic Parsing (for data import)
 </key_technical_concepts>
 
 <code_architecture>
@@ -28,53 +23,47 @@ The application uses a Next.js 14 App Router architecture, supporting multiple u
 
 
 
--   : The original primary Next.js API route handler. It has been extensively modified for various functionalities (Stripe, bookings). Its primary importance was as the central API, but it became problematic due to Kubernetes ingress routing issues for  prefix, leading to the creation of .
--   : **NEW FILE**. Created as a server-side API proxy to bypass Kubernetes ingress issues causing 502 errors for  routes. This file now handles all backend API logic for authentication, bookings, Stripe Connect, instructor/studio class management, and advanced business logic (XPass, no-show fees). It's critical for the application's external functionality. Changes involved adding various GET and POST handlers for , , , , , , and business logic endpoints like , , , . Database connection issues were also resolved here.
--   : Contains Firebase authentication helper functions. Modified to update API calls from  to  for  and  to ensure authentication functions work via the external URL.
--   : The user's booking management dashboard. Initially created for displaying and managing bookings. Modified to fetch real booking data and handle user actions (cancel/check-in) using the new  endpoints. Also enhanced to improve authentication state persistence and loading indicators.
--   : The customer onboarding page. Modified to use  for onboarding completion to resolve prior 502 errors and improve redirect logic and localStorage persistence for role data.
--   : The instructor dashboard. Initially had placeholder coming soon content and incorrectly allowed instructors to create classes. Significantly modified to:
-    *   Integrate Stripe Connect functionality (earnings, payouts).
-    *   Remove class creation capability.
-    *   Show My Assigned Classes by studios using .
-    *   Resolved  variable errors.
-    *   Added  import for UI elements.
--   : The merchant dashboard. Modified to include a Classes section in the navigation and integrate class management functionality, including studio-specific class creation.
--   : **NEW FILE**. Created specifically for studios/merchants to create classes, aligning with the corrected business model. It includes a comprehensive class creation form with instructor assignment.
--   : **NEW FILE**. A React component created to provide a button for instructors to connect their Stripe accounts.
--   : **NEW FILE**. A React component for studios to manage their X Pass settings, cancellation policies, and view pricing model transparency.
--   : **NEW FILE**. A React component for customers to purchase X Pass credits with different package options and displays credit balance.
--   : **NEW FILE**. Placeholder component created for future analytics features.
--   : **NEW FILE**. Placeholder component created for future notification features.
+-   : This is the central server-side API proxy. It was crucial for resolving Kubernetes ingress issues. It has been extensively modified to handle all backend logic including authentication, bookings, Stripe Connect, instructor/studio class management, advanced business logic (XPass, no-show fees), file uploads (POST, DELETE), notifications, analytics, Instructor Staffing & Shift Swap System (GET/POST/DELETE for classes, swaps, settings), AI recommendations (classes, search, instructor matching, workout plans, predictive analytics), and data import.
+-   : Contains Firebase authentication helpers, updated to use  endpoints.
+-   : User's booking dashboard, updated to use new  endpoints.
+-   : Instructor dashboard, modified to integrate Stripe Connect, remove class creation, show assigned classes, and integrate  and  under a new Staffing tab.
+-   : Merchant dashboard, modified to include class management and integrate  under a new Staffing tab.
+-   : **NEW FILE**. Allows studios/merchants to create classes, aligning with the corrected business model.
+-   : **NEW FILE**. Comprehensive component for handling file uploads.
+-   : **NEW FILE**. A comprehensive test/demo page integrating File Upload, NotificationInbox, and StudioAnalyticsDashboard components for testing purposes.
+-   : **NEW FILE**. Configures the OpenAI API client, handles environment variable loading and debug logging.
+-   : **NEW FILE**. Service for generating personalized AI fitness recommendations and analysis. Required a fix for  import.
+-   : **NEW FILE**. Frontend component for displaying AI-powered class recommendations.
+-   : **NEW FILE**. Frontend component for natural language search using AI.
+-   : **NEW FILE**. A dedicated dashboard page to house all AI-powered features.
+-   : **NEW FILE**. Component for instructors to view and manage their schedules and shift swaps.
+-   : **NEW FILE**. Component for studios to manage their weekly class schedule and instructor assignments.
+-   : **NEW FILE**. A simple chat component for staffing communication.
+-   : **NEW FILE**. Backend service for AI-powered CSV/Excel data parsing and analysis for studio onboarding.
+-   : **NEW FILE**. Frontend UI component for studios to upload and map their business data.
 </code_architecture>
 
 <pending_tasks>
 - Advanced calendar integration (e.g., Google Calendar sync).
-- File upload functionality for user profiles and class images (currently in parallel implementation).
-- Full completion of the onboarding logic for all roles beyond basic profile updates (customer onboarding done, others pending).
+- Full completion of the onboarding logic for all roles beyond basic customer updates.
 - Integration of Watch Demo button with actual video content.
-- Real-time Updates (notifications, calendar changes, data persistence - notifications in parallel implementation).
-- Advanced Features: Video Streaming, AI Recommendations, Advanced Search (AI recommendations in parallel implementation).
-- Platform Management: Admin Panel, Support System, Content Management (Admin Panel in proposed next steps).
-- Frontend integration and testing for File Upload system, Notification system, and Analytics dashboard (currently in progress).
+- Remaining advanced features: Video Streaming, AI Recommendations (already implemented), Advanced Search (already implemented).
+- Platform Management: Admin Panel, Support System, Content Management.
+- Resolving the critical authentication flow issue found during frontend testing of the Staffing System.
+- Completing the AI Studio Onboarding & Growth Assistant: AI Configuration Wizard, AI-Driven Studio Website Builder, Customer Migration & Retargeting Intelligence, Ongoing AI Growth Coach, AI-Powered Class Optimization.
+- Creating a dedicated page for the Smart Data Importer.
 </pending_tasks>
 
 <current_work>
-Immediately before this summary request, the AI engineer was tasked with implementing advanced business features, specifically focusing on the full specification document provided by the user. This encompassed:
-1.  **No-Show / Late Cancellation Fee Logic**: Implementing rules for deducting credits and applying fees based on membership type (Class Pack vs. Unlimited) and studio-defined configurable settings.
-2.  **Thryve X Pass System**: Building the system for multi-studio class redemption where users purchase credit packs, studios opt-in, and Thryve collects a flat booking fee.
-3.  **Pricing Model Logic**: Incorporating a 3.75% core platform transaction fee, defining business plan tiers (Starter, Business+, Enterprise), and a Thryve Member+ model with a 5% studio fee.
-4.  **Unlimited Product Billing Cycle Logic**: Allowing bookings for unlimited auto-pay products up to 30 days past the billing cycle.
+Immediately before this summary, the AI engineer was implementing the Full-Featured Parallel Implementation strategy, successfully completing and fully testing the **File Upload System**, **Notification System**, and **Analytics Dashboard**. This involved creating , ensuring  and  were functional, and adding/correcting corresponding API endpoints in . A new test page, , was created to showcase these integrated systems. Backend testing passed 100%, and frontend testing also completed successfully.
 
-The implementation involved creating core business models, adding new API endpoints to the  file for user payment/credit systems, X Pass purchases, no-show penalties, and studio business configuration. It also included creating new frontend components:
--   : For studio management of X Pass and pricing.
--   : For customer X Pass credit purchases.
+Following this, work commenced on the **Instructor Staffing & Schedule Management System**. Backend APIs for swap requests, coverage management, chat, and settings were added to . Frontend components , , and  were created and integrated into the instructor and merchant dashboards, including new Staffing tabs. Backend testing achieved a 78.6% pass rate, with core functionality working. Frontend testing revealed a critical authentication flow issue preventing complete end-to-end verification.
 
-Backend testing for all these business logic APIs (, , , ) was successfully completed with 100% test pass rate. Frontend testing of  and  components was also completed successfully, confirming their functionality and integration.
+The next major focus shifted to the **AI-Powered Recommendation Engine**. This involved installing the  dependency, creating  for the client, and  for the service logic. New API endpoints were added to . Frontend components  and  were created, along with a dedicated . Initial backend testing identified an issue with the OpenAI API key not being loaded, which was resolved by ensuring the  file was correctly read and by obtaining a new, valid API key from the user. A  import error in  was also fixed. The AI-Powered Recommendation Engine is now fully functional, including class recommendations, natural language search, instructor matching, and workout plan generation, confirmed by 84.6% backend test success.
 
-The current work context also includes the recent shift to a Full-Featured Parallel Implementation strategy for **Notification System**, **Analytics Dashboard**, and **File Upload System**. The engineer has already started this by modifying  for file upload handling and adding POST endpoints for notifications and analytics. New frontend components have been created: , , and the next step is creating the file upload component.
+The current work in progress is the **AI Studio Onboarding & Growth Assistant**. The immediate task chosen is the **Smart Data Importer**. The AI engineer has already created the backend service  and added its API endpoints to . The frontend UI component, , has also been created.
 </current_work>
 
 <optional_next_step>
-The next step is to create the File Upload component as part of the parallel implementation of notification, analytics, and file upload systems.
+Create a dedicated page in the Next.js application for the Smart Data Importer.
 </optional_next_step>
