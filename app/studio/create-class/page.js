@@ -89,12 +89,20 @@ export default function StudioCreateClassPage() {
   }
 
   const handleInstructorChange = (instructorId) => {
-    const selectedInstructor = availableInstructors.find(i => i.userId === instructorId)
-    setFormData(prev => ({
-      ...prev,
-      assignedInstructorId: instructorId,
-      assignedInstructorName: selectedInstructor ? (selectedInstructor.name || selectedInstructor.email.split('@')[0]) : ''
-    }))
+    if (instructorId === 'none') {
+      setFormData(prev => ({
+        ...prev,
+        assignedInstructorId: '',
+        assignedInstructorName: ''
+      }))
+    } else {
+      const selectedInstructor = availableInstructors.find(i => i.userId === instructorId)
+      setFormData(prev => ({
+        ...prev,
+        assignedInstructorId: instructorId,
+        assignedInstructorName: selectedInstructor ? (selectedInstructor.name || selectedInstructor.email.split('@')[0]) : ''
+      }))
+    }
   }
 
   const handleSubmit = async (e) => {
