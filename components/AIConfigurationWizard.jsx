@@ -851,15 +851,15 @@ const AIConfigurationWizard = () => {
                   <div className={`flex items-center space-x-2 px-4 py-2 rounded-full border-2 transition-all duration-300 ${
                     isActive 
                       ? 'border-blue-400 bg-blue-500/20' 
-                      : isCompleted 
+                      : isStepCompleted 
                       ? 'border-green-400 bg-green-500/20' 
                       : 'border-white/20 bg-white/10'
                   }`}>
                     <Icon className={`h-5 w-5 ${
-                      isActive ? 'text-blue-400' : isCompleted ? 'text-green-400' : 'text-white/60'
+                      isActive ? 'text-blue-400' : isStepCompleted ? 'text-green-400' : 'text-white/60'
                     }`} />
                     <span className={`text-sm font-medium ${
-                      isActive ? 'text-blue-200' : isCompleted ? 'text-green-200' : 'text-white/60'
+                      isActive ? 'text-blue-200' : isStepCompleted ? 'text-green-200' : 'text-white/60'
                     }`}>
                       {step.title}
                     </span>
