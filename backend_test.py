@@ -1,28 +1,22 @@
 #!/usr/bin/env python3
 """
-Comprehensive Backend Testing for Hardcoded Data Removal and Real Database Integration
-Testing the newly implemented endpoints for real database data instead of hardcoded sample data.
-
-ENDPOINTS TO TEST:
-1. GET /server-api/user/bookings - Customer booking data for dashboard analytics
-2. GET /server-api/user/favorites - Customer favorites data
-3. GET /server-api/marketplace/instructors - Instructor data for marketplace
-4. GET /server-api/instructor/messages - Instructor messages
-5. GET /server-api/instructor/earnings - Instructor earnings data
-
-Additional validation endpoints:
-6. GET /server-api/profile - General profile data
-7. GET /server-api/analytics/dashboard - Dashboard analytics data
-8. GET /server-api/classes - Studio classes data
+ONBOARDING COMPLETION FIX TESTING
+Testing the specific onboarding completion fix mentioned in the review request:
+- Changed URL from /api/onboarding/complete to /server-api/onboarding/complete
+- Added proper Firebase authentication header: Authorization: Bearer ${await user.getIdToken()}
+- Verify businessName is extracted and saved as studioName
+- Verify onboarding_complete is set to true
+- Verify proper error handling for missing authentication
 """
 
 import requests
 import json
 import sys
+import os
 from datetime import datetime
 
-# Configuration
-BASE_URL = "http://localhost:3000"
+# Get the base URL from environment
+BASE_URL = os.getenv('NEXT_PUBLIC_BASE_URL', 'https://fc28d640-ef87-49de-b108-ffb68044b135.preview.emergentagent.com')
 SERVER_API_BASE = f"{BASE_URL}/server-api"
 
 # Test authentication token (mock Firebase token)
