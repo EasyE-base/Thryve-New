@@ -17,6 +17,7 @@ import moment from 'moment'
 import 'react-big-calendar/lib/css/react-big-calendar.css'
 import InstructorScheduleComponent from '@/components/InstructorScheduleComponent'
 import StaffingChatComponent from '@/components/StaffingChatComponent'
+import StripeConnectButton from '@/components/StripeConnectButton'
 
 const localizer = momentLocalizer(moment)
 
