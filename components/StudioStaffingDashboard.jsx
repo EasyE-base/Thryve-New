@@ -31,11 +31,11 @@ export default function StudioStaffingDashboard() {
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    if (user && userRole === 'merchant') {
+    if (user && role === 'merchant') {
       fetchDashboard()
       fetchSettings()
     }
-  }, [user, userRole, dateRange])
+  }, [user, role, dateRange])
 
   const fetchDashboard = async () => {
     setLoading(true)
