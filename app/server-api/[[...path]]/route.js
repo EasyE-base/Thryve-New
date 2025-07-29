@@ -269,6 +269,218 @@ async function handleGET(request) {
       }
     }
 
+    // ===== COMMUNICATION LAYER ENDPOINTS (GET) =====
+    
+    // Get Message Threads
+    if (path === '/messages/threads') {
+      try {
+        const threads = await database.collection('messageThreads')
+          .find({ participantIds: user.uid })
+          .sort({ lastMessageAt: -1 })
+          .toArray()
+
+        const threadsData = []
+        for (const thread of threads) {
+          // Get participant details
+          const participants = []
+          for (const participantId of thread.participantIds) {
+            if (participantId !== user.uid) {
+              const participant = await database.collection('profiles').findOne({ userId: participantId })
+              if (participant) {
+                participants.push({
+                  id: participantId,
+                  name: participant.name || participant.email,
+                  role: participant.role,
+                  avatar: participant.avatar
+                })
+              }
+            }
+          }
+
+          // Count unread messages
+          const unreadCount = await database.collection('messages')
+            .countDocuments({
+              threadId: thread.id,
+              senderId: { $ne: user.uid },
+              readBy: { $nin: [user.uid] }
+            })
+
+          threadsData.push({
+            id: thread.id,
+            type: thread.type || 'direct',
+            name: thread.name,
+            participants,
+            lastMessage: thread.lastMessage || null,
+            unreadCount,
+            classId: thread.classId,
+            className: thread.className,
+            createdAt: thread.createdAt
+          })
+        }
+
+        return NextResponse.json({ success: true, threads: threadsData })
+      } catch (error) {
+        console.error('Error fetching message threads:', error)
+        return NextResponse.json({ error: 'Failed to fetch threads' }, { status: 500 })
+      }
+    }
+
+    // Get Messages for Thread
+    if (path.startsWith('/messages/threads/') && path.endsWith('/messages')) {
+      const pathParts = path.split('/')
+      const threadId = pathParts[3]
+      
+      try {
+        const messages = await database.collection('messages')
+          .find({ threadId })
+          .sort({ timestamp: 1 })
+          .limit(100)
+          .toArray()
+
+        const messagesData = messages.map(message => ({
+          id: message.id,
+          content: message.content,
+          type: message.type || 'text',
+          senderId: message.senderId,
+          senderName: message.senderName,
+          timestamp: message.timestamp,
+          readBy: message.readBy || [],
+          attachments: message.attachments || []
+        }))
+
+        return NextResponse.json({ success: true, messages: messagesData })
+      } catch (error) {
+        console.error('Error fetching messages:', error)
+        return NextResponse.json({ error: 'Failed to fetch messages' }, { status: 500 })
+      }
+    }
+
+    // Get User Notifications
+    if (path === '/notifications') {
+      try {
+        const notifications = await database.collection('notifications')
+          .find({ userId: user.uid })
+          .sort({ createdAt: -1 })
+          .limit(50)
+          .toArray()
+
+        let unreadCount = 0
+        const notificationsData = notifications.map(notification => {
+          if (!notification.read) unreadCount++
+          
+          return {
+            id: notification.id,
+            type: notification.type,
+            title: notification.title,
+            message: notification.message,
+            data: notification.data || {},
+            read: notification.read || false,
+            createdAt: notification.createdAt
+          }
+        })
+
+        return NextResponse.json({ 
+          success: true, 
+          notifications: notificationsData,
+          unreadCount 
+        })
+      } catch (error) {
+        console.error('Error fetching notifications:', error)
+        return NextResponse.json({ error: 'Failed to fetch notifications' }, { status: 500 })
+      }
+    }
+
+    // Get Notification Settings
+    if (path === '/notifications/settings') {
+      try {
+        const userSettings = await database.collection('userSettings').findOne({ userId: user.uid })
+        const settings = userSettings?.notifications || {
+          email: true,
+          sms: false,
+          push: true,
+          inApp: true,
+          bookingConfirmations: true,
+          classReminders: true,
+          paymentAlerts: true,
+          promotions: false,
+          socialUpdates: true
+        }
+
+        return NextResponse.json({ success: true, settings })
+      } catch (error) {
+        return NextResponse.json({ error: 'Failed to fetch settings' }, { status: 500 })
+      }
+    }
+
+    // Get Communication Stats (Merchant only)
+    if (path === '/communication/stats') {
+      // Check if user is merchant
+      const profile = await database.collection('profiles').findOne({ userId: user.uid })
+      if (!profile || profile.role !== 'merchant') {
+        return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+      }
+
+      try {
+        // Get basic communication stats
+        const stats = {
+          messagesSent: await database.collection('messages').countDocuments({ 
+            senderId: user.uid,
+            createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
+          }),
+          openRate: "68%", // Mock data for now
+          responseRate: "45%", // Mock data for now
+          totalThreads: await database.collection('messageThreads').countDocuments({
+            participantIds: user.uid
+          })
+        }
+
+        return NextResponse.json({ success: true, stats })
+      } catch (error) {
+        console.error('Error fetching communication stats:', error)
+        return NextResponse.json({ error: 'Failed to fetch stats' }, { status: 500 })
+      }
+    }
+
+    // Get Communication Broadcasts (Merchant only)
+    if (path === '/communication/broadcasts') {
+      const profile = await database.collection('profiles').findOne({ userId: user.uid })
+      if (!profile || profile.role !== 'merchant') {
+        return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+      }
+
+      try {
+        const broadcasts = await database.collection('broadcasts')
+          .find({ studioId: user.uid })
+          .sort({ createdAt: -1 })
+          .limit(20)
+          .toArray()
+
+        return NextResponse.json({ success: true, broadcasts })
+      } catch (error) {
+        console.error('Error fetching broadcasts:', error)
+        return NextResponse.json({ error: 'Failed to fetch broadcasts' }, { status: 500 })
+      }
+    }
+
+    // Get Communication Templates (Merchant only)
+    if (path === '/communication/templates') {
+      const profile = await database.collection('profiles').findOne({ userId: user.uid })
+      if (!profile || profile.role !== 'merchant') {
+        return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+      }
+
+      try {
+        const templates = await database.collection('messageTemplates')
+          .find({ studioId: user.uid })
+          .toArray()
+
+        return NextResponse.json({ success: true, templates })
+      } catch (error) {
+        console.error('Error fetching templates:', error)
+        return NextResponse.json({ error: 'Failed to fetch templates' }, { status: 500 })
+      }
+    }
+
     // Enhanced Booking System Endpoints
   
   // Real-time class availability
