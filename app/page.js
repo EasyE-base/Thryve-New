@@ -53,7 +53,7 @@ export default function Home() {
     return () => clearInterval(interval)
   }, [])
 
-  // Mock data for live classes
+  // Mock data for live classes with enhanced booking properties
   const liveClasses = [
     {
       id: 1,
@@ -61,9 +61,15 @@ export default function Home() {
       instructor: "Maya Chen",
       studio: "Zen Flow Studio",
       time: "7:00 AM",
+      date: "Today",
       price: "$28",
       image: LIFESTYLE_IMAGES[0],
-      type: "Yoga"
+      type: "Yoga",
+      capacity: 20,
+      booked: 15,
+      duration: 60,
+      location: "Studio A, Downtown",
+      description: "An energizing flow class that builds strength and flexibility"
     },
     {
       id: 2,
@@ -71,9 +77,15 @@ export default function Home() {
       instructor: "Marcus Williams",
       studio: "Strength Labs",
       time: "6:30 PM",
+      date: "Today",
       price: "$35",
       image: LIFESTYLE_IMAGES[1],
-      type: "HIIT"
+      type: "HIIT",
+      capacity: 18,
+      booked: 18,
+      duration: 45,
+      location: "Main Studio, Midtown",
+      description: "High-intensity interval training for maximum calorie burn"
     },
     {
       id: 3,
@@ -81,9 +93,15 @@ export default function Home() {
       instructor: "Sarah Johnson",
       studio: "Core Studio",
       time: "12:00 PM",
+      date: "Tomorrow",
       price: "$42",
       image: LIFESTYLE_IMAGES[1],
-      type: "Pilates"
+      type: "Pilates",
+      capacity: 15,
+      booked: 8,
+      duration: 60,
+      location: "Reformer Room, Uptown",
+      description: "Precision movement on the reformer for core strength"
     },
     {
       id: 4,
@@ -91,11 +109,33 @@ export default function Home() {
       instructor: "Diego Rivera",
       studio: "Fight Club NYC",
       time: "8:00 PM",
+      date: "Tomorrow",
       price: "$30",
       image: LIFESTYLE_IMAGES[0],
-      type: "Boxing"
+      type: "Boxing",
+      capacity: 16,
+      booked: 10,
+      duration: 50,
+      location: "Ring Room, Brooklyn",
+      description: "Learn proper boxing technique in a supportive environment"
     }
   ]
+
+  const handleBookClass = (classData) => {
+    if (!user) {
+      setShowSignInModal(true)
+      return
+    }
+    setSelectedClass(classData)
+    setShowBookingModal(true)
+  }
+
+  const handleBookingSuccess = (bookingResult) => {
+    // Refresh class data or update UI
+    toast.success('Booking successful!')
+    setShowBookingModal(false)
+    setSelectedClass(null)
+  }
 
   // Testimonials
   const testimonials = [
