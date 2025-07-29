@@ -835,6 +835,162 @@ backend:
           agent: "testing"
           comment: "🎉 ROUTING FIX VERIFICATION COMPLETED SUCCESSFULLY: Search analytics event recording endpoint is working perfectly and was NOT affected by the routing issue. ✅ ENDPOINT ACCESSIBILITY: POST /server-api/analytics/search-event continues to return 200 status, confirming this endpoint was working correctly before and after the routing fix. ✅ COMPREHENSIVE TRACKING: Successfully records search queries, results, click-through data, user behavior patterns, and recommendation effectiveness with detailed metadata. ✅ AUTHENTICATION SUPPORT: Supports both authenticated user tracking (with Firebase UID) and anonymous user tracking with session management. ✅ SEARCH TYPES: Successfully handles all search types (text, voice, filter, suggestion) with proper event categorization. ✅ VALIDATION: Correctly validates required fields and returns 400 status for invalid data (missing query or clickedResult). ✅ RESPONSE STRUCTURE: Returns proper JSON structure with success status, eventId, and sessionId for event tracking. ✅ PERFORMANCE: Excellent response times averaging 75ms across all analytics recording scenarios. ✅ DATABASE INTEGRATION: Successfully stores events in search_analytics collection with comprehensive metadata including userAgent, referrer, timestamp, and platform information. The search analytics event recording endpoint is production-ready and continues to work correctly."
 
+  - task: "POST /server-api/payments/setup-intent - Create Stripe Setup Intent for Payment Method"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 1 IMPLEMENTATION: Core payment infrastructure endpoint for creating Stripe setup intents. Automatically creates Stripe customer if doesn't exist, generates setup intent for saving payment methods with off_session usage for future payments. Returns client secret for frontend payment method collection."
+
+  - task: "POST /server-api/payments/create-subscription - Create Recurring Subscription"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 1 IMPLEMENTATION: Subscription creation endpoint with Stripe integration. Handles unlimited studio memberships, attaches payment method to customer, sets default payment method, creates subscription with metadata, and stores subscription record in database. Supports multiple subscription types with proper period management."
+
+  - task: "POST /server-api/payments/create-payment-intent - One-time Class Booking Payment"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 1 IMPLEMENTATION: One-time payment processing for individual class bookings. Calculates platform fees (3.75% for standard transactions), creates Stripe customer if needed, generates payment intent with comprehensive metadata for booking tracking, and returns client secret for payment completion."
+
+  - task: "POST /server-api/payments/purchase-xpass - Purchase X Pass Credit Packs"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 1 IMPLEMENTATION: X Pass credit pack purchasing with immediate payment confirmation. Handles credit pack purchases with platform fee calculation, confirms payment intent, automatically adds credits to user account upon successful payment, and records comprehensive transaction history."
+
+  - task: "POST /server-api/payments/customer-portal - Create Stripe Customer Portal Session"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 1 IMPLEMENTATION: Customer portal integration for subscription self-management. Creates Stripe billing portal session for users to manage subscriptions, update payment methods, view invoices, and handle billing history. Returns secure portal URL with proper return URL configuration."
+
+  - task: "POST /server-api/payments/refund - Process Payment Refunds"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 1 IMPLEMENTATION: Automated refund processing through Stripe. Handles partial and full refunds, updates booking status to 'refunded' when booking ID provided, records refund metadata, and provides comprehensive refund tracking with reason codes."
+
+  - task: "POST /server-api/payments/webhook - Enhanced Stripe Webhook Handler"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 1 IMPLEMENTATION: Comprehensive Stripe webhook processing for all payment events. Handles payment_intent.succeeded/failed, invoice.payment_succeeded/failed, subscription lifecycle events (created/updated/deleted), and setup_intent.succeeded. Updates database records, manages booking confirmations, and maintains transaction history."
+
+  - task: "GET /server-api/payments/methods - Retrieve User Payment Methods"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 1 IMPLEMENTATION: Payment method retrieval with Stripe integration. Fetches user's saved payment methods, identifies default payment method, formats card information (brand, last4, expiration), and returns enriched payment method data with default indicators."
+
+  - task: "GET /server-api/payments/subscriptions - Get User Subscriptions"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 1 IMPLEMENTATION: Subscription data retrieval with studio information enrichment. Returns user's subscriptions sorted by creation date, includes associated studio details (name, address, location), and provides subscription counts (total, active) for dashboard analytics."
+
+  - task: "GET /server-api/payments/xpass-credits - Get X Pass Credit Balance"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 1 IMPLEMENTATION: X Pass credit balance and transaction history retrieval. Returns available credits, total earned/spent statistics, recent transaction history (last 10), and handles users with no X Pass history by returning zero balances gracefully."
+
+  - task: "GET /server-api/payments/transactions - Get Transaction History"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 1 IMPLEMENTATION: Comprehensive transaction history with pagination and filtering. Supports transaction type filtering (class_booking, subscription, xpass_purchase), pagination with offset/limit, total count tracking, and hasMore indicators for infinite scrolling."
+
+  - task: "GET /server-api/payments/invoice/[id] - Get Payment Invoice Details"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "medium"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 1 IMPLEMENTATION: Individual invoice retrieval with security verification. Fetches Stripe invoice data, verifies user ownership through customer ID matching, formats invoice data with line items, provides hosted invoice URL and PDF links for user access."
+
+  - task: "GET /server-api/payments/studio-stats - Studio Revenue Analytics"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 1 IMPLEMENTATION: Studio payment analytics for merchant dashboard. Calculates total bookings/revenue over 3-month period, tracks active subscriptions, computes average booking value, calculates platform fees (3.75% standard, 7.5% X Pass), and provides net revenue after fee deduction."
+
   - task: "GET /server-api/discover/reviews - Class Ratings and Reviews Discovery"
     implemented: true
     working: true
