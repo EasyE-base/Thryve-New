@@ -5979,12 +5979,12 @@ async function handleDELETE(request) {
             trendScore,
             recentBookings: classBookings.length,
             bookingRate: `${Math.round(trendScore)}%`,
-            trendingReason: this.generateTrendingReason(classItem, classBookings.length)
+            trendingReason: generateTrendingReason(classItem, classBookings.length)
           }
         })
 
         // Get trending studios
-        const trendingStudios = await this.getTrendingStudios(startDate, endDate, limit)
+        const trendingStudios = await getTrendingStudios(startDate, endDate, limit, database)
 
         return NextResponse.json({
           success: true,
