@@ -1021,6 +1021,66 @@ backend:
           agent: "testing"
           comment: "✅ STUDIO STAFFING SETTINGS MANAGEMENT TESTING COMPLETED: Settings update functionality working perfectly. ✅ ENDPOINT FUNCTIONALITY: Successfully updates staffing settings with proper validation. ✅ DATA STRUCTURE: Accepts requireApproval, maxWeeklyHours, autoNotifications, coverageDeadline, and other configuration fields. ✅ DATABASE INTEGRATION: Successfully updates studio_staffing_settings collection with upsert functionality. ✅ BUSINESS LOGIC: Properly implements studio staffing configuration management. The staffing settings management system is functional and ready for production use."
 
+  - task: "GET/POST /server-api/messages/threads - Message Thread Management"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "COMMUNICATION LAYER INTEGRATION: Message thread management endpoints for creating and retrieving message threads between users. Supports direct messaging, group conversations, and class-based discussions. Requires authentication and proper thread access validation."
+
+  - task: "GET/POST /server-api/messages/send - Message Sending System"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "COMMUNICATION LAYER INTEGRATION: Real-time message sending functionality with proper authentication, thread validation, and message persistence. Supports text messages, attachments, and message delivery confirmation."
+
+  - task: "GET /server-api/notifications - Notification Inbox System"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "COMMUNICATION LAYER INTEGRATION: User notification inbox with filtering, unread count tracking, and notification management. Returns booking confirmations, class updates, payment notifications, and social interactions."
+
+  - task: "POST/PUT/DELETE /server-api/notifications - Notification Management"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "COMMUNICATION LAYER INTEGRATION: Comprehensive notification management including send, mark-as-read, settings update, and automated notification triggers. Supports multiple delivery channels (in-app, email, SMS)."
+
+  - task: "GET/POST /server-api/communication/* - Communication Dashboard APIs"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "COMMUNICATION LAYER INTEGRATION: Studio owner communication management including broadcast sending, auto-responders, templates, and analytics. Role-restricted to merchant users only."
+
 frontend:
   - task: "Studio-centric Class Management System Frontend Integration"
     implemented: true
