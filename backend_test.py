@@ -681,7 +681,7 @@ Advanced Vinyasa,Dynamic flowing yoga practice,75,10,35.00,yoga,advanced,Previou
             
             if response.status_code == 200:
                 data = response.json()
-                uploads = data.get("uploads", [])
+                uploads = data.get("history", [])
                 
                 # All uploads should belong to the current user
                 # (This is implicit in the API design - it filters by user ID)
