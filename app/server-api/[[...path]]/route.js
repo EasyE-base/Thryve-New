@@ -5962,21 +5962,63 @@ async function handleDELETE(request) {
         )
 
         // Get actual class data for recommendations
-        const classIds = recommendations.recommendations.map(r => r.id).filter(Boolean)
-        const classes = classIds.length > 0 ? await database.collection('class_schedules')
-          .find({ id: { $in: classIds } })
-          .toArray() : []
+        // Since AI engine returns mock data, we'll get real available classes
+        const availableClasses = await database.collection('class_schedules')
+          .find({
+            startTime: { $gte: new Date().toISOString() },
+            status: { $ne: 'cancelled' }
+          })
+          .sort({ startTime: 1 })
+          .limit(50)
+          .toArray()
 
-        // Merge recommendation data with actual class data
-        const enrichedRecommendations = recommendations.recommendations.map(rec => {
-          const classData = classes.find(c => c.id === rec.id)
+        // Get bookings for availability calculation
+        const scheduleIds = availableClasses.map(c => c.id)
+        const bookings = await database.collection('bookings')
+          .find({ 
+            classInstanceId: { $in: scheduleIds },
+            status: 'confirmed'
+          })
+          .toArray()
+
+        // Calculate availability
+        const classesWithAvailability = availableClasses.map(cls => {
+          const classBookings = bookings.filter(b => b.classInstanceId === cls.id)
+          const bookedCount = classBookings.length
+          const availableSpots = Math.max(0, (cls.capacity || 20) - bookedCount)
+          
           return {
-            ...rec,
-            classData,
-            isAvailable: classData?.availableSpots > 0,
-            nextAvailableTime: classData?.startTime
+            ...cls,
+            bookedCount,
+            availableSpots,
+            isAvailable: availableSpots > 0
           }
         })
+
+        // Apply AI recommendation scoring to actual classes
+        const { default: aiRecommendationEngine } = await import('../../../lib/ai-recommendation-engine.js')
+        const preferences = await aiRecommendationEngine.extractUserPreferences(userProfile)
+        const behaviorData = await aiRecommendationEngine.getUserBehaviorData(firebaseUser.uid)
+        
+        // Score and rank classes
+        const scoredClasses = await aiRecommendationEngine.calculateRecommendationScores(
+          classesWithAvailability,
+          preferences,
+          behaviorData,
+          type
+        )
+
+        // Get top recommendations
+        const topRecommendations = scoredClasses
+          .sort((a, b) => b.score - a.score)
+          .slice(0, limit)
+          .map(rec => ({
+            ...rec,
+            recommendationReason: aiRecommendationEngine.generateRecommendationReason(rec),
+            confidence: Math.min(rec.score, 1.0)
+          }))
+
+        const enrichedRecommendations = topRecommendations
 
         return NextResponse.json({
           success: true,
