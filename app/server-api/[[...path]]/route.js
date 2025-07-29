@@ -507,7 +507,7 @@ async function handleGET(request) {
   }
 
   // Get similar classes
-  if (method === 'GET' && path.startsWith('/classes/similar/')) {
+  if (path.startsWith('/classes/similar/')) {
     const classId = path.split('/')[3]
     const limit = parseInt(request.nextUrl.searchParams.get('limit') || '3')
     
