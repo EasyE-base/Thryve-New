@@ -81,6 +81,118 @@ async function getFirebaseUser(request) {
   }
 }
 
+// Helper function to generate unique IDs
+function generateId() {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2)
+}
+
+// Helper function to get waitlist position
+async function getWaitlistPosition(classId) {
+  try {
+    const waitlist = await db.collection('waitlist')
+      .where('classId', '==', classId)
+      .where('status', '==', 'active')
+      .orderBy('joinedAt', 'asc')
+      .get()
+    
+    return waitlist.size + 1
+  } catch (error) {
+    console.error('Error getting waitlist position:', error)
+    return 1
+  }
+}
+
+// Helper function to promote from waitlist
+async function promoteFromWaitlist(classId) {
+  try {
+    // Get the first person on waitlist
+    const waitlistQuery = await db.collection('waitlist')
+      .where('classId', '==', classId)
+      .where('status', '==', 'active')
+      .orderBy('joinedAt', 'asc')
+      .limit(1)
+      .get()
+
+    if (waitlistQuery.empty) return
+
+    const waitlistDoc = waitlistQuery.docs[0]
+    const waitlistData = waitlistDoc.data()
+
+    // Get class data for booking
+    const classData = await db.collection('classes').doc(classId).get()
+    
+    if (!classData.exists) return
+
+    // Create booking for promoted user
+    await db.collection('bookings').add({
+      id: generateId(),
+      userId: waitlistData.userId,
+      classId: classId,
+      status: 'confirmed',
+      paymentMethod: 'waitlist_promotion',
+      paymentStatus: 'completed',
+      bookingDate: new Date(),
+      classDate: waitlistData.classDate || new Date(),
+      price: 0, // Free promotion from waitlist
+      promotedFromWaitlist: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    })
+
+    // Update waitlist status
+    await waitlistDoc.ref.update({
+      status: 'promoted',
+      promotedAt: new Date(),
+      updatedAt: new Date()
+    })
+
+    // Send notification to promoted user
+    await sendWaitlistPromotionNotification(waitlistData.userId, classId)
+    
+    console.log(`Promoted user ${waitlistData.userId} from waitlist for class ${classId}`)
+  } catch (error) {
+    console.error('Error promoting from waitlist:', error)
+  }
+}
+
+// Helper function to send waitlist promotion notification
+async function sendWaitlistPromotionNotification(userId, classId) {
+  try {
+    // Get user and class data
+    const userDoc = await db.collection('users').doc(userId).get()
+    const classDoc = await db.collection('classes').doc(classId).get()
+    
+    if (!userDoc.exists || !classDoc.exists) return
+
+    const userData = userDoc.data()
+    const classData = classDoc.data()
+
+    // Create notification record
+    await db.collection('notifications').add({
+      id: generateId(),
+      userId: userId,
+      type: 'waitlist_promotion',
+      title: 'Spot Available!',
+      message: `Great news! A spot opened up in ${classData.title}. You've been automatically booked.`,
+      data: {
+        classId: classId,
+        className: classData.title,
+        classDate: classData.date,
+        classTime: classData.time
+      },
+      read: false,
+      createdAt: new Date()
+    })
+
+    // TODO: Send email/SMS notification
+    // await sendEmail(userData.email, 'Spot Available!', notificationTemplate)
+    // await sendSMS(userData.phone, `Spot available in ${classData.title}!`)
+    
+  } catch (error) {
+    console.error('Error sending waitlist notification:', error)
+  }
+}
+
 export async function GET(request) {
   return handleCORS(await handleGET(request))
 }
