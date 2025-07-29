@@ -37,6 +37,8 @@ export default function Home() {
   const [showSignInModal, setShowSignInModal] = useState(false)
   const [selectedClass, setSelectedClass] = useState(null)
   const [showBookingModal, setShowBookingModal] = useState(false)
+  const [showMessaging, setShowMessaging] = useState(false)
+  const [showNotifications, setShowNotifications] = useState(false)
   const heroRef = useRef(null)
 
   // Auto-rotate videos with smooth transitions (3 seconds per video)
