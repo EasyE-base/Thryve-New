@@ -4112,6 +4112,65 @@ async function handleDELETE(request) {
 
     console.log('SERVER-API DELETE Request:', path)
 
+    // Get authenticated user for communication endpoints
+    const user = await getFirebaseUser(request)
+    if (!user && (path.startsWith('/notifications'))) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
+    // ===== COMMUNICATION LAYER ENDPOINTS (DELETE) =====
+
+    // Delete Notification
+    if (path.startsWith('/notifications/') && !path.includes('/read')) {
+      const pathParts = path.split('/')
+      const notificationId = pathParts[2]
+      
+      try {
+        const result = await database.collection('notifications').deleteOne({
+          id: notificationId,
+          userId: user.uid
+        })
+
+        if (result.deletedCount === 0) {
+          return NextResponse.json({ error: 'Notification not found' }, { status: 404 })
+        }
+
+        return NextResponse.json({ success: true })
+      } catch (error) {
+        console.error('Error deleting notification:', error)
+        return NextResponse.json({ error: 'Failed to delete notification' }, { status: 500 })
+      }
+    }
+
+    // Delete Message Thread (for participants only)
+    if (path.startsWith('/messages/threads/')) {
+      const pathParts = path.split('/')
+      const threadId = pathParts[3]
+      
+      try {
+        // Only allow deletion if user is a participant
+        const thread = await database.collection('messageThreads').findOne({
+          id: threadId,
+          participantIds: user.uid
+        })
+
+        if (!thread) {
+          return NextResponse.json({ error: 'Thread not found or access denied' }, { status: 404 })
+        }
+
+        // Delete all messages in the thread
+        await database.collection('messages').deleteMany({ threadId })
+        
+        // Delete the thread
+        await database.collection('messageThreads').deleteOne({ id: threadId })
+
+        return NextResponse.json({ success: true })
+      } catch (error) {
+        console.error('Error deleting message thread:', error)
+        return NextResponse.json({ error: 'Failed to delete thread' }, { status: 500 })
+      }
+    }
+
     // Delete uploaded file
     const fileIdMatch = path.match(/^\/files\/(.+)$/)
     if (fileIdMatch) {
