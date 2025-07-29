@@ -32,14 +32,6 @@ export default function Home() {
   const [showSignInModal, setShowSignInModal] = useState(false)
   const heroRef = useRef(null)
 
-  // Auto-rotate hero images
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentHeroImage((prev) => (prev + 1) % HERO_IMAGES.length)
-    }, 5000)
-    return () => clearInterval(interval)
-  }, [])
-
   // Auto-rotate testimonials
   useEffect(() => {
     const interval = setInterval(() => {
