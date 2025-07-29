@@ -837,15 +837,18 @@ backend:
 
   - task: "POST /server-api/payments/setup-intent - Create Stripe Setup Intent for Payment Method"
     implemented: true
-    working: "unknown"
+    working: true
     file: "app/server-api/[[...path]]/route.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "unknown"
           agent: "main"
           comment: "PHASE 1 IMPLEMENTATION: Core payment infrastructure endpoint for creating Stripe setup intents. Automatically creates Stripe customer if doesn't exist, generates setup intent for saving payment methods with off_session usage for future payments. Returns client secret for frontend payment method collection."
+        - working: true
+          agent: "testing"
+          comment: "✅ SETUP INTENT ENDPOINT TESTING COMPLETED SUCCESSFULLY: Core payment infrastructure is working correctly with 100% test success rate (4/4 tests passed). ✅ AUTHENTICATION: Correctly requires authentication (401 for unauthenticated requests). ✅ STRIPE INTEGRATION: Successfully creates Stripe setup intents with proper client secret format (seti_). ✅ CUSTOMER CREATION: Automatically creates Stripe customer if doesn't exist and stores customer ID in user profile. ✅ RESPONSE STRUCTURE: Returns all required fields (success, clientSecret, customerId) with proper data types. ✅ PAYMENT METHOD COLLECTION: Setup intent configured for off_session usage enabling future payment method storage. The setup intent endpoint is production-ready and provides the foundation for payment method collection in the payment infrastructure."
 
   - task: "POST /server-api/payments/create-subscription - Create Recurring Subscription"
     implemented: true
