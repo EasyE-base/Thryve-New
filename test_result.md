@@ -1150,6 +1150,126 @@ backend:
           agent: "main"
           comment: "PHASE 2 IMPLEMENTATION: Detailed class package usage tracking with class and studio information. Provides usage history with class names, times, instructors, and studio details. Supports package-specific filtering and enriched data display for comprehensive package utilization analytics and user transparency."
 
+  - task: "POST /server-api/payments/apply-cancellation-policy - Apply Cancellation Policy & Fees"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 3 IMPLEMENTATION: Comprehensive cancellation policy engine with studio-configurable rules. Calculates fees based on cancellation timing (within window, late, no-show), handles different payment methods (class package, X Pass, subscription), applies free trial cancellations, and processes refunds/credits accordingly. Includes intelligent policy enforcement with time-based fee calculation."
+
+  - task: "POST /server-api/payments/process-no-show - Process No-Show Penalties"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 3 IMPLEMENTATION: Automated no-show penalty processing with role-based authorization. Allows studio owners and instructors to mark no-shows, applies configurable penalties based on payment method, handles Stripe payment collection for fees, and maintains comprehensive audit trail. Includes grace period management and automatic fee calculation."
+
+  - task: "POST /server-api/payments/calculate-platform-fees - Dynamic Platform Fee Calculation"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 3 IMPLEMENTATION: Advanced platform fee calculation engine with dynamic pricing. Calculates fees based on payment type (3.75% standard, 7.5% X Pass), applies volume-based discounts (Bronze to Platinum tiers), handles studio-specific rates, and includes subscription tier discounts. Provides comprehensive fee breakdowns with Stripe processing costs."
+
+  - task: "POST /server-api/payments/retry-failed-payment - Intelligent Payment Retry"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 3 IMPLEMENTATION: Intelligent payment retry system with progressive delay scheduling. Implements retry limits (3 attempts), progressive delays (immediate, 30min, 24hr, 7 days), creates new payment intents for retry attempts, and maintains comprehensive retry history. Includes automatic retry scheduling and failure tracking."
+
+  - task: "POST /server-api/payments/prorate-subscription - Subscription Proration Handling"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 3 IMPLEMENTATION: Comprehensive subscription proration system for plan changes. Calculates prorated amounts for upgrades/downgrades, handles remaining period calculations, integrates with Stripe proration behavior, and maintains detailed change history. Supports both immediate charges and credits based on plan change type."
+
+  - task: "GET /server-api/payments/cancellation-policy - Retrieve Cancellation Policy"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 3 IMPLEMENTATION: Cancellation policy retrieval with user-specific information. Returns studio-specific policies with default fallbacks, includes user cancellation history, tracks free trial cancellations used, and provides comprehensive policy details for frontend display. Supports weekend/holiday policy variations."
+
+  - task: "GET /server-api/payments/fee-structure - Platform Fee Structure Information"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 3 IMPLEMENTATION: Comprehensive fee structure information with volume-based pricing. Returns base rates, effective rates with discounts, volume tier information, studio-specific custom rates, and volume discount thresholds. Provides transparency for merchants on fee calculations and tier progression."
+
+  - task: "GET /server-api/payments/retry-history - Payment Retry History"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 3 IMPLEMENTATION: Payment retry history tracking with transaction enrichment. Provides detailed retry attempt history, includes original transaction information, tracks retry success/failure rates, and supports filtering by payment intent. Enables comprehensive retry analytics and failure pattern analysis."
+
+  - task: "GET /server-api/payments/proration-preview - Subscription Proration Preview"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 3 IMPLEMENTATION: Subscription proration preview calculator for plan changes. Provides detailed proration calculations before actual changes, shows billing period breakdowns, calculates upgrade/downgrade amounts, and includes effective date information. Enables informed decision-making for subscription changes."
+
+  - task: "GET /server-api/payments/studio-policies - Studio Policy Management"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 3 IMPLEMENTATION: Comprehensive studio policy management for merchants. Returns cancellation policies, fee settings, volume discounts, and policy enforcement statistics. Includes cancellation/no-show rates, fee collection analytics, and 30-day performance metrics for policy optimization."
+
   - task: "GET /server-api/discover/reviews - Class Ratings and Reviews Discovery"
     implemented: true
     working: true
