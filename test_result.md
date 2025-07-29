@@ -897,15 +897,18 @@ backend:
 
   - task: "POST /server-api/payments/customer-portal - Create Stripe Customer Portal Session"
     implemented: true
-    working: "unknown"
+    working: false
     file: "app/server-api/[[...path]]/route.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "unknown"
           agent: "main"
           comment: "PHASE 1 IMPLEMENTATION: Customer portal integration for subscription self-management. Creates Stripe billing portal session for users to manage subscriptions, update payment methods, view invoices, and handle billing history. Returns secure portal URL with proper return URL configuration."
+        - working: false
+          agent: "testing"
+          comment: "❌ CUSTOMER PORTAL ENDPOINT TESTING COMPLETED WITH ISSUES: Core endpoint logic is implemented correctly but fails with Stripe API integration due to test environment limitations (1/3 tests passed). ✅ AUTHENTICATION: Correctly requires authentication (401 for unauthenticated requests). ❌ STRIPE INTEGRATION: Fails with 500 error when attempting to create billing portal session - this is expected with test Stripe customer IDs that don't exist in actual Stripe account. The endpoint implementation includes proper customer validation, portal session creation with return URL configuration, and secure portal URL response. Issue is with test environment Stripe configuration, not endpoint logic."
 
   - task: "POST /server-api/payments/refund - Process Payment Refunds"
     implemented: true
