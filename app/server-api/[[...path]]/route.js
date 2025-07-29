@@ -4013,6 +4013,71 @@ async function handlePOST(request) {
       }
     }
 
+    // Record search analytics event
+    if (path === '/analytics/search-event') {
+      const firebaseUser = await getFirebaseUser(request)
+      // Allow anonymous search tracking, but record userId if available
+
+      try {
+        const body = await request.json()
+        const { 
+          query, 
+          searchType, 
+          results, 
+          clickedResult, 
+          sessionId, 
+          filters,
+          userAgent,
+          referrer 
+        } = body
+
+        if (!query && !clickedResult) {
+          return NextResponse.json({ error: 'Query or clicked result is required' }, { status: 400 })
+        }
+
+        const searchEvent = {
+          id: `search-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          userId: firebaseUser?.uid || 'anonymous',
+          query: query || null,
+          searchType: searchType || 'text', // text, voice, filter, suggestion
+          results: {
+            total: results?.total || 0,
+            categories: results?.categories || {},
+            responseTime: results?.responseTime || null
+          },
+          clickedResult: clickedResult ? {
+            id: clickedResult.id,
+            type: clickedResult.type, // class, instructor, studio, category
+            name: clickedResult.name,
+            position: clickedResult.position || null,
+            source: clickedResult.source || 'search_results' // search_results, suggestions, trending
+          } : null,
+          filters: filters || {},
+          sessionId: sessionId || `session-${Date.now()}`,
+          metadata: {
+            userAgent: userAgent || null,
+            referrer: referrer || null,
+            timestamp: new Date(),
+            platform: 'web'
+          },
+          createdAt: new Date()
+        }
+
+        await database.collection('search_analytics').insertOne(searchEvent)
+
+        return NextResponse.json({
+          success: true,
+          message: 'Search analytics recorded',
+          eventId: searchEvent.id,
+          sessionId: searchEvent.sessionId
+        })
+
+      } catch (error) {
+        console.error('Search analytics error:', error)
+        return NextResponse.json({ error: 'Failed to record search analytics' }, { status: 500 })
+      }
+    }
+
     // ========================================
     // INSTRUCTOR STAFFING & SCHEDULE MANAGEMENT SYSTEM
     // ========================================
