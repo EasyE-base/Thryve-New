@@ -5786,6 +5786,367 @@ async function handleDELETE(request) {
       }
     }
 
+    // ===== SEARCH & DISCOVERY ENGINE ENDPOINTS =====
+
+    // Get personalized recommendations
+    if (path === '/discover/recommendations') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const url = new URL(request.url)
+        const type = url.searchParams.get('type') || 'personalized'
+        const limit = parseInt(url.searchParams.get('limit')) || 10
+        const timeRange = url.searchParams.get('timeRange') || '7days'
+
+        // Get user profile
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        if (!userProfile) {
+          return NextResponse.json({ error: 'User profile not found' }, { status: 404 })
+        }
+
+        // Import AI recommendation engine
+        const { default: aiRecommendationEngine } = await import('../../../lib/ai-recommendation-engine.js')
+        
+        // Generate recommendations
+        const recommendations = await aiRecommendationEngine.generatePersonalizedRecommendations(
+          firebaseUser.uid,
+          userProfile,
+          { limit, timeRange, recommendationType: type }
+        )
+
+        // Get actual class data for recommendations
+        const classIds = recommendations.recommendations.map(r => r.id).filter(Boolean)
+        const classes = classIds.length > 0 ? await database.collection('class_schedules')
+          .find({ id: { $in: classIds } })
+          .toArray() : []
+
+        // Merge recommendation data with actual class data
+        const enrichedRecommendations = recommendations.recommendations.map(rec => {
+          const classData = classes.find(c => c.id === rec.id)
+          return {
+            ...rec,
+            classData,
+            isAvailable: classData?.availableSpots > 0,
+            nextAvailableTime: classData?.startTime
+          }
+        })
+
+        return NextResponse.json({
+          success: true,
+          recommendations: enrichedRecommendations,
+          meta: recommendations.meta,
+          personalizedFor: {
+            userId: firebaseUser.uid,
+            name: userProfile.name || `${userProfile.firstName} ${userProfile.lastName}`,
+            preferences: recommendations.meta.userPreferences
+          }
+        })
+
+      } catch (error) {
+        console.error('Recommendations error:', error)
+        return NextResponse.json({ error: 'Failed to generate recommendations' }, { status: 500 })
+      }
+    }
+
+    // Get trending classes and studios
+    if (path === '/discover/trending') {
+      try {
+        const url = new URL(request.url)
+        const category = url.searchParams.get('category')
+        const timeRange = url.searchParams.get('timeRange') || '7days'
+        const limit = parseInt(url.searchParams.get('limit')) || 10
+
+        // Calculate trending based on recent bookings and ratings
+        let trendingQuery = {}
+        if (category && category !== 'all') {
+          trendingQuery.category = category
+        }
+
+        // Get classes with high booking rates from the last week
+        const endDate = new Date()
+        const startDate = new Date()
+        startDate.setDate(startDate.getDate() - (timeRange === '7days' ? 7 : 30))
+
+        const trendingClasses = await database.collection('class_schedules')
+          .find({
+            ...trendingQuery,
+            startTime: { $gte: startDate.toISOString(), $lte: endDate.toISOString() },
+            status: { $ne: 'cancelled' }
+          })
+          .sort({ bookedCount: -1, rating: -1 })
+          .limit(limit)
+          .toArray()
+
+        // Get booking trend data
+        const classIds = trendingClasses.map(c => c.id)
+        const recentBookings = await database.collection('bookings')
+          .find({
+            classInstanceId: { $in: classIds },
+            createdAt: { $gte: startDate },
+            status: 'confirmed'
+          })
+          .toArray()
+
+        // Calculate trend scores
+        const trendingWithScores = trendingClasses.map(classItem => {
+          const classBookings = recentBookings.filter(b => b.classInstanceId === classItem.id)
+          const trendScore = (classBookings.length / Math.max(classItem.capacity, 1)) * 100
+
+          return {
+            ...classItem,
+            trendScore,
+            recentBookings: classBookings.length,
+            bookingRate: `${Math.round(trendScore)}%`,
+            trendingReason: this.generateTrendingReason(classItem, classBookings.length)
+          }
+        })
+
+        // Get trending studios
+        const trendingStudios = await this.getTrendingStudios(startDate, endDate, limit)
+
+        return NextResponse.json({
+          success: true,
+          trending: {
+            classes: trendingWithScores,
+            studios: trendingStudios,
+            timeRange,
+            category: category || 'all',
+            generatedAt: new Date()
+          }
+        })
+
+      } catch (error) {
+        console.error('Trending discovery error:', error)
+        return NextResponse.json({ error: 'Failed to get trending content' }, { status: 500 })
+      }
+    }
+
+    // Advanced search with autocomplete and suggestions
+    if (path === '/discover/search/suggestions') {
+      try {
+        const url = new URL(request.url)
+        const query = url.searchParams.get('q') || ''
+        const limit = parseInt(url.searchParams.get('limit')) || 8
+
+        if (query.length < 2) {
+          return NextResponse.json({
+            success: true,
+            suggestions: {
+              classes: [],
+              instructors: [],
+              studios: [],
+              categories: []
+            }
+          })
+        }
+
+        const searchRegex = new RegExp(query, 'i')
+
+        // Search class names and descriptions
+        const classSuggestions = await database.collection('studio_classes')
+          .find({
+            $or: [
+              { name: searchRegex },
+              { description: searchRegex },
+              { tags: { $in: [searchRegex] } }
+            ],
+            isActive: true
+          })
+          .limit(limit)
+          .toArray()
+
+        // Search instructor names
+        const instructorSuggestions = await database.collection('profiles')
+          .find({
+            role: 'instructor',
+            $or: [
+              { firstName: searchRegex },
+              { lastName: searchRegex },
+              { specialties: { $in: [searchRegex] } }
+            ]
+          })
+          .limit(limit)
+          .toArray()
+
+        // Search studio names
+        const studioSuggestions = await database.collection('profiles')
+          .find({
+            role: 'merchant',
+            $or: [
+              { businessName: searchRegex },
+              { studioName: searchRegex },
+              { description: searchRegex }
+            ]
+          })
+          .limit(limit)
+          .toArray()
+
+        // Category suggestions
+        const categories = [
+          'yoga', 'pilates', 'hiit', 'cardio', 'strength', 'dance', 
+          'meditation', 'boxing', 'cycling', 'swimming', 'martial-arts'
+        ]
+        const categorySuggestions = categories.filter(cat => 
+          cat.toLowerCase().includes(query.toLowerCase())
+        )
+
+        return NextResponse.json({
+          success: true,
+          suggestions: {
+            classes: classSuggestions.map(c => ({
+              id: c.id,
+              name: c.name,
+              category: c.category,
+              type: 'class'
+            })),
+            instructors: instructorSuggestions.map(i => ({
+              id: i.userId,
+              name: `${i.firstName} ${i.lastName}`,
+              specialties: i.specialties || [],
+              type: 'instructor'
+            })),
+            studios: studioSuggestions.map(s => ({
+              id: s.userId,
+              name: s.businessName || s.studioName,
+              location: s.address,
+              type: 'studio'
+            })),
+            categories: categorySuggestions.map(cat => ({
+              name: cat,
+              type: 'category'
+            }))
+          },
+          query,
+          totalSuggestions: classSuggestions.length + instructorSuggestions.length + 
+                           studioSuggestions.length + categorySuggestions.length
+        })
+
+      } catch (error) {
+        console.error('Search suggestions error:', error)
+        return NextResponse.json({ error: 'Failed to get search suggestions' }, { status: 500 })
+      }
+    }
+
+    // Get class ratings and reviews
+    if (path === '/discover/reviews' || path.startsWith('/discover/reviews?')) {
+      try {
+        const url = new URL(request.url)
+        const classId = url.searchParams.get('classId')
+        const instructorId = url.searchParams.get('instructorId')
+        const studioId = url.searchParams.get('studioId')
+        const limit = parseInt(url.searchParams.get('limit')) || 10
+        const sortBy = url.searchParams.get('sortBy') || 'recent'
+
+        let reviewQuery = {}
+        if (classId) reviewQuery.classId = classId
+        if (instructorId) reviewQuery.instructorId = instructorId
+        if (studioId) reviewQuery.studioId = studioId
+
+        let sortQuery = { createdAt: -1 } // Default to recent
+        if (sortBy === 'rating') sortQuery = { rating: -1, createdAt: -1 }
+        if (sortBy === 'helpful') sortQuery = { helpfulCount: -1, createdAt: -1 }
+
+        const reviews = await database.collection('reviews')
+          .find(reviewQuery)
+          .sort(sortQuery)
+          .limit(limit)
+          .toArray()
+
+        // Get reviewer information
+        const reviewerIds = reviews.map(r => r.userId)
+        const reviewers = await database.collection('profiles')
+          .find({ userId: { $in: reviewerIds } })
+          .toArray()
+
+        const enrichedReviews = reviews.map(review => {
+          const reviewer = reviewers.find(r => r.userId === review.userId)
+          return {
+            ...review,
+            reviewer: reviewer ? {
+              name: reviewer.firstName ? `${reviewer.firstName} ${reviewer.lastName.charAt(0)}.` : 'Anonymous',
+              verified: true,
+              totalReviews: reviewer.totalReviews || 1
+            } : { name: 'Anonymous', verified: false, totalReviews: 1 }
+          }
+        })
+
+        // Calculate average rating and statistics
+        const ratings = reviews.map(r => r.rating).filter(Boolean)
+        const averageRating = ratings.length > 0 ? ratings.reduce((a, b) => a + b) / ratings.length : 0
+        
+        const ratingDistribution = {
+          5: ratings.filter(r => r === 5).length,
+          4: ratings.filter(r => r === 4).length,
+          3: ratings.filter(r => r === 3).length,
+          2: ratings.filter(r => r === 2).length,
+          1: ratings.filter(r => r === 1).length
+        }
+
+        return NextResponse.json({
+          success: true,
+          reviews: enrichedReviews,
+          statistics: {
+            averageRating: Math.round(averageRating * 10) / 10,
+            totalReviews: reviews.length,
+            ratingDistribution
+          },
+          filters: { classId, instructorId, studioId, sortBy }
+        })
+
+      } catch (error) {
+        console.error('Reviews retrieval error:', error)
+        return NextResponse.json({ error: 'Failed to get reviews' }, { status: 500 })
+      }
+    }
+
+    // Get discovery analytics for user
+    if (path === '/discover/analytics') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        // Get user's search and booking patterns
+        const userBookings = await database.collection('bookings')
+          .find({ userId: firebaseUser.uid })
+          .sort({ createdAt: -1 })
+          .limit(50)
+          .toArray()
+
+        const userSearches = await database.collection('search_analytics')
+          .find({ userId: firebaseUser.uid })
+          .sort({ timestamp: -1 })
+          .limit(100)
+          .toArray()
+
+        // Analyze patterns
+        const analytics = {
+          bookingPatterns: this.analyzeBookingPatterns(userBookings),
+          searchPatterns: this.analyzeSearchPatterns(userSearches),
+          preferences: this.analyzeUserPreferences(userBookings),
+          recommendations: {
+            nextBookingPrediction: this.predictNextBooking(userBookings),
+            suggestedTimes: this.suggestOptimalTimes(userBookings),
+            suggestedCategories: this.suggestNewCategories(userBookings)
+          }
+        }
+
+        return NextResponse.json({
+          success: true,
+          analytics,
+          generatedAt: new Date()
+        })
+
+      } catch (error) {
+        console.error('Discovery analytics error:', error)
+        return NextResponse.json({ error: 'Failed to generate analytics' }, { status: 500 })
+      }
+    }
+
     return NextResponse.json({ error: 'Endpoint not found' }, { status: 404 })
   } catch (error) {
     console.error('DELETE Error:', error)
