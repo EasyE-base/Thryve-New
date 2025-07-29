@@ -1053,15 +1053,18 @@ backend:
 
   - task: "GET /server-api/notifications - Notification Inbox System"
     implemented: true
-    working: "unknown"
+    working: false
     file: "app/server-api/[[...path]]/route.js"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "unknown"
           agent: "main"
           comment: "COMMUNICATION LAYER INTEGRATION: User notification inbox with filtering, unread count tracking, and notification management. Returns booking confirmations, class updates, payment notifications, and social interactions."
+        - working: false
+          agent: "testing"
+          comment: "CRITICAL IMPLEMENTATION ISSUE: Notification inbox endpoint is failing. GET /notifications returns 500 'method is not defined' error because the code checks for 'method === GET' inside the GET handler where 'method' variable doesn't exist. Authentication protection also fails (returns 500 instead of 401). The notification inbox system is non-functional due to the same structural code issue affecting all communication layer endpoints in the GET handler."
 
   - task: "POST/PUT/DELETE /server-api/notifications - Notification Management"
     implemented: true
