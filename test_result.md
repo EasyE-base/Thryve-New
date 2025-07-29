@@ -1023,15 +1023,18 @@ backend:
 
   - task: "GET/POST /server-api/messages/threads - Message Thread Management"
     implemented: true
-    working: "unknown"
+    working: false
     file: "app/server-api/[[...path]]/route.js"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "unknown"
           agent: "main"
           comment: "COMMUNICATION LAYER INTEGRATION: Message thread management endpoints for creating and retrieving message threads between users. Supports direct messaging, group conversations, and class-based discussions. Requires authentication and proper thread access validation."
+        - working: false
+          agent: "testing"
+          comment: "CRITICAL IMPLEMENTATION ISSUE: Message thread endpoints are failing due to structural problems in backend code. GET /messages/threads returns 500 'method is not defined' error because the code checks for 'method === GET' inside the GET handler where 'method' variable doesn't exist. POST /messages/threads returns 404 'Endpoint not found'. The communication layer endpoints are incorrectly implemented - they're checking for method variables that don't exist in their respective handlers. This is a fundamental code structure issue that prevents the messaging system from working."
 
   - task: "GET/POST /server-api/messages/send - Message Sending System"
     implemented: true
