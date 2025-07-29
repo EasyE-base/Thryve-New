@@ -6822,6 +6822,462 @@ async function handlePOST(request) {
       }
     }
 
+    // ========================================
+    // PHASE 2: SUBSCRIPTION MANAGEMENT SYSTEM
+    // ========================================
+
+    // Create class package (5, 10, 15 classes)
+    if (path === '/payments/create-class-package') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { packageType, classCount, amount, studioId, expirationDays = 90, paymentMethodId } = body
+
+        if (!packageType || !classCount || !amount || !studioId || !paymentMethodId) {
+          return NextResponse.json({ error: 'Package type, class count, amount, studio ID, and payment method are required' }, { status: 400 })
+        }
+
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        const stripeCustomerId = userProfile?.stripeCustomerId
+
+        if (!stripeCustomerId) {
+          return NextResponse.json({ error: 'Customer not found. Please set up payment method first.' }, { status: 400 })
+        }
+
+        // Calculate platform fee and total
+        const platformFeeAmount = Math.round(amount * 0.0375)
+        const totalAmount = amount + platformFeeAmount
+
+        // Create payment intent for class package
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: totalAmount,
+          currency: 'usd',
+          customer: stripeCustomerId,
+          payment_method: paymentMethodId,
+          confirm: true,
+          metadata: {
+            firebase_uid: firebaseUser.uid,
+            payment_type: 'class_package',
+            package_type: packageType,
+            class_count: classCount.toString(),
+            studio_id: studioId,
+            platform_fee: platformFeeAmount.toString(),
+            net_amount: amount.toString()
+          }
+        })
+
+        // If payment successful, create class package
+        if (paymentIntent.status === 'succeeded') {
+          const expirationDate = new Date()
+          expirationDate.setDate(expirationDate.getDate() + expirationDays)
+
+          const classPackage = {
+            id: `class-package-${Date.now()}`,
+            userId: firebaseUser.uid,
+            studioId: studioId,
+            packageType: packageType,
+            totalClasses: classCount,
+            remainingClasses: classCount,
+            usedClasses: 0,
+            amount: totalAmount,
+            platformFee: platformFeeAmount,
+            netAmount: amount,
+            status: 'active',
+            purchaseDate: new Date(),
+            expirationDate: expirationDate,
+            paymentIntentId: paymentIntent.id,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }
+
+          await database.collection('class_packages').insertOne(classPackage)
+
+          // Record transaction
+          const transaction = {
+            id: `txn-package-${Date.now()}`,
+            userId: firebaseUser.uid,
+            type: 'class_package_purchase',
+            packageType: packageType,
+            classCount: classCount,
+            amount: totalAmount,
+            platformFee: platformFeeAmount,
+            netAmount: amount,
+            paymentIntentId: paymentIntent.id,
+            status: 'completed',
+            createdAt: new Date()
+          }
+
+          await database.collection('transactions').insertOne(transaction)
+        }
+
+        return NextResponse.json({
+          success: true,
+          paymentIntent: paymentIntent,
+          classPackage: paymentIntent.status === 'succeeded' ? {
+            packageType,
+            classCount,
+            expirationDays,
+            status: 'active'
+          } : null,
+          totalAmount,
+          platformFee: platformFeeAmount
+        })
+
+      } catch (error) {
+        console.error('Class package purchase error:', error)
+        return NextResponse.json({ error: 'Failed to purchase class package' }, { status: 500 })
+      }
+    }
+
+    // Pause subscription
+    if (path === '/payments/pause-subscription') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { subscriptionId, pauseDuration = 30 } = body // pauseDuration in days
+
+        if (!subscriptionId) {
+          return NextResponse.json({ error: 'Subscription ID is required' }, { status: 400 })
+        }
+
+        // Get subscription from database
+        const subscription = await database.collection('subscriptions').findOne({
+          stripeSubscriptionId: subscriptionId,
+          userId: firebaseUser.uid
+        })
+
+        if (!subscription) {
+          return NextResponse.json({ error: 'Subscription not found or unauthorized' }, { status: 404 })
+        }
+
+        // Calculate pause end date
+        const pauseEndDate = new Date()
+        pauseEndDate.setDate(pauseEndDate.getDate() + pauseDuration)
+
+        // Update subscription in Stripe (pause collection)
+        const updatedSubscription = await stripe.subscriptions.update(subscriptionId, {
+          pause_collection: {
+            behavior: 'mark_uncollectible',
+            resumes_at: Math.floor(pauseEndDate.getTime() / 1000)
+          }
+        })
+
+        // Update subscription in database
+        await database.collection('subscriptions').updateOne(
+          { stripeSubscriptionId: subscriptionId, userId: firebaseUser.uid },
+          {
+            $set: {
+              status: 'paused',
+              pausedAt: new Date(),
+              pauseEndDate: pauseEndDate,
+              pauseDuration: pauseDuration,
+              updatedAt: new Date()
+            }
+          }
+        )
+
+        return NextResponse.json({
+          success: true,
+          message: 'Subscription paused successfully',
+          pauseEndDate: pauseEndDate,
+          pauseDuration: pauseDuration,
+          subscription: updatedSubscription
+        })
+
+      } catch (error) {
+        console.error('Pause subscription error:', error)
+        return NextResponse.json({ error: 'Failed to pause subscription' }, { status: 500 })
+      }
+    }
+
+    // Resume subscription
+    if (path === '/payments/resume-subscription') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { subscriptionId } = body
+
+        if (!subscriptionId) {
+          return NextResponse.json({ error: 'Subscription ID is required' }, { status: 400 })
+        }
+
+        // Get subscription from database
+        const subscription = await database.collection('subscriptions').findOne({
+          stripeSubscriptionId: subscriptionId,
+          userId: firebaseUser.uid
+        })
+
+        if (!subscription) {
+          return NextResponse.json({ error: 'Subscription not found or unauthorized' }, { status: 404 })
+        }
+
+        // Resume subscription in Stripe
+        const updatedSubscription = await stripe.subscriptions.update(subscriptionId, {
+          pause_collection: null
+        })
+
+        // Update subscription in database
+        await database.collection('subscriptions').updateOne(
+          { stripeSubscriptionId: subscriptionId, userId: firebaseUser.uid },
+          {
+            $set: {
+              status: 'active',
+              resumedAt: new Date(),
+              updatedAt: new Date()
+            },
+            $unset: {
+              pausedAt: "",
+              pauseEndDate: "",
+              pauseDuration: ""
+            }
+          }
+        )
+
+        return NextResponse.json({
+          success: true,
+          message: 'Subscription resumed successfully',
+          subscription: updatedSubscription
+        })
+
+      } catch (error) {
+        console.error('Resume subscription error:', error)
+        return NextResponse.json({ error: 'Failed to resume subscription' }, { status: 500 })
+      }
+    }
+
+    // Cancel subscription
+    if (path === '/payments/cancel-subscription') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { subscriptionId, cancelImmediately = false, cancelationReason } = body
+
+        if (!subscriptionId) {
+          return NextResponse.json({ error: 'Subscription ID is required' }, { status: 400 })
+        }
+
+        // Get subscription from database
+        const subscription = await database.collection('subscriptions').findOne({
+          stripeSubscriptionId: subscriptionId,
+          userId: firebaseUser.uid
+        })
+
+        if (!subscription) {
+          return NextResponse.json({ error: 'Subscription not found or unauthorized' }, { status: 404 })
+        }
+
+        let updatedSubscription
+        if (cancelImmediately) {
+          // Cancel immediately
+          updatedSubscription = await stripe.subscriptions.cancel(subscriptionId)
+        } else {
+          // Cancel at period end
+          updatedSubscription = await stripe.subscriptions.update(subscriptionId, {
+            cancel_at_period_end: true
+          })
+        }
+
+        // Update subscription in database
+        await database.collection('subscriptions').updateOne(
+          { stripeSubscriptionId: subscriptionId, userId: firebaseUser.uid },
+          {
+            $set: {
+              status: cancelImmediately ? 'canceled' : 'cancel_at_period_end',
+              canceledAt: cancelImmediately ? new Date() : null,
+              cancelAtPeriodEnd: !cancelImmediately,
+              cancelationReason: cancelationReason || 'User requested',
+              updatedAt: new Date()
+            }
+          }
+        )
+
+        return NextResponse.json({
+          success: true,
+          message: cancelImmediately ? 'Subscription canceled immediately' : 'Subscription will cancel at period end',
+          cancelImmediately: cancelImmediately,
+          subscription: updatedSubscription
+        })
+
+      } catch (error) {
+        console.error('Cancel subscription error:', error)
+        return NextResponse.json({ error: 'Failed to cancel subscription' }, { status: 500 })
+      }
+    }
+
+    // Use X Pass credit for booking
+    if (path === '/payments/use-xpass-credit') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { classId, studioId, creditsToUse = 1 } = body
+
+        if (!classId || !studioId) {
+          return NextResponse.json({ error: 'Class ID and studio ID are required' }, { status: 400 })
+        }
+
+        // Check user's X Pass credit balance
+        const xpassCredits = await database.collection('xpass_credits').findOne({ userId: firebaseUser.uid })
+        
+        if (!xpassCredits || xpassCredits.availableCredits < creditsToUse) {
+          return NextResponse.json({ error: 'Insufficient X Pass credits' }, { status: 400 })
+        }
+
+        // Check if studio accepts X Pass
+        const studioSettings = await database.collection('studio_xpass_settings').findOne({ studioId: studioId })
+        if (!studioSettings || !studioSettings.acceptsXPass) {
+          return NextResponse.json({ error: 'Studio does not accept X Pass credits' }, { status: 400 })
+        }
+
+        // Deduct credits
+        await database.collection('xpass_credits').updateOne(
+          { userId: firebaseUser.uid },
+          {
+            $inc: { 
+              availableCredits: -creditsToUse,
+              totalSpent: creditsToUse
+            },
+            $set: { updatedAt: new Date() }
+          }
+        )
+
+        // Record X Pass transaction
+        const transaction = {
+          id: `xpass-use-${Date.now()}`,
+          userId: firebaseUser.uid,
+          studioId: studioId,
+          classId: classId,
+          type: 'xpass_redemption',
+          creditsUsed: creditsToUse,
+          platformFeeRate: studioSettings.platformFeeRate || 0.075, // 7.5% for X Pass redemptions
+          status: 'completed',
+          createdAt: new Date()
+        }
+
+        await database.collection('xpass_transactions').insertOne(transaction)
+
+        // Get updated credit balance
+        const updatedCredits = await database.collection('xpass_credits').findOne({ userId: firebaseUser.uid })
+
+        return NextResponse.json({
+          success: true,
+          message: 'X Pass credits used successfully',
+          creditsUsed: creditsToUse,
+          remainingCredits: updatedCredits.availableCredits,
+          transactionId: transaction.id
+        })
+
+      } catch (error) {
+        console.error('X Pass credit usage error:', error)
+        return NextResponse.json({ error: 'Failed to use X Pass credits' }, { status: 500 })
+      }
+    }
+
+    // Use class package credit
+    if (path === '/payments/use-class-package') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { packageId, classId, studioId } = body
+
+        if (!packageId || !classId || !studioId) {
+          return NextResponse.json({ error: 'Package ID, class ID, and studio ID are required' }, { status: 400 })
+        }
+
+        // Get class package
+        const classPackage = await database.collection('class_packages').findOne({
+          id: packageId,
+          userId: firebaseUser.uid
+        })
+
+        if (!classPackage) {
+          return NextResponse.json({ error: 'Class package not found or unauthorized' }, { status: 404 })
+        }
+
+        // Check package validity
+        if (classPackage.status !== 'active') {
+          return NextResponse.json({ error: 'Class package is not active' }, { status: 400 })
+        }
+
+        if (classPackage.remainingClasses <= 0) {
+          return NextResponse.json({ error: 'No remaining classes in package' }, { status: 400 })
+        }
+
+        if (new Date() > new Date(classPackage.expirationDate)) {
+          return NextResponse.json({ error: 'Class package has expired' }, { status: 400 })
+        }
+
+        // Check if package is valid for this studio
+        if (classPackage.studioId !== studioId) {
+          return NextResponse.json({ error: 'Class package is not valid for this studio' }, { status: 400 })
+        }
+
+        // Use one class from package
+        const updatedPackage = await database.collection('class_packages').findOneAndUpdate(
+          { id: packageId, userId: firebaseUser.uid },
+          {
+            $inc: { 
+              remainingClasses: -1,
+              usedClasses: 1
+            },
+            $set: { 
+              updatedAt: new Date(),
+              status: classPackage.remainingClasses === 1 ? 'depleted' : 'active'
+            }
+          },
+          { returnDocument: 'after' }
+        )
+
+        // Record class package usage
+        const usage = {
+          id: `package-use-${Date.now()}`,
+          packageId: packageId,
+          userId: firebaseUser.uid,
+          studioId: studioId,
+          classId: classId,
+          usedAt: new Date(),
+          remainingClasses: updatedPackage.value.remainingClasses
+        }
+
+        await database.collection('class_package_usage').insertOne(usage)
+
+        return NextResponse.json({
+          success: true,
+          message: 'Class package credit used successfully',
+          remainingClasses: updatedPackage.value.remainingClasses,
+          packageStatus: updatedPackage.value.status,
+          usageId: usage.id
+        })
+
+      } catch (error) {
+        console.error('Class package usage error:', error)
+        return NextResponse.json({ error: 'Failed to use class package credit' }, { status: 500 })
+      }
+    }
+
     // Enhanced Stripe webhook handling
     if (path === '/payments/webhook') {
       const body = await request.text()
