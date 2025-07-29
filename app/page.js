@@ -442,46 +442,46 @@ export default function Home() {
       </section>
 
       {/* Why Thryve - Feature Strip */}
-      <section className="py-24 bg-white">
-        <div className="container mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-5xl font-bold text-[#1C1C1E] mb-6">Why Thryve?</h2>
-            <p className="text-xl text-[#7A7A7A] max-w-3xl mx-auto">
+      <section className="section-padding section-gradient">
+        <div className="container-modern">
+          <div className="text-center mb-20">
+            <h2 className="text-6xl font-bold text-[#1C1C1E] mb-8 fade-in-up">Why Thryve?</h2>
+            <p className="text-2xl text-[#7A7A7A] max-w-4xl mx-auto leading-relaxed fade-in-up">
               Built for studios, loved by customers. The only platform that truly puts your business first.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="text-center group hover:scale-105 transition-transform duration-300">
-              <div className="bg-[#1E90FF]/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:bg-[#1E90FF]/20 transition-colors">
-                <Zap className="h-10 w-10 text-[#1E90FF]" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
+            <div className="text-center group hover-lift card-hover">
+              <div className="glass-morphism w-24 h-24 rounded-2xl flex items-center justify-center mx-auto mb-8 group-hover:scale-110 smooth-transition">
+                <Zap className="h-12 w-12 text-[#1E90FF]" />
               </div>
-              <h3 className="text-xl font-bold text-[#1C1C1E] mb-3">Flat 3.75% fee</h3>
-              <p className="text-[#7A7A7A]">That's it. No hidden costs, no surprises.</p>
+              <h3 className="text-2xl font-bold text-[#1C1C1E] mb-4">Flat 3.75% fee</h3>
+              <p className="text-[#7A7A7A] text-lg leading-relaxed">That's it. No hidden costs, no surprises.</p>
             </div>
 
-            <div className="text-center group hover:scale-105 transition-transform duration-300">
-              <div className="bg-[#1E90FF]/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:bg-[#1E90FF]/20 transition-colors">
-                <Shield className="h-10 w-10 text-[#1E90FF]" />
+            <div className="text-center group hover-lift card-hover">
+              <div className="glass-morphism w-24 h-24 rounded-2xl flex items-center justify-center mx-auto mb-8 group-hover:scale-110 smooth-transition">
+                <Shield className="h-12 w-12 text-[#1E90FF]" />
               </div>
-              <h3 className="text-xl font-bold text-[#1C1C1E] mb-3">No Monthly Costs</h3>
-              <p className="text-[#7A7A7A]">Pay only when you earn. Zero subscription fees.</p>
+              <h3 className="text-2xl font-bold text-[#1C1C1E] mb-4">No Monthly Costs</h3>
+              <p className="text-[#7A7A7A] text-lg leading-relaxed">Pay only when you earn. Zero subscription fees.</p>
             </div>
 
-            <div className="text-center group hover:scale-105 transition-transform duration-300">
-              <div className="bg-[#1E90FF]/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:bg-[#1E90FF]/20 transition-colors">
-                <Award className="h-10 w-10 text-[#1E90FF]" />
+            <div className="text-center group hover-lift card-hover">
+              <div className="glass-morphism w-24 h-24 rounded-2xl flex items-center justify-center mx-auto mb-8 group-hover:scale-110 smooth-transition">
+                <Award className="h-12 w-12 text-[#1E90FF]" />
               </div>
-              <h3 className="text-xl font-bold text-[#1C1C1E] mb-3">Your Brand First</h3>
-              <p className="text-[#7A7A7A]">Keep your customers. Build your community.</p>
+              <h3 className="text-2xl font-bold text-[#1C1C1E] mb-4">Your Brand First</h3>
+              <p className="text-[#7A7A7A] text-lg leading-relaxed">Keep your customers. Build your community.</p>
             </div>
 
-            <div className="text-center group hover:scale-105 transition-transform duration-300">
-              <div className="bg-[#1E90FF]/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:bg-[#1E90FF]/20 transition-colors">
-                <Bot className="h-10 w-10 text-[#1E90FF]" />
+            <div className="text-center group hover-lift card-hover">
+              <div className="glass-morphism w-24 h-24 rounded-2xl flex items-center justify-center mx-auto mb-8 group-hover:scale-110 smooth-transition">
+                <Bot className="h-12 w-12 text-[#1E90FF]" />
               </div>
-              <h3 className="text-xl font-bold text-[#1C1C1E] mb-3">AI Onboarding</h3>
-              <p className="text-[#7A7A7A]">From Mindbody to live in minutes, not months.</p>
+              <h3 className="text-2xl font-bold text-[#1C1C1E] mb-4">AI Onboarding</h3>
+              <p className="text-[#7A7A7A] text-lg leading-relaxed">From Mindbody to live in minutes, not months.</p>
             </div>
           </div>
         </div>
