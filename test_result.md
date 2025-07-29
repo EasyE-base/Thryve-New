@@ -1083,15 +1083,18 @@ backend:
 
   - task: "GET/POST /server-api/communication/* - Communication Dashboard APIs"
     implemented: true
-    working: "unknown"
+    working: false
     file: "app/server-api/[[...path]]/route.js"
-    stuck_count: 0
+    stuck_count: 1
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "unknown"
           agent: "main"
           comment: "COMMUNICATION LAYER INTEGRATION: Studio owner communication management including broadcast sending, auto-responders, templates, and analytics. Role-restricted to merchant users only."
+        - working: false
+          agent: "testing"
+          comment: "CRITICAL IMPLEMENTATION ISSUE: Communication dashboard APIs are completely non-functional. GET /communication/stats returns 500 'method is not defined', POST /communication/broadcast returns 404 'Endpoint not found', GET /communication/templates returns 500 'method is not defined'. All endpoints suffer from the same structural issue - they're checking for 'method' variables that don't exist in their respective handlers. Role-based access control cannot be tested because endpoints fail before reaching authorization logic. The communication dashboard system is completely broken."
 
 frontend:
   - task: "Studio-centric Class Management System Frontend Integration"
