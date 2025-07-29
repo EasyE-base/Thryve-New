@@ -481,7 +481,7 @@ async function handleGET(request) {
   }
 
   // Get user's bookings
-  if (method === 'GET' && path === '/bookings/user') {
+  if (path === '/bookings/user') {
     try {
       const bookings = await db.collection('bookings')
         .where('userId', '==', user.uid)
