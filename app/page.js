@@ -304,26 +304,26 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FAF9F6]">
+    <div className="min-h-screen">
       {/* Navigation */}
-      <nav className="fixed top-0 w-full z-50 bg-[#FAF9F6]/90 backdrop-blur-md border-b border-[#EADBC8]/30 transition-all duration-300">
+      <nav className="fixed top-0 w-full z-50 glass-morphism backdrop-blur-md border-b border-white/20 transition-all duration-300">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <Link href="/" className="text-2xl font-bold text-[#1C1C1E]">
+            <Link href="/" className="text-2xl font-bold text-white">
               Thryve
             </Link>
             
             <div className="hidden md:flex items-center space-x-8">
-              <Link href="/explore" className="text-[#7A7A7A] hover:text-[#1E90FF] transition-colors font-medium">
+              <Link href="/explore" className="text-white/80 hover:text-white transition-colors font-medium smooth-transition">
                 Explore
               </Link>
-              <Link href="/xpass" className="text-[#7A7A7A] hover:text-[#1E90FF] transition-colors font-medium">
+              <Link href="/xpass" className="text-white/80 hover:text-white transition-colors font-medium smooth-transition">
                 X Pass
               </Link>
-              <Link href="/pricing" className="text-[#7A7A7A] hover:text-[#1E90FF] transition-colors font-medium">
+              <Link href="/pricing" className="text-white/80 hover:text-white transition-colors font-medium smooth-transition">
                 Pricing
               </Link>
-              <Link href="/about" className="text-[#7A7A7A] hover:text-[#1E90FF] transition-colors font-medium">
+              <Link href="/about" className="text-white/80 hover:text-white transition-colors font-medium smooth-transition">
                 About
               </Link>
             </div>
@@ -331,7 +331,7 @@ export default function Home() {
             <div className="flex items-center space-x-4">
               {user ? (
                 <Link href="/dashboard">
-                  <Button className="bg-[#1E90FF] hover:bg-[#1976D2] text-white px-6 py-2 rounded-full">
+                  <Button className="btn-modern bg-white/20 hover:bg-white/30 text-white px-6 py-2 rounded-full border border-white/30">
                     Dashboard
                   </Button>
                 </Link>
@@ -339,13 +339,13 @@ export default function Home() {
                 <>
                   <Button 
                     variant="ghost" 
-                    className="text-[#1C1C1E] hover:bg-[#EADBC8]/50"
+                    className="text-white hover:bg-white/10 btn-modern"
                     onClick={() => setShowSignInModal(true)}
                   >
                     Sign In
                   </Button>
                   <Button 
-                    className="bg-[#1E90FF] hover:bg-[#1976D2] text-white px-6 py-2 rounded-full"
+                    className="btn-modern bg-white text-black hover:bg-white/90 px-6 py-2 rounded-full font-semibold"
                     onClick={() => setShowSignInModal(true)}
                   >
                     Get Started
