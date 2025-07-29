@@ -598,6 +598,13 @@ export default function MerchantDashboard() {
               </div>
             )}
 
+            {/* Class Management */}
+            {activeSection === 'classes' && (
+              <div className="space-y-6">
+                <ClassManagementDashboard />
+              </div>
+            )}
+
             {/* Staff Management */}
             {activeSection === 'staffing' && (
               <div className="space-y-6">
