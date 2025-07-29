@@ -6793,3 +6793,271 @@ async function createSampleClasses(database) {
     console.error('Error creating sample classes:', error)
   }
 }
+
+// ========================================
+// STRIPE WEBHOOK HANDLER FUNCTIONS
+// ========================================
+
+async function handlePaymentIntentSucceeded(paymentIntent, database) {
+  try {
+    const metadata = paymentIntent.metadata
+    const { firebase_uid, class_id, payment_type, booking_id } = metadata
+
+    if (payment_type === 'class_booking' && class_id) {
+      // Update booking status to confirmed
+      const updateResult = await database.collection('bookings').updateOne(
+        { id: booking_id || class_id, userId: firebase_uid },
+        {
+          $set: {
+            status: 'confirmed',
+            paymentIntentId: paymentIntent.id,
+            paymentAmount: paymentIntent.amount,
+            paidAt: new Date(),
+            updatedAt: new Date()
+          }
+        }
+      )
+
+      // Update class capacity if booking was confirmed
+      if (updateResult.modifiedCount > 0) {
+        await database.collection('class_schedules').updateOne(
+          { id: class_id },
+          {
+            $inc: { bookedCount: 1 },
+            $set: { updatedAt: new Date() }
+          }
+        )
+      }
+    }
+
+    // Record transaction
+    const transaction = {
+      id: `txn-${Date.now()}`,
+      userId: firebase_uid,
+      paymentIntentId: paymentIntent.id,
+      amount: paymentIntent.amount,
+      status: 'completed',
+      type: payment_type,
+      metadata: metadata,
+      createdAt: new Date()
+    }
+
+    await database.collection('transactions').insertOne(transaction)
+    
+    console.log('Payment intent succeeded processed:', paymentIntent.id)
+  } catch (error) {
+    console.error('Error handling payment intent succeeded:', error)
+  }
+}
+
+async function handlePaymentIntentFailed(paymentIntent, database) {
+  try {
+    const metadata = paymentIntent.metadata
+    const { firebase_uid, class_id, payment_type, booking_id } = metadata
+
+    if (payment_type === 'class_booking' && class_id) {
+      // Update booking status to failed
+      await database.collection('bookings').updateOne(
+        { id: booking_id || class_id, userId: firebase_uid },
+        {
+          $set: {
+            status: 'payment_failed',
+            paymentIntentId: paymentIntent.id,
+            failureReason: paymentIntent.last_payment_error?.message || 'Payment failed',
+            updatedAt: new Date()
+          }
+        }
+      )
+    }
+
+    // Record failed transaction
+    const transaction = {
+      id: `txn-failed-${Date.now()}`,
+      userId: firebase_uid,
+      paymentIntentId: paymentIntent.id,
+      amount: paymentIntent.amount,
+      status: 'failed',
+      type: payment_type,
+      failureReason: paymentIntent.last_payment_error?.message || 'Payment failed',
+      metadata: metadata,
+      createdAt: new Date()
+    }
+
+    await database.collection('transactions').insertOne(transaction)
+
+    console.log('Payment intent failed processed:', paymentIntent.id)
+  } catch (error) {
+    console.error('Error handling payment intent failed:', error)
+  }
+}
+
+async function handleInvoicePaymentSucceeded(invoice, database) {
+  try {
+    const subscriptionId = invoice.subscription
+    if (!subscriptionId) return
+
+    // Update subscription status
+    await database.collection('subscriptions').updateOne(
+      { stripeSubscriptionId: subscriptionId },
+      {
+        $set: {
+          status: 'active',
+          currentPeriodStart: new Date(invoice.period_start * 1000),
+          currentPeriodEnd: new Date(invoice.period_end * 1000),
+          lastInvoiceId: invoice.id,
+          updatedAt: new Date()
+        }
+      }
+    )
+
+    // Record subscription payment
+    const payment = {
+      id: `sub-payment-${Date.now()}`,
+      invoiceId: invoice.id,
+      subscriptionId: subscriptionId,
+      amount: invoice.amount_paid,
+      status: 'paid',
+      periodStart: new Date(invoice.period_start * 1000),
+      periodEnd: new Date(invoice.period_end * 1000),
+      createdAt: new Date()
+    }
+
+    await database.collection('subscription_payments').insertOne(payment)
+
+    console.log('Invoice payment succeeded processed:', invoice.id)
+  } catch (error) {
+    console.error('Error handling invoice payment succeeded:', error)
+  }
+}
+
+async function handleInvoicePaymentFailed(invoice, database) {
+  try {
+    const subscriptionId = invoice.subscription
+    if (!subscriptionId) return
+
+    // Update subscription status
+    await database.collection('subscriptions').updateOne(
+      { stripeSubscriptionId: subscriptionId },
+      {
+        $set: {
+          status: 'past_due',
+          lastFailedInvoiceId: invoice.id,
+          failureReason: invoice.last_finalization_error?.message || 'Payment failed',
+          updatedAt: new Date()
+        }
+      }
+    )
+
+    // Record failed payment
+    const payment = {
+      id: `sub-payment-failed-${Date.now()}`,
+      invoiceId: invoice.id,
+      subscriptionId: subscriptionId,
+      amount: invoice.amount_due,
+      status: 'payment_failed',
+      failureReason: invoice.last_finalization_error?.message || 'Payment failed',
+      createdAt: new Date()
+    }
+
+    await database.collection('subscription_payments').insertOne(payment)
+
+    console.log('Invoice payment failed processed:', invoice.id)
+  } catch (error) {
+    console.error('Error handling invoice payment failed:', error)
+  }
+}
+
+async function handleSubscriptionCreated(subscription, database) {
+  try {
+    const metadata = subscription.metadata
+    const { firebase_uid, studio_id, subscription_type } = metadata
+
+    const subscriptionRecord = {
+      id: `subscription-${Date.now()}`,
+      stripeSubscriptionId: subscription.id,
+      userId: firebase_uid,
+      studioId: studio_id,
+      subscriptionType: subscription_type,
+      status: subscription.status,
+      currentPeriodStart: new Date(subscription.current_period_start * 1000),
+      currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }
+
+    await database.collection('subscriptions').insertOne(subscriptionRecord)
+
+    console.log('Subscription created processed:', subscription.id)
+  } catch (error) {
+    console.error('Error handling subscription created:', error)
+  }
+}
+
+async function handleSubscriptionUpdated(subscription, database) {
+  try {
+    await database.collection('subscriptions').updateOne(
+      { stripeSubscriptionId: subscription.id },
+      {
+        $set: {
+          status: subscription.status,
+          currentPeriodStart: new Date(subscription.current_period_start * 1000),
+          currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+          cancelAtPeriodEnd: subscription.cancel_at_period_end,
+          canceledAt: subscription.canceled_at ? new Date(subscription.canceled_at * 1000) : null,
+          updatedAt: new Date()
+        }
+      }
+    )
+
+    console.log('Subscription updated processed:', subscription.id)
+  } catch (error) {
+    console.error('Error handling subscription updated:', error)
+  }
+}
+
+async function handleSubscriptionDeleted(subscription, database) {
+  try {
+    await database.collection('subscriptions').updateOne(
+      { stripeSubscriptionId: subscription.id },
+      {
+        $set: {
+          status: 'canceled',
+          canceledAt: new Date(),
+          updatedAt: new Date()
+        }
+      }
+    )
+
+    console.log('Subscription deleted processed:', subscription.id)
+  } catch (error) {
+    console.error('Error handling subscription deleted:', error)
+  }
+}
+
+async function handleSetupIntentSucceeded(setupIntent, database) {
+  try {
+    const customerId = setupIntent.customer
+    if (!customerId) return
+
+    // Get user profile by Stripe customer ID
+    const userProfile = await database.collection('profiles').findOne({ stripeCustomerId: customerId })
+    if (!userProfile) return
+
+    // Record successful payment method setup
+    const paymentMethodRecord = {
+      id: `pm-${Date.now()}`,
+      userId: userProfile.userId,
+      stripeCustomerId: customerId,
+      setupIntentId: setupIntent.id,
+      paymentMethodId: setupIntent.payment_method,
+      status: 'active',
+      createdAt: new Date()
+    }
+
+    await database.collection('payment_methods').insertOne(paymentMethodRecord)
+
+    console.log('Setup intent succeeded processed:', setupIntent.id)
+  } catch (error) {
+    console.error('Error handling setup intent succeeded:', error)
+  }
+}
