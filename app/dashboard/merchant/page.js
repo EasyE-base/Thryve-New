@@ -25,6 +25,7 @@ import 'react-big-calendar/lib/css/react-big-calendar.css'
 import StudioStaffingDashboard from '@/components/StudioStaffingDashboard'
 import CommunicationDashboard from '@/components/CommunicationDashboard'
 import MigrationDashboard from '@/components/migration/MigrationDashboard'
+import ClassManagementDashboard from '@/components/classes/ClassManagementDashboard'
 
 export default function MerchantDashboard() {
   const { user, role, loading: authLoading } = useAuth()
