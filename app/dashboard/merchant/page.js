@@ -610,6 +610,13 @@ export default function MerchantDashboard() {
                 <CommunicationDashboard />
               </div>
             )}
+
+            {/* Data Migration */}
+            {activeSection === 'migration' && (
+              <div className="space-y-6">
+                <MigrationDashboard />
+              </div>
+            )}
             
             {/* Calendar View */}
             {activeSection === 'calendar' && (
