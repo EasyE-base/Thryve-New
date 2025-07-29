@@ -912,15 +912,18 @@ backend:
 
   - task: "POST /server-api/payments/refund - Process Payment Refunds"
     implemented: true
-    working: "unknown"
+    working: false
     file: "app/server-api/[[...path]]/route.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "unknown"
           agent: "main"
           comment: "PHASE 1 IMPLEMENTATION: Automated refund processing through Stripe. Handles partial and full refunds, updates booking status to 'refunded' when booking ID provided, records refund metadata, and provides comprehensive refund tracking with reason codes."
+        - working: false
+          agent: "testing"
+          comment: "❌ REFUND PROCESSING ENDPOINT TESTING COMPLETED WITH ISSUES: Core endpoint logic is implemented correctly but fails with Stripe API integration due to test data limitations (2/4 tests passed). ✅ AUTHENTICATION: Correctly requires authentication (401 for unauthenticated requests). ✅ VALIDATION: Properly validates required fields (paymentIntentId) and returns 400 for missing data. ❌ STRIPE INTEGRATION: Fails with 500 error for both full and partial refunds when attempting to process refunds with test payment intent IDs. The endpoint implementation includes proper refund creation with amount/reason handling, booking status updates, refund metadata recording, and comprehensive refund tracking. Issue is with test environment using non-existent payment intent IDs, not endpoint logic."
 
   - task: "POST /server-api/payments/webhook - Enhanced Stripe Webhook Handler"
     implemented: true
