@@ -1030,6 +1030,126 @@ backend:
           agent: "testing"
           comment: "Minor: STUDIO STATS ENDPOINT TESTING COMPLETED WITH ROLE VALIDATION ISSUE: Core endpoint functionality is working correctly but role validation needs improvement (1/2 tests passed). ✅ AUTHENTICATION: Correctly requires authentication (401 for unauthenticated requests). ✅ DATABASE INTEGRATION: Successfully queries user_transactions and studio_classes collections for revenue analytics. ✅ ANALYTICS CALCULATION: Properly calculates revenue, platform fees, class performance, and X Pass analytics. ⚠️ ROLE VALIDATION: Currently returns 200 status for non-merchant users instead of expected 403 access denied - this is a minor security issue that should restrict access to merchant role only. The endpoint implementation includes comprehensive studio analytics with revenue calculations, platform fee tracking (3.75% standard, 7.5% X Pass), class performance metrics, and net revenue calculations. Core functionality is working correctly."
 
+  - task: "POST /server-api/payments/create-class-package - Purchase Class Packages"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 2 IMPLEMENTATION: Class package purchase system for 5, 10, 15 class packs. Handles payment processing with platform fee calculation, creates package with expiration tracking (90 days default), manages remaining/used class counts, and integrates with Stripe payment confirmation. Records comprehensive transaction history and package lifecycle management."
+
+  - task: "POST /server-api/payments/pause-subscription - Pause Recurring Subscription"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 2 IMPLEMENTATION: Subscription pause functionality with configurable duration (default 30 days). Updates Stripe subscription to mark_uncollectible with automatic resume date, maintains database synchronization with pause status tracking, and provides flexible subscription lifecycle management for customer retention."
+
+  - task: "POST /server-api/payments/resume-subscription - Resume Paused Subscription"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 2 IMPLEMENTATION: Subscription resume functionality to reactivate paused subscriptions. Removes Stripe pause_collection settings, updates subscription status to active, cleans up pause-related database fields, and ensures seamless subscription reactivation for improved customer experience."
+
+  - task: "POST /server-api/payments/cancel-subscription - Cancel Subscription"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 2 IMPLEMENTATION: Flexible subscription cancellation with immediate or end-of-period options. Handles Stripe subscription cancellation or cancel_at_period_end flag, tracks cancellation reasons, maintains database synchronization, and provides comprehensive subscription lifecycle management with retention-friendly options."
+
+  - task: "POST /server-api/payments/use-xpass-credit - X Pass Credit Redemption"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 2 IMPLEMENTATION: Enhanced X Pass credit redemption system with cross-studio validation. Checks credit balance, verifies studio X Pass acceptance, deducts credits with platform fee tracking (7.5% rate), records redemption transactions, and enables seamless cross-studio class booking with credit management."
+
+  - task: "POST /server-api/payments/use-class-package - Class Package Credit Usage"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 2 IMPLEMENTATION: Class package credit usage system with comprehensive validation. Checks package validity (active status, expiration date, remaining credits), verifies studio match, deducts class credits, manages package depletion status, and records detailed usage history for tracking and analytics."
+
+  - task: "GET /server-api/payments/class-packages - Retrieve User Class Packages"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 2 IMPLEMENTATION: Comprehensive class package retrieval with studio information enrichment. Supports status filtering (active, expired, depleted), calculates expiration status and utilization rates, provides package summaries with remaining class counts, and includes studio details for enhanced user experience."
+
+  - task: "GET /server-api/payments/subscription-analytics - Subscription Analytics Dashboard"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 2 IMPLEMENTATION: Dual-purpose subscription analytics for merchants and customers. For merchants: MRR calculations, churn rate analysis, subscription status breakdown. For customers: spending analytics, membership history, package utilization, and X Pass credit tracking. Provides comprehensive subscription insights."
+
+  - task: "GET /server-api/payments/xpass-redemptions - X Pass Redemption History"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 2 IMPLEMENTATION: X Pass redemption history with studio information enrichment. Supports pagination and studio filtering, provides detailed redemption tracking with studio names and locations, enables cross-studio usage analysis, and maintains comprehensive transaction history for user transparency."
+
+  - task: "GET /server-api/payments/class-package-usage - Class Package Usage History"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 2 IMPLEMENTATION: Detailed class package usage tracking with class and studio information. Provides usage history with class names, times, instructors, and studio details. Supports package-specific filtering and enriched data display for comprehensive package utilization analytics and user transparency."
+
   - task: "GET /server-api/discover/reviews - Class Ratings and Reviews Discovery"
     implemented: true
     working: true
