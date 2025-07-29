@@ -1925,6 +1925,60 @@ async function handleGET(request) {
       }
     }
 
+    // Get onboarding status
+    if (path === '/onboarding/status') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const profile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        
+        if (!profile) {
+          // Return default onboarding status for new users
+          return NextResponse.json({
+            onboarding_complete: false,
+            current_step: 1,
+            completed_steps: [],
+            total_steps: 3, // Default, will be updated based on role
+            profile_data: null,
+            last_saved: null
+          })
+        }
+
+        // Determine total steps based on role
+        const getTotalSteps = (role) => {
+          switch (role) {
+            case 'customer': return 4
+            case 'instructor': return 5
+            case 'merchant': return 6
+            default: return 3
+          }
+        }
+
+        const totalSteps = getTotalSteps(profile.role)
+        const isComplete = profile.onboarding_complete || false
+        const currentStep = isComplete ? totalSteps : (profile.current_step || 1)
+        const completedSteps = isComplete ? 
+          Array.from({ length: totalSteps }, (_, i) => i + 1) : 
+          (profile.completed_steps || [])
+
+        return NextResponse.json({
+          onboarding_complete: isComplete,
+          current_step: currentStep,
+          completed_steps: completedSteps,
+          total_steps: totalSteps,
+          profile_data: profile.profileData || null,
+          last_saved: profile.updatedAt || profile.createdAt || null,
+          user_role: profile.role
+        })
+      } catch (error) {
+        console.error('Onboarding status error:', error)
+        return NextResponse.json({ error: 'Failed to get onboarding status' }, { status: 500 })
+      }
+    }
+
     return NextResponse.json({ error: 'Endpoint not found' }, { status: 404 })
   } catch (error) {
     console.error('GET Error:', error)
