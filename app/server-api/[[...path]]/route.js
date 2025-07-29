@@ -147,7 +147,18 @@ async function promoteFromWaitlist(classId) {
     })
 
     // Send notification to promoted user
-    await sendWaitlistPromotionNotification(waitlistData.userId, classId)
+    await createNotification(
+      waitlistData.userId,
+      'waitlist_promotion',
+      'Spot Available!',
+      `Great news! A spot opened up in ${classData.data().title}. You've been automatically booked.`,
+      {
+        classId: classId,
+        className: classData.data().title,
+        classDate: classData.data().date,
+        classTime: classData.data().time
+      }
+    )
     
     console.log(`Promoted user ${waitlistData.userId} from waitlist for class ${classId}`)
   } catch (error) {
