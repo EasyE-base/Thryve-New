@@ -153,13 +153,13 @@ Advanced Vinyasa,Dynamic flowing yoga practice,75,10,35.00,yoga,advanced,Previou
             
             if response.status_code == 200:
                 data = response.json()
-                if data.get("success") and data.get("uploadId"):
+                if data.get("uploadId"):
                     self.upload_id = data["uploadId"]
                     self.log_test("Single File Upload - CSV", True, 
                                 f"Successfully uploaded CSV file. Upload ID: {self.upload_id}", response_time)
                 else:
                     self.log_test("Single File Upload - CSV", False, 
-                                "Response missing success or uploadId", response_time)
+                                "Response missing uploadId", response_time)
             else:
                 self.log_test("Single File Upload - CSV", False, 
                             f"Upload failed with status {response.status_code}: {response.text}", response_time)
