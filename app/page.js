@@ -488,43 +488,44 @@ export default function Home() {
       </section>
 
       {/* Live Discovery Feed */}
-      <section className="py-24 bg-[#FAF9F6]">
-        <div className="container mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-5xl font-bold text-[#1C1C1E] mb-6">Trending Classes</h2>
-            <p className="text-xl text-[#7A7A7A]">Join thousands discovering their next favorite workout</p>
+      <section className="section-padding section-gradient-alt">
+        <div className="container-modern">
+          <div className="text-center mb-20">
+            <h2 className="text-6xl font-bold text-[#1C1C1E] mb-8 fade-in-up">Trending Classes</h2>
+            <p className="text-2xl text-[#7A7A7A] fade-in-up">Join thousands discovering their next favorite workout</p>
           </div>
 
           <div className="relative">
-            <div className="flex overflow-x-auto space-x-6 pb-6 scrollbar-hide">
+            <div className="flex overflow-x-auto space-x-8 pb-6 scrollbar-hide">
               {liveClasses.map((classItem) => (
-                <div key={classItem.id} className="flex-shrink-0 w-80 group">
-                  <Card className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+                <div key={classItem.id} className="flex-shrink-0 w-96 group">
+                  <Card className="border-0 shadow-2xl hover:shadow-3xl card-hover glass-morphism overflow-hidden">
                     <div className="relative">
                       <img 
                         src={classItem.image} 
                         alt={classItem.title}
-                        className="w-full h-48 object-cover rounded-t-lg"
+                        className="w-full h-56 object-cover group-hover:scale-105 smooth-transition"
                       />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
                       <div className="absolute top-4 left-4">
-                        <Badge className="bg-[#1E90FF] text-white">
+                        <Badge className="bg-[#1E90FF]/90 text-white backdrop-blur-sm border border-white/20">
                           {classItem.type}
                         </Badge>
                       </div>
-                      <div className="absolute top-4 right-4 bg-white/90 px-3 py-1 rounded-full">
-                        <span className="text-[#1C1C1E] font-bold">{classItem.price}</span>
+                      <div className="absolute top-4 right-4 glass-morphism px-4 py-2 rounded-full border border-white/20">
+                        <span className="text-white font-bold text-lg">{classItem.price}</span>
                       </div>
                     </div>
-                    <CardContent className="p-6">
-                      <h3 className="font-bold text-xl text-[#1C1C1E] mb-2">{classItem.title}</h3>
-                      <p className="text-[#7A7A7A] mb-1">with {classItem.instructor}</p>
-                      <p className="text-[#7A7A7A] mb-3">{classItem.studio}</p>
+                    <CardContent className="p-8">
+                      <h3 className="font-bold text-2xl text-[#1C1C1E] mb-3">{classItem.title}</h3>
+                      <p className="text-[#7A7A7A] mb-2 text-lg">with {classItem.instructor}</p>
+                      <p className="text-[#7A7A7A] mb-4 text-lg">{classItem.studio}</p>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center text-[#7A7A7A]">
-                          <Clock className="h-4 w-4 mr-1" />
-                          <span>{classItem.time}</span>
+                          <Clock className="h-5 w-5 mr-2" />
+                          <span className="text-lg">{classItem.time}</span>
                         </div>
-                        <Button size="sm" className="bg-[#1E90FF] hover:bg-[#1976D2] text-white">
+                        <Button className="btn-modern bg-[#1E90FF] hover:bg-[#1976D2] text-white px-6 py-3 rounded-xl">
                           Book Now
                         </Button>
                       </div>
