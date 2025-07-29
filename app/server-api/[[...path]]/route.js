@@ -1902,6 +1902,280 @@ async function handlePOST(request) {
 
     console.log('SERVER-API POST Request:', path)
 
+    // Get authenticated user for communication endpoints
+    const user = await getFirebaseUser(request)
+    if (!user && (path.startsWith('/messages') || path.startsWith('/notifications') || path.startsWith('/communication'))) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
+    // ===== COMMUNICATION LAYER ENDPOINTS (POST) =====
+    
+    // Create Message Thread
+    if (path === '/messages/threads/create') {
+      try {
+        const { participantIds, initialMessage, type = 'direct', classId, className } = await request.json()
+        
+        const allParticipantIds = [...new Set([user.uid, ...participantIds])]
+        const threadId = `thread_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+        const timestamp = new Date()
+
+        // Get sender details
+        const sender = await database.collection('profiles').findOne({ userId: user.uid })
+        const senderName = sender?.name || sender?.email || 'Unknown User'
+
+        // Create thread
+        const threadData = {
+          id: threadId,
+          type,
+          participantIds: allParticipantIds,
+          createdBy: user.uid,
+          createdAt: timestamp,
+          lastMessageAt: timestamp,
+          classId,
+          className,
+          lastMessage: initialMessage ? {
+            content: initialMessage,
+            senderId: user.uid,
+            senderName,
+            timestamp
+          } : null
+        }
+
+        await database.collection('messageThreads').insertOne(threadData)
+
+        // Send initial message if provided
+        if (initialMessage) {
+          const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+          await database.collection('messages').insertOne({
+            id: messageId,
+            threadId,
+            content: initialMessage,
+            type: 'text',
+            senderId: user.uid,
+            senderName,
+            timestamp,
+            readBy: [user.uid],
+            createdAt: timestamp
+          })
+        }
+
+        return NextResponse.json({ success: true, thread: threadData })
+      } catch (error) {
+        console.error('Error creating thread:', error)
+        return NextResponse.json({ error: 'Failed to create thread' }, { status: 500 })
+      }
+    }
+
+    // Send Message
+    if (path === '/messages/send') {
+      try {
+        const { threadId, content, type = 'text' } = await request.json()
+
+        // Get sender details
+        const sender = await database.collection('profiles').findOne({ userId: user.uid })
+        const senderName = sender?.name || sender?.email || 'Unknown User'
+
+        const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+        const timestamp = new Date()
+
+        // Create message
+        await database.collection('messages').insertOne({
+          id: messageId,
+          threadId,
+          content,
+          type,
+          senderId: user.uid,
+          senderName,
+          timestamp,
+          readBy: [user.uid], // Sender has read by default
+          createdAt: timestamp
+        })
+
+        // Update thread's last message
+        await database.collection('messageThreads').updateOne(
+          { id: threadId },
+          {
+            $set: {
+              lastMessage: {
+                content,
+                senderId: user.uid,
+                senderName,
+                timestamp
+              },
+              lastMessageAt: timestamp
+            }
+          }
+        )
+
+        // Create notifications for other participants
+        const thread = await database.collection('messageThreads').findOne({ id: threadId })
+        if (thread) {
+          const otherParticipants = thread.participantIds.filter(id => id !== user.uid)
+          
+          for (const participantId of otherParticipants) {
+            await createNotification(database, participantId, 'message', 'New Message', 
+              `${senderName}: ${content.substring(0, 50)}${content.length > 50 ? '...' : ''}`, {
+              threadId,
+              senderId: user.uid,
+              senderName
+            })
+          }
+        }
+
+        return NextResponse.json({ success: true, messageId })
+      } catch (error) {
+        console.error('Error sending message:', error)
+        return NextResponse.json({ error: 'Failed to send message' }, { status: 500 })
+      }
+    }
+
+    // Mark Messages as Read
+    if (path.startsWith('/messages/threads/') && path.endsWith('/read')) {
+      const pathParts = path.split('/')
+      const threadId = pathParts[3]
+      
+      try {
+        // Update all unread messages in the thread
+        await database.collection('messages').updateMany(
+          {
+            threadId,
+            senderId: { $ne: user.uid },
+            readBy: { $nin: [user.uid] }
+          },
+          {
+            $push: { readBy: user.uid },
+            $set: { updatedAt: new Date() }
+          }
+        )
+
+        return NextResponse.json({ success: true })
+      } catch (error) {
+        console.error('Error marking messages as read:', error)
+        return NextResponse.json({ error: 'Failed to mark as read' }, { status: 500 })
+      }
+    }
+
+    // Send Notification
+    if (path === '/notifications/send') {
+      try {
+        const { userId, type, title, message, data = {}, deliveryType = 'inApp' } = await request.json()
+
+        await createNotification(database, userId, type, title, message, data, deliveryType)
+        return NextResponse.json({ success: true })
+      } catch (error) {
+        console.error('Error sending notification:', error)
+        return NextResponse.json({ error: 'Failed to send notification' }, { status: 500 })
+      }
+    }
+
+    // Mark Notification as Read
+    if (path.startsWith('/notifications/') && path.endsWith('/read') && !path.includes('/mark-all-read')) {
+      const pathParts = path.split('/')
+      const notificationId = pathParts[2]
+      
+      try {
+        await database.collection('notifications').updateOne(
+          { id: notificationId, userId: user.uid },
+          {
+            $set: {
+              read: true,
+              readAt: new Date(),
+              updatedAt: new Date()
+            }
+          }
+        )
+
+        return NextResponse.json({ success: true })
+      } catch (error) {
+        console.error('Error marking notification as read:', error)
+        return NextResponse.json({ error: 'Failed to mark as read' }, { status: 500 })
+      }
+    }
+
+    // Mark All Notifications as Read
+    if (path === '/notifications/mark-all-read') {
+      try {
+        await database.collection('notifications').updateMany(
+          { userId: user.uid, read: false },
+          {
+            $set: {
+              read: true,
+              readAt: new Date(),
+              updatedAt: new Date()
+            }
+          }
+        )
+
+        return NextResponse.json({ success: true })
+      } catch (error) {
+        console.error('Error marking all notifications as read:', error)
+        return NextResponse.json({ error: 'Failed to mark all as read' }, { status: 500 })
+      }
+    }
+
+    // Send Broadcast (Merchant only)
+    if (path === '/communication/broadcast') {
+      const profile = await database.collection('profiles').findOne({ userId: user.uid })
+      if (!profile || profile.role !== 'merchant') {
+        return NextResponse.json({ error: 'Access denied' }, { status: 403 })
+      }
+
+      try {
+        const { recipients, message, title, type = 'announcement' } = await request.json()
+
+        const broadcastId = `broadcast_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+        const broadcast = {
+          id: broadcastId,
+          studioId: user.uid,
+          title,
+          message,
+          type,
+          recipients: recipients || 'all',
+          createdAt: new Date(),
+          sentCount: 0,
+          deliveredCount: 0,
+          status: 'sending'
+        }
+
+        await database.collection('broadcasts').insertOne(broadcast)
+
+        // Send notifications to recipients (simplified for now)
+        let recipientList = []
+        if (recipients === 'all') {
+          const profiles = await database.collection('profiles').find({}).toArray()
+          recipientList = profiles.map(p => p.userId)
+        } else if (Array.isArray(recipients)) {
+          recipientList = recipients
+        }
+
+        let sentCount = 0
+        for (const recipientId of recipientList) {
+          try {
+            await createNotification(database, recipientId, type, title, message, { broadcastId })
+            sentCount++
+          } catch (error) {
+            console.error('Error sending notification to:', recipientId, error)
+          }
+        }
+
+        // Update broadcast stats
+        await database.collection('broadcasts').updateOne(
+          { id: broadcastId },
+          {
+            $set: {
+              sentCount,
+              status: 'sent'
+            }
+          }
+        )
+
+        return NextResponse.json({ success: true, broadcast: { ...broadcast, sentCount } })
+      } catch (error) {
+        console.error('Error sending broadcast:', error)
+        return NextResponse.json({ error: 'Failed to send broadcast' }, { status: 500 })
+      }
+    }
+
     // ========================================
     // AI CONFIGURATION WIZARD ENDPOINTS
     // ========================================
