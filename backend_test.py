@@ -97,7 +97,7 @@ def make_request(method, endpoint, data=None, headers=None):
         elif method == "DELETE":
             response = requests.delete(url, headers=headers, timeout=30)
         
-        # Debug: Print response details for failed requests
+        # Debug: Print response details for failed requests (but still return response)
         if response.status_code >= 400:
             print(f"DEBUG: {method} {endpoint} returned {response.status_code}")
             try:
