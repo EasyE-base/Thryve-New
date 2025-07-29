@@ -437,6 +437,11 @@ async function handleGET(request) {
 
     // Get Communication Stats (Merchant only)
     if (path === '/communication/stats') {
+      const user = await getFirebaseUser(request)
+      if (!user) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
       // Check if user is merchant
       const profile = await database.collection('profiles').findOne({ userId: user.uid })
       if (!profile || profile.role !== 'merchant') {
