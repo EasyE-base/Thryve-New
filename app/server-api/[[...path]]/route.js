@@ -2927,6 +2927,329 @@ async function handleGET(request) {
       }
     }
 
+    // ========================================
+    // PAYMENT & SUBSCRIPTION SYSTEM - GET ENDPOINTS
+    // ========================================
+
+    // Get user's payment methods
+    if (path === '/payments/methods') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        const stripeCustomerId = userProfile?.stripeCustomerId
+
+        if (!stripeCustomerId) {
+          return NextResponse.json({
+            success: true,
+            paymentMethods: [],
+            hasStripeCustomer: false
+          })
+        }
+
+        // Get payment methods from Stripe
+        const paymentMethods = await stripe.paymentMethods.list({
+          customer: stripeCustomerId,
+          type: 'card'
+        })
+
+        // Get default payment method
+        const customer = await stripe.customers.retrieve(stripeCustomerId)
+        const defaultPaymentMethodId = customer.invoice_settings?.default_payment_method
+
+        const enrichedPaymentMethods = paymentMethods.data.map(pm => ({
+          id: pm.id,
+          type: pm.type,
+          card: pm.card ? {
+            brand: pm.card.brand,
+            last4: pm.card.last4,
+            exp_month: pm.card.exp_month,
+            exp_year: pm.card.exp_year,
+            funding: pm.card.funding
+          } : null,
+          isDefault: pm.id === defaultPaymentMethodId,
+          created: new Date(pm.created * 1000)
+        }))
+
+        return NextResponse.json({
+          success: true,
+          paymentMethods: enrichedPaymentMethods,
+          hasStripeCustomer: true,
+          defaultPaymentMethod: defaultPaymentMethodId
+        })
+
+      } catch (error) {
+        console.error('Payment methods error:', error)
+        return NextResponse.json({ error: 'Failed to retrieve payment methods' }, { status: 500 })
+      }
+    }
+
+    // Get user's subscriptions
+    if (path === '/payments/subscriptions') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const subscriptions = await database.collection('subscriptions')
+          .find({ userId: firebaseUser.uid })
+          .sort({ createdAt: -1 })
+          .toArray()
+
+        // Get studio information for each subscription
+        const studioIds = subscriptions.map(sub => sub.studioId).filter(Boolean)
+        const studios = await database.collection('profiles')
+          .find({ 
+            userId: { $in: studioIds },
+            role: 'merchant'
+          })
+          .toArray()
+
+        const enrichedSubscriptions = subscriptions.map(sub => {
+          const studio = studios.find(s => s.userId === sub.studioId)
+          return {
+            ...sub,
+            studio: studio ? {
+              name: studio.businessName || studio.studioName,
+              address: studio.address,
+              city: studio.city,
+              state: studio.state
+            } : null
+          }
+        })
+
+        return NextResponse.json({
+          success: true,
+          subscriptions: enrichedSubscriptions,
+          totalSubscriptions: subscriptions.length,
+          activeSubscriptions: subscriptions.filter(sub => sub.status === 'active').length
+        })
+
+      } catch (error) {
+        console.error('Subscriptions error:', error)
+        return NextResponse.json({ error: 'Failed to retrieve subscriptions' }, { status: 500 })
+      }
+    }
+
+    // Get user's X Pass credits
+    if (path === '/payments/xpass-credits') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const xpassCredits = await database.collection('xpass_credits')
+          .findOne({ userId: firebaseUser.uid })
+
+        if (!xpassCredits) {
+          return NextResponse.json({
+            success: true,
+            credits: {
+              availableCredits: 0,
+              totalEarned: 0,
+              totalSpent: 0
+            },
+            recentTransactions: []
+          })
+        }
+
+        // Get recent X Pass transactions
+        const recentTransactions = await database.collection('xpass_transactions')
+          .find({ userId: firebaseUser.uid })
+          .sort({ createdAt: -1 })
+          .limit(10)
+          .toArray()
+
+        return NextResponse.json({
+          success: true,
+          credits: {
+            availableCredits: xpassCredits.availableCredits || 0,
+            totalEarned: xpassCredits.totalEarned || 0,
+            totalSpent: xpassCredits.totalSpent || 0,
+            lastUpdated: xpassCredits.updatedAt
+          },
+          recentTransactions: recentTransactions
+        })
+
+      } catch (error) {
+        console.error('X Pass credits error:', error)
+        return NextResponse.json({ error: 'Failed to retrieve X Pass credits' }, { status: 500 })
+      }
+    }
+
+    // Get user's transaction history
+    if (path === '/payments/transactions') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const url = new URL(request.url)
+        const limit = parseInt(url.searchParams.get('limit')) || 20
+        const offset = parseInt(url.searchParams.get('offset')) || 0
+        const type = url.searchParams.get('type') // 'class_booking', 'subscription', 'xpass_purchase', etc.
+
+        let query = { userId: firebaseUser.uid }
+        if (type) {
+          query.type = type
+        }
+
+        const transactions = await database.collection('transactions')
+          .find(query)
+          .sort({ createdAt: -1 })
+          .skip(offset)
+          .limit(limit)
+          .toArray()
+
+        const totalCount = await database.collection('transactions')
+          .countDocuments(query)
+
+        return NextResponse.json({
+          success: true,
+          transactions: transactions,
+          pagination: {
+            total: totalCount,
+            limit: limit,
+            offset: offset,
+            hasMore: offset + limit < totalCount
+          }
+        })
+
+      } catch (error) {
+        console.error('Transactions error:', error)
+        return NextResponse.json({ error: 'Failed to retrieve transactions' }, { status: 500 })
+      }
+    }
+
+    // Get payment invoice
+    if (path.startsWith('/payments/invoice/')) {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const invoiceId = path.split('/').pop()
+        
+        // Get invoice from Stripe
+        const invoice = await stripe.invoices.retrieve(invoiceId)
+        
+        // Verify user owns this invoice
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        if (!userProfile?.stripeCustomerId || invoice.customer !== userProfile.stripeCustomerId) {
+          return NextResponse.json({ error: 'Invoice not found or unauthorized' }, { status: 404 })
+        }
+
+        // Format invoice data
+        const formattedInvoice = {
+          id: invoice.id,
+          number: invoice.number,
+          status: invoice.status,
+          amountPaid: invoice.amount_paid,
+          amountDue: invoice.amount_due,
+          currency: invoice.currency,
+          created: new Date(invoice.created * 1000),
+          dueDate: invoice.due_date ? new Date(invoice.due_date * 1000) : null,
+          periodStart: new Date(invoice.period_start * 1000),
+          periodEnd: new Date(invoice.period_end * 1000),
+          hostedInvoiceUrl: invoice.hosted_invoice_url,
+          invoicePdf: invoice.invoice_pdf,
+          lines: invoice.lines.data.map(line => ({
+            id: line.id,
+            description: line.description,
+            amount: line.amount,
+            quantity: line.quantity,
+            price: line.price
+          }))
+        }
+
+        return NextResponse.json({
+          success: true,
+          invoice: formattedInvoice
+        })
+
+      } catch (error) {
+        console.error('Invoice error:', error)
+        return NextResponse.json({ error: 'Failed to retrieve invoice' }, { status: 500 })
+      }
+    }
+
+    // Get studio's payment statistics (for merchants)
+    if (path === '/payments/studio-stats') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        if (userProfile?.role !== 'merchant') {
+          return NextResponse.json({ error: 'Access denied. Merchant role required.' }, { status: 403 })
+        }
+
+        // Get studio's revenue from bookings
+        const endDate = new Date()
+        const startDate = new Date()
+        startDate.setMonth(startDate.getMonth() - 3) // Last 3 months
+
+        const bookings = await database.collection('bookings')
+          .find({
+            studioId: firebaseUser.uid,
+            status: 'confirmed',
+            createdAt: { $gte: startDate, $lte: endDate }
+          })
+          .toArray()
+
+        const subscriptions = await database.collection('subscriptions')
+          .find({
+            studioId: firebaseUser.uid,
+            status: { $in: ['active', 'past_due'] }
+          })
+          .toArray()
+
+        // Calculate statistics
+        const totalBookings = bookings.length
+        const totalRevenue = bookings.reduce((sum, booking) => sum + (booking.amount || 0), 0)
+        const activeSubscriptions = subscriptions.filter(sub => sub.status === 'active').length
+        const averageBookingValue = totalBookings > 0 ? totalRevenue / totalBookings : 0
+
+        // Platform fees (3.75% for standard, 5-10% for X Pass)
+        const platformFees = bookings.reduce((sum, booking) => {
+          const feeRate = booking.paymentType === 'xpass' ? 0.075 : 0.0375
+          return sum + ((booking.amount || 0) * feeRate)
+        }, 0)
+
+        const netRevenue = totalRevenue - platformFees
+
+        return NextResponse.json({
+          success: true,
+          statistics: {
+            totalBookings,
+            totalRevenue,
+            netRevenue,
+            platformFees,
+            activeSubscriptions,
+            averageBookingValue: Math.round(averageBookingValue * 100) / 100,
+            revenueGrowth: 0, // TODO: Calculate month-over-month growth
+            period: {
+              startDate: startDate,
+              endDate: endDate
+            }
+          }
+        })
+
+      } catch (error) {
+        console.error('Studio stats error:', error)
+        return NextResponse.json({ error: 'Failed to retrieve studio statistics' }, { status: 500 })
+      }
+    }
+
     return NextResponse.json({ error: 'Endpoint not found' }, { status: 404 })
   } catch (error) {
     console.error('GET Error:', error)
