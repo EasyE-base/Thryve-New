@@ -864,6 +864,39 @@ export default function Home() {
       {/* SignIn Modal */}
       <SignInModal />
 
+      {/* Communication Components */}
+      <MessagingSystem 
+        isOpen={showMessaging}
+        onClose={() => setShowMessaging(false)}
+      />
+      
+      <NotificationSystem 
+        isOpen={showNotifications}
+        onClose={() => setShowNotifications(false)}
+      />
+
+      {/* Floating Communication Button - Only show when user is logged in */}
+      {user && (
+        <div className="fixed bottom-6 right-6 z-50">
+          <div className="flex flex-col space-y-3">
+            <Button
+              className="w-14 h-14 rounded-full bg-[#1E90FF] hover:bg-[#1976D2] text-white shadow-2xl hover:shadow-3xl transform hover:scale-105 transition-all duration-300"
+              onClick={() => setShowNotifications(true)}
+              title="Open Notifications"
+            >
+              <Bell className="h-6 w-6" />
+            </Button>
+            <Button
+              className="w-14 h-14 rounded-full bg-[#1E90FF] hover:bg-[#1976D2] text-white shadow-2xl hover:shadow-3xl transform hover:scale-105 transition-all duration-300"
+              onClick={() => setShowMessaging(true)}
+              title="Open Messages"
+            >
+              <MessageCircle className="h-6 w-6" />
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Booking Modal */}
       <BookingModal
         classData={selectedClass}
