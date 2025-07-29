@@ -357,16 +357,27 @@ export default function Home() {
 
       {/* Hero Section */}
       <section ref={heroRef} className="relative min-h-screen flex items-center justify-center overflow-hidden">
-        {/* Background Image with Parallax */}
+        {/* Background Video */}
         <div className="absolute inset-0">
-          <div className="relative w-full h-full">
-            <img 
-              src={HERO_IMAGES[currentHeroImage]} 
-              alt="Fitness Hero"
-              className="w-full h-full object-cover transition-all duration-1000"
+          <video 
+            autoPlay 
+            loop 
+            muted 
+            playsInline
+            className="w-full h-full object-cover"
+          >
+            <source 
+              src="https://customer-assets.emergentagent.com/job_fitness-hub-28/artifacts/9acvnc7j_social_based.him_A_vibrant_dynamic_photograph_captures_a_full_body_y_6b0e1611-f8ba-498d-82cb-f11a897e2e3c_1.mp4" 
+              type="video/mp4" 
             />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#1C1C1E]/80 via-[#1C1C1E]/60 to-transparent"></div>
-          </div>
+            {/* Fallback image in case video doesn't load */}
+            <img 
+              src={HERO_IMAGES[0]} 
+              alt="Fitness Hero"
+              className="w-full h-full object-cover"
+            />
+          </video>
+          <div className="absolute inset-0 bg-gradient-to-r from-[#1C1C1E]/80 via-[#1C1C1E]/60 to-transparent"></div>
         </div>
 
         {/* Hero Content */}
