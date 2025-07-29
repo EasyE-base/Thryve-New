@@ -27,6 +27,7 @@ const GYM_INTERIOR = "https://images.unsplash.com/photo-1542766788-a2f588f447ee?
 export default function Home() {
   const { user, role } = useAuth()
   const [currentTestimonial, setCurrentTestimonial] = useState(0)
+  const [currentVideoIndex, setCurrentVideoIndex] = useState(0)
   const [showSignInModal, setShowSignInModal] = useState(false)
   const heroRef = useRef(null)
 
