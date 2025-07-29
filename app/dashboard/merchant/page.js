@@ -130,6 +130,7 @@ export default function MerchantDashboard() {
     { id: 'classes', label: 'Classes', icon: CalendarIcon, color: 'bg-green-500/10 text-green-600' },
     { id: 'staffing', label: 'Staff', icon: Users, color: 'bg-purple-500/10 text-purple-600' },
     { id: 'communication', label: 'Communication', icon: MessageSquare, color: 'bg-blue-500/10 text-blue-600' },
+    { id: 'migration', label: 'Data Migration', icon: Upload, color: 'bg-cyan-500/10 text-cyan-600' },
     { id: 'calendar', label: 'Calendar', icon: CalendarIcon, color: 'bg-orange-500/10 text-orange-600' },
     { id: 'analytics', label: 'Analytics', icon: BarChart3, color: 'bg-pink-500/10 text-pink-600' },
     { id: 'clients', label: 'Clients', icon: User, color: 'bg-indigo-500/10 text-indigo-600' },
