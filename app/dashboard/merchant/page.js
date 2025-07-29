@@ -11,7 +11,7 @@ import {
   Building2, Users, Calendar as CalendarIcon, DollarSign, Plus, BarChart3, Settings, LogOut, 
   User, TrendingUp, Activity, CreditCard, Package, Bot, Search, Bell, ChevronUp, ChevronDown, 
   Eye, Edit, Trash2, Download, Filter, MapPin, Clock, Star, AlertCircle, Home, Menu, X,
-  ArrowUpRight, ArrowDownRight, Zap, Target, Award, CheckCircle
+  ArrowUpRight, ArrowDownRight, Zap, Target, Award, CheckCircle, MessageSquare
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
