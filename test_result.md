@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "PHASE 5: SEARCH & DISCOVERY ENGINE - Building an intelligent search and discovery system for the Thryve fitness platform. This comprehensive system includes AI-powered personalized recommendations based on user preferences and behavior, advanced search with filtering capabilities (category, level, time, location, availability), smart autocomplete and search suggestions, trending content discovery, intelligent class matching algorithms, and user behavior analysis for improved recommendations. The system integrates with the existing AI recommendation engine and leverages user data from onboarding, bookings, and preferences to provide highly relevant and personalized fitness class recommendations."
+user_problem_statement: "PHASE 6: PAYMENT & SUBSCRIPTION SYSTEMS - PHASE 1: CORE PAYMENT INFRASTRUCTURE - Building comprehensive payment and subscription management for the Thryve fitness platform. This phase focuses on enhanced Stripe integration including webhook handling for payment events (successful payments, failed transactions, refunds, cancellations, renewals), customer portal integration for subscription self-management, payment method saving and management, and invoice/receipt generation. The system supports multiple payment types: individual class bookings, unlimited studio memberships, X Pass credit packs, and future instructor payouts with proper platform fee handling (3.75% standard, 5-10% X Pass redemption)."
 
 backend:
   - task: "Firebase Authentication Setup & Configuration"
