@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Comprehensive Backend Testing for Search & Discovery Engine
-Tests the newly implemented search and discovery API endpoints
+Backend API Testing for Search & Discovery Engine
+Testing the fixed routing issues for search and discovery endpoints
+Focus on endpoints that were previously returning 404 errors
 """
 
 import requests
