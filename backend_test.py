@@ -213,6 +213,7 @@ def test_subscription_analytics(results):
         if passed:
             try:
                 data = response.json()
+                print(f"DEBUG: Subscription analytics response keys: {list(data.keys())}")
                 # Check for expected analytics fields
                 expected_fields = ["dateRange", "subscriptions", "revenue", "analytics"]
                 has_fields = all(field in data for field in expected_fields)
