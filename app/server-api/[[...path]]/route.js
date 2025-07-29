@@ -7565,6 +7565,653 @@ async function handlePOST(request) {
       }
     }
 
+    // ========================================
+    // PHASE 3: BUSINESS LOGIC & FEE PROCESSING
+    // ========================================
+
+    // Apply cancellation policy and fees
+    if (path === '/payments/apply-cancellation-policy') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { bookingId, cancellationReason, cancelledAt } = body
+
+        if (!bookingId) {
+          return NextResponse.json({ error: 'Booking ID is required' }, { status: 400 })
+        }
+
+        // Get booking details
+        const booking = await database.collection('bookings').findOne({
+          id: bookingId,
+          userId: firebaseUser.uid
+        })
+
+        if (!booking) {
+          return NextResponse.json({ error: 'Booking not found or unauthorized' }, { status: 404 })
+        }
+
+        // Get studio cancellation policy
+        const studioPolicy = await database.collection('studio_policies').findOne({
+          studioId: booking.studioId
+        })
+
+        const defaultPolicy = {
+          cancellationWindow: 24, // hours
+          lateCancelFee: 1500, // $15 in cents
+          noShowFee: 2000, // $20 in cents
+          refundPolicy: 'full_refund_within_window',
+          freeTrialCancellations: 1
+        }
+
+        const policy = studioPolicy || defaultPolicy
+
+        // Calculate time difference
+        const classStartTime = new Date(booking.classStartTime)
+        const cancellationTime = new Date(cancelledAt || new Date())
+        const hoursUntilClass = (classStartTime - cancellationTime) / (1000 * 60 * 60)
+
+        // Determine fee and refund policy
+        let cancellationFee = 0
+        let refundAmount = 0
+        let refundEligible = false
+        let feeReason = ''
+
+        if (hoursUntilClass >= policy.cancellationWindow) {
+          // Within cancellation window - full refund, no fee
+          refundEligible = true
+          refundAmount = booking.amount || 0
+          feeReason = 'Cancelled within policy window'
+        } else if (hoursUntilClass > 0) {
+          // Late cancellation - apply fee
+          cancellationFee = policy.lateCancelFee
+          refundAmount = Math.max(0, (booking.amount || 0) - cancellationFee)
+          feeReason = 'Late cancellation fee applied'
+        } else {
+          // No-show - apply no-show fee
+          cancellationFee = policy.noShowFee
+          refundAmount = 0
+          feeReason = 'No-show fee applied'
+        }
+
+        // Check if user has remaining free trial cancellations
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        const freeCancellationsUsed = userProfile?.freeCancellationsUsed || 0
+
+        if (freeCancellationsUsed < policy.freeTrialCancellations && cancellationFee > 0) {
+          // Apply free trial cancellation
+          cancellationFee = 0
+          refundAmount = booking.amount || 0
+          feeReason = 'Free trial cancellation applied'
+          
+          // Update user profile
+          await database.collection('profiles').updateOne(
+            { userId: firebaseUser.uid },
+            { $inc: { freeCancellationsUsed: 1 } }
+          )
+        }
+
+        // Handle different payment methods
+        let processingDetails = {}
+        
+        if (booking.paymentMethod === 'class_package') {
+          // Return credit to class package if applicable
+          if (refundEligible) {
+            await database.collection('class_packages').updateOne(
+              { id: booking.packageId, userId: firebaseUser.uid },
+              { $inc: { remainingClasses: 1, usedClasses: -1 } }
+            )
+            processingDetails.creditReturned = true
+          }
+        } else if (booking.paymentMethod === 'xpass') {
+          // Return X Pass credit if applicable
+          if (refundEligible) {
+            await database.collection('xpass_credits').updateOne(
+              { userId: firebaseUser.uid },
+              { $inc: { availableCredits: 1, totalSpent: -1 } }
+            )
+            processingDetails.xpassCreditReturned = true
+          }
+        } else if (booking.paymentMethod === 'subscription') {
+          // Subscription bookings - no refund needed but track cancellation
+          processingDetails.subscriptionCancellation = true
+        }
+
+        // Update booking status
+        await database.collection('bookings').updateOne(
+          { id: bookingId },
+          {
+            $set: {
+              status: 'cancelled',
+              cancellationReason: cancellationReason || 'User requested',
+              cancelledAt: cancellationTime,
+              cancellationFee: cancellationFee,
+              refundAmount: refundAmount,
+              policyApplied: policy,
+              feeReason: feeReason,
+              updatedAt: new Date()
+            }
+          }
+        )
+
+        // Record cancellation fee transaction if applicable
+        if (cancellationFee > 0) {
+          const feeTransaction = {
+            id: `cancellation-fee-${Date.now()}`,
+            userId: firebaseUser.uid,
+            bookingId: bookingId,
+            type: 'cancellation_fee',
+            amount: cancellationFee,
+            reason: feeReason,
+            studioId: booking.studioId,
+            createdAt: new Date()
+          }
+          await database.collection('transactions').insertOne(feeTransaction)
+        }
+
+        return NextResponse.json({
+          success: true,
+          message: 'Cancellation policy applied successfully',
+          cancellationFee: cancellationFee,
+          refundAmount: refundAmount,
+          refundEligible: refundEligible,
+          feeReason: feeReason,
+          hoursUntilClass: Math.round(hoursUntilClass * 100) / 100,
+          policyApplied: policy,
+          processingDetails: processingDetails
+        })
+
+      } catch (error) {
+        console.error('Cancellation policy error:', error)
+        return NextResponse.json({ error: 'Failed to apply cancellation policy' }, { status: 500 })
+      }
+    }
+
+    // Process no-show penalty
+    if (path === '/payments/process-no-show') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { bookingId, noShowConfirmed = true } = body
+
+        if (!bookingId) {
+          return NextResponse.json({ error: 'Booking ID is required' }, { status: 400 })
+        }
+
+        // Get booking details
+        const booking = await database.collection('bookings').findOne({
+          id: bookingId
+        })
+
+        if (!booking) {
+          return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
+        }
+
+        // Check if user has authority to mark no-show (studio owner or instructor)
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        const hasAuthority = userProfile?.role === 'merchant' && userProfile?.userId === booking.studioId ||
+                            userProfile?.role === 'instructor' && booking.instructorId === firebaseUser.uid
+
+        if (!hasAuthority) {
+          return NextResponse.json({ error: 'Unauthorized to mark no-show' }, { status: 403 })
+        }
+
+        // Get studio no-show policy
+        const studioPolicy = await database.collection('studio_policies').findOne({
+          studioId: booking.studioId
+        })
+
+        const defaultPolicy = {
+          noShowFee: 2000, // $20 in cents
+          gracePeriod: 15, // minutes after start time
+          autoMarkNoShow: true
+        }
+
+        const policy = studioPolicy || defaultPolicy
+
+        // Calculate no-show fee based on payment method
+        let noShowFee = 0
+        let processingDetails = {}
+
+        if (booking.paymentMethod === 'class_package') {
+          // Class package: lose credit + fee
+          noShowFee = policy.noShowFee
+          processingDetails.creditDeducted = true
+        } else if (booking.paymentMethod === 'xpass') {
+          // X Pass: lose credit + fee
+          noShowFee = policy.noShowFee
+          processingDetails.xpassCreditDeducted = true
+        } else if (booking.paymentMethod === 'subscription') {
+          // Subscription: only fee (no credit to lose)
+          noShowFee = policy.noShowFee
+          processingDetails.subscriptionNoShow = true
+        } else {
+          // One-time payment: full fee
+          noShowFee = policy.noShowFee
+        }
+
+        // Apply no-show fee
+        if (noShowConfirmed && noShowFee > 0) {
+          // Create charge for no-show fee
+          const userProfile = await database.collection('profiles').findOne({ userId: booking.userId })
+          const stripeCustomerId = userProfile?.stripeCustomerId
+
+          if (stripeCustomerId) {
+            try {
+              const paymentIntent = await stripe.paymentIntents.create({
+                amount: noShowFee,
+                currency: 'usd',
+                customer: stripeCustomerId,
+                confirm: true,
+                metadata: {
+                  firebase_uid: booking.userId,
+                  booking_id: bookingId,
+                  fee_type: 'no_show_fee',
+                  studio_id: booking.studioId
+                }
+              })
+
+              processingDetails.paymentIntentId = paymentIntent.id
+            } catch (stripeError) {
+              console.error('Stripe no-show fee error:', stripeError)
+              // Continue with booking update even if payment fails
+              processingDetails.paymentFailed = true
+            }
+          }
+        }
+
+        // Update booking status
+        await database.collection('bookings').updateOne(
+          { id: bookingId },
+          {
+            $set: {
+              status: 'no_show',
+              noShowConfirmed: noShowConfirmed,
+              noShowFee: noShowFee,
+              noShowMarkedAt: new Date(),
+              noShowMarkedBy: firebaseUser.uid,
+              policyApplied: policy,
+              updatedAt: new Date()
+            }
+          }
+        )
+
+        // Record no-show fee transaction
+        if (noShowFee > 0) {
+          const feeTransaction = {
+            id: `no-show-fee-${Date.now()}`,
+            userId: booking.userId,
+            bookingId: bookingId,
+            type: 'no_show_fee',
+            amount: noShowFee,
+            studioId: booking.studioId,
+            markedBy: firebaseUser.uid,
+            createdAt: new Date()
+          }
+          await database.collection('transactions').insertOne(feeTransaction)
+        }
+
+        return NextResponse.json({
+          success: true,
+          message: 'No-show penalty processed successfully',
+          noShowFee: noShowFee,
+          policyApplied: policy,
+          processingDetails: processingDetails
+        })
+
+      } catch (error) {
+        console.error('No-show penalty error:', error)
+        return NextResponse.json({ error: 'Failed to process no-show penalty' }, { status: 500 })
+      }
+    }
+
+    // Calculate dynamic platform fees
+    if (path === '/payments/calculate-platform-fees') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { amount, paymentType, studioId, subscriptionTier = 'standard' } = body
+
+        if (!amount || !paymentType) {
+          return NextResponse.json({ error: 'Amount and payment type are required' }, { status: 400 })
+        }
+
+        // Get studio-specific fee structure
+        const studioSettings = await database.collection('studio_fee_settings').findOne({
+          studioId: studioId
+        })
+
+        // Default platform fee rates
+        const baseFeeRates = {
+          class_booking: 0.0375,      // 3.75%
+          subscription: 0.0375,       // 3.75%
+          class_package: 0.0375,      // 3.75%
+          xpass_redemption: 0.075,    // 7.5%
+          instructor_payout: 0.05     // 5%
+        }
+
+        // Volume-based discounts
+        const volumeDiscounts = {
+          bronze: 0,        // 0-100 transactions
+          silver: 0.0025,   // 101-500 transactions (-0.25%)
+          gold: 0.005,      // 501-1000 transactions (-0.5%)
+          platinum: 0.0075  // 1000+ transactions (-0.75%)
+        }
+
+        // Get studio transaction volume for dynamic pricing
+        const thirtyDaysAgo = new Date()
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+        const studioTransactions = await database.collection('transactions')
+          .countDocuments({
+            studioId: studioId,
+            createdAt: { $gte: thirtyDaysAgo },
+            status: 'completed'
+          })
+
+        // Determine volume tier
+        let volumeTier = 'bronze'
+        if (studioTransactions >= 1000) volumeTier = 'platinum'
+        else if (studioTransactions >= 500) volumeTier = 'gold'
+        else if (studioTransactions >= 100) volumeTier = 'silver'
+
+        // Calculate base fee rate
+        let baseFeeRate = baseFeeRates[paymentType] || baseFeeRates.class_booking
+
+        // Apply studio-specific rates if configured
+        if (studioSettings && studioSettings.customRates && studioSettings.customRates[paymentType]) {
+          baseFeeRate = studioSettings.customRates[paymentType]
+        }
+
+        // Apply volume discount
+        const volumeDiscount = volumeDiscounts[volumeTier]
+        const discountedFeeRate = Math.max(0, baseFeeRate - volumeDiscount)
+
+        // Calculate fees
+        const platformFee = Math.round(amount * discountedFeeRate)
+        const stripeFee = Math.round(amount * 0.029) + 30 // Stripe standard rate
+        const totalFees = platformFee + stripeFee
+        const netAmount = amount - totalFees
+
+        // Apply subscription tier discounts
+        if (subscriptionTier === 'premium') {
+          const premiumDiscount = Math.round(platformFee * 0.1) // 10% discount
+          const discountedPlatformFee = platformFee - premiumDiscount
+          const discountedTotalFees = discountedPlatformFee + stripeFee
+          const discountedNetAmount = amount - discountedTotalFees
+
+          return NextResponse.json({
+            success: true,
+            feeCalculation: {
+              originalAmount: amount,
+              baseFeeRate: baseFeeRate,
+              discountedFeeRate: discountedFeeRate,
+              platformFee: discountedPlatformFee,
+              stripeFee: stripeFee,
+              totalFees: discountedTotalFees,
+              netAmount: discountedNetAmount,
+              volumeTier: volumeTier,
+              volumeDiscount: volumeDiscount,
+              subscriptionTier: subscriptionTier,
+              premiumDiscount: premiumDiscount,
+              transactionVolume: studioTransactions
+            }
+          })
+        }
+
+        return NextResponse.json({
+          success: true,
+          feeCalculation: {
+            originalAmount: amount,
+            baseFeeRate: baseFeeRate,
+            discountedFeeRate: discountedFeeRate,
+            platformFee: platformFee,
+            stripeFee: stripeFee,
+            totalFees: totalFees,
+            netAmount: netAmount,
+            volumeTier: volumeTier,
+            volumeDiscount: volumeDiscount,
+            subscriptionTier: subscriptionTier,
+            transactionVolume: studioTransactions
+          }
+        })
+
+      } catch (error) {
+        console.error('Platform fee calculation error:', error)
+        return NextResponse.json({ error: 'Failed to calculate platform fees' }, { status: 500 })
+      }
+    }
+
+    // Process failed payment retry
+    if (path === '/payments/retry-failed-payment') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { paymentIntentId, retryReason } = body
+
+        if (!paymentIntentId) {
+          return NextResponse.json({ error: 'Payment intent ID is required' }, { status: 400 })
+        }
+
+        // Get payment intent from Stripe
+        const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId)
+
+        if (paymentIntent.status !== 'requires_payment_method') {
+          return NextResponse.json({ error: 'Payment intent is not in retryable state' }, { status: 400 })
+        }
+
+        // Get retry history
+        const retryHistory = await database.collection('payment_retries').find({
+          paymentIntentId: paymentIntentId
+        }).sort({ createdAt: -1 }).toArray()
+
+        // Check retry limits
+        const maxRetries = 3
+        const retryCount = retryHistory.length
+
+        if (retryCount >= maxRetries) {
+          return NextResponse.json({ error: 'Maximum retry attempts exceeded' }, { status: 400 })
+        }
+
+        // Implement intelligent retry schedule
+        const retrySchedule = [
+          { delay: 0, description: 'Immediate retry' },
+          { delay: 1800, description: '30 minutes later' },
+          { delay: 86400, description: '24 hours later' },
+          { delay: 604800, description: '7 days later' }
+        ]
+
+        const currentRetryConfig = retrySchedule[retryCount] || retrySchedule[retrySchedule.length - 1]
+
+        // Create new payment intent with updated details
+        const newPaymentIntent = await stripe.paymentIntents.create({
+          amount: paymentIntent.amount,
+          currency: paymentIntent.currency,
+          customer: paymentIntent.customer,
+          metadata: {
+            ...paymentIntent.metadata,
+            retry_attempt: (retryCount + 1).toString(),
+            original_payment_intent: paymentIntentId,
+            retry_reason: retryReason || 'Automated retry'
+          }
+        })
+
+        // Record retry attempt
+        const retryRecord = {
+          id: `retry-${Date.now()}`,
+          originalPaymentIntentId: paymentIntentId,
+          newPaymentIntentId: newPaymentIntent.id,
+          userId: firebaseUser.uid,
+          retryAttempt: retryCount + 1,
+          retryReason: retryReason || 'Automated retry',
+          retrySchedule: currentRetryConfig,
+          status: 'pending',
+          createdAt: new Date()
+        }
+
+        await database.collection('payment_retries').insertOne(retryRecord)
+
+        // Update original transaction status
+        await database.collection('transactions').updateOne(
+          { paymentIntentId: paymentIntentId },
+          {
+            $set: {
+              status: 'retry_pending',
+              retryAttempt: retryCount + 1,
+              lastRetryAt: new Date(),
+              newPaymentIntentId: newPaymentIntent.id,
+              updatedAt: new Date()
+            }
+          }
+        )
+
+        return NextResponse.json({
+          success: true,
+          message: 'Payment retry initiated successfully',
+          newPaymentIntentId: newPaymentIntent.id,
+          clientSecret: newPaymentIntent.client_secret,
+          retryAttempt: retryCount + 1,
+          retrySchedule: currentRetryConfig,
+          maxRetries: maxRetries,
+          remainingRetries: maxRetries - (retryCount + 1)
+        })
+
+      } catch (error) {
+        console.error('Payment retry error:', error)
+        return NextResponse.json({ error: 'Failed to retry payment' }, { status: 500 })
+      }
+    }
+
+    // Handle subscription proration
+    if (path === '/payments/prorate-subscription') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { subscriptionId, newPriceId, changeType = 'upgrade' } = body
+
+        if (!subscriptionId || !newPriceId) {
+          return NextResponse.json({ error: 'Subscription ID and new price ID are required' }, { status: 400 })
+        }
+
+        // Get current subscription
+        const subscription = await database.collection('subscriptions').findOne({
+          stripeSubscriptionId: subscriptionId,
+          userId: firebaseUser.uid
+        })
+
+        if (!subscription) {
+          return NextResponse.json({ error: 'Subscription not found or unauthorized' }, { status: 404 })
+        }
+
+        // Get current and new prices from Stripe
+        const currentPrice = await stripe.prices.retrieve(subscription.priceId)
+        const newPrice = await stripe.prices.retrieve(newPriceId)
+
+        // Calculate proration
+        const now = new Date()
+        const periodEnd = new Date(subscription.currentPeriodEnd)
+        const periodStart = new Date(subscription.currentPeriodStart)
+        const totalPeriodDays = (periodEnd - periodStart) / (1000 * 60 * 60 * 24)
+        const remainingDays = Math.max(0, (periodEnd - now) / (1000 * 60 * 60 * 24))
+        const usedDays = totalPeriodDays - remainingDays
+
+        // Calculate amounts
+        const currentMonthlyAmount = currentPrice.unit_amount
+        const newMonthlyAmount = newPrice.unit_amount
+        const currentPeriodUsed = (usedDays / totalPeriodDays) * currentMonthlyAmount
+        const newPeriodRemaining = (remainingDays / totalPeriodDays) * newMonthlyAmount
+
+        let prorationAmount = 0
+        let prorationCredit = 0
+
+        if (changeType === 'upgrade') {
+          // Upgrading: charge difference for remaining period
+          prorationAmount = Math.max(0, newPeriodRemaining - (currentMonthlyAmount - currentPeriodUsed))
+        } else {
+          // Downgrading: credit difference for remaining period
+          prorationCredit = Math.max(0, (currentMonthlyAmount - currentPeriodUsed) - newPeriodRemaining)
+        }
+
+        // Update subscription in Stripe with proration
+        const updatedSubscription = await stripe.subscriptions.update(subscriptionId, {
+          items: [{
+            id: subscription.stripeSubscriptionItemId,
+            price: newPriceId,
+          }],
+          proration_behavior: 'create_prorations'
+        })
+
+        // Update subscription in database
+        await database.collection('subscriptions').updateOne(
+          { stripeSubscriptionId: subscriptionId, userId: firebaseUser.uid },
+          {
+            $set: {
+              priceId: newPriceId,
+              status: updatedSubscription.status,
+              changeType: changeType,
+              prorationAmount: prorationAmount,
+              prorationCredit: prorationCredit,
+              changedAt: new Date(),
+              updatedAt: new Date()
+            }
+          }
+        )
+
+        // Record proration transaction
+        const prorationTransaction = {
+          id: `proration-${Date.now()}`,
+          userId: firebaseUser.uid,
+          subscriptionId: subscriptionId,
+          type: 'subscription_proration',
+          changeType: changeType,
+          oldPriceId: subscription.priceId,
+          newPriceId: newPriceId,
+          prorationAmount: prorationAmount,
+          prorationCredit: prorationCredit,
+          remainingDays: Math.round(remainingDays),
+          totalPeriodDays: Math.round(totalPeriodDays),
+          createdAt: new Date()
+        }
+
+        await database.collection('transactions').insertOne(prorationTransaction)
+
+        return NextResponse.json({
+          success: true,
+          message: 'Subscription proration processed successfully',
+          changeType: changeType,
+          prorationAmount: prorationAmount,
+          prorationCredit: prorationCredit,
+          remainingDays: Math.round(remainingDays),
+          newMonthlyAmount: newMonthlyAmount,
+          oldMonthlyAmount: currentMonthlyAmount,
+          subscription: updatedSubscription
+        })
+
+      } catch (error) {
+        console.error('Subscription proration error:', error)
+        return NextResponse.json({ error: 'Failed to process subscription proration' }, { status: 500 })
+      }
+    }
+
     // Enhanced Stripe webhook handling
     if (path === '/payments/webhook') {
       const body = await request.text()
