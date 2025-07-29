@@ -1979,6 +1979,122 @@ async function handleGET(request) {
       }
     }
 
+    // ===== AI MIGRATION & DATA IMPORT ENDPOINTS (GET) =====
+
+    // Get migration upload status
+    if (path.startsWith('/migration/upload/') && path.split('/').length === 4) {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const uploadId = path.split('/')[3]
+        
+        const upload = await database.collection('migration_uploads').findOne({
+          uploadId,
+          userId: firebaseUser.uid
+        })
+
+        if (!upload) {
+          return NextResponse.json({ error: 'Upload not found' }, { status: 404 })
+        }
+
+        return NextResponse.json({
+          uploadId: upload.uploadId,
+          fileName: upload.fileName,
+          fileSize: upload.fileSize,
+          status: upload.status,
+          createdAt: upload.createdAt,
+          parsedAt: upload.parsedAt,
+          parseMethod: upload.parseMethod,
+          parseConfidence: upload.parseConfidence,
+          error: upload.error,
+          suggestions: upload.suggestions
+        })
+
+      } catch (error) {
+        console.error('Migration status error:', error)
+        return NextResponse.json({ error: 'Failed to get migration status' }, { status: 500 })
+      }
+    }
+
+    // Get parsed migration data for review
+    if (path.startsWith('/migration/parsed/') && path.split('/').length === 4) {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const parsedDataId = path.split('/')[3]
+        
+        const parsedData = await database.collection('migration_parsed_data').findOne({
+          parsedDataId,
+          userId: firebaseUser.uid
+        })
+
+        if (!parsedData) {
+          return NextResponse.json({ error: 'Parsed data not found' }, { status: 404 })
+        }
+
+        return NextResponse.json({
+          parsedDataId: parsedData.parsedDataId,
+          fileName: parsedData.fileName,
+          method: parsedData.method,
+          confidence: parsedData.confidence,
+          data: parsedData.data,
+          warnings: parsedData.warnings,
+          aiInsights: parsedData.aiInsights,
+          status: parsedData.status,
+          createdAt: parsedData.createdAt,
+          importResults: parsedData.importResults
+        })
+
+      } catch (error) {
+        console.error('Parsed data retrieval error:', error)
+        return NextResponse.json({ error: 'Failed to get parsed data' }, { status: 500 })
+      }
+    }
+
+    // Get migration history
+    if (path === '/migration/history') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const uploads = await database.collection('migration_uploads')
+          .find({ userId: firebaseUser.uid })
+          .sort({ createdAt: -1 })
+          .limit(20)
+          .toArray()
+
+        const history = uploads.map(upload => ({
+          uploadId: upload.uploadId,
+          fileName: upload.fileName,
+          fileSize: upload.fileSize,
+          status: upload.status,
+          parseMethod: upload.parseMethod,
+          parseConfidence: upload.parseConfidence,
+          createdAt: upload.createdAt,
+          parsedAt: upload.parsedAt,
+          importResults: upload.importResults
+        }))
+
+        return NextResponse.json({
+          success: true,
+          history,
+          totalUploads: history.length
+        })
+
+      } catch (error) {
+        console.error('Migration history error:', error)
+        return NextResponse.json({ error: 'Failed to get migration history' }, { status: 500 })
+      }
+    }
+
     return NextResponse.json({ error: 'Endpoint not found' }, { status: 404 })
   } catch (error) {
     console.error('GET Error:', error)
