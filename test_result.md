@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "PHASE 3: COMPLETE MULTI-ROLE ONBOARDING SYSTEM - Building a comprehensive onboarding infrastructure for the Thryve fitness platform that supports enhanced Customer, Instructor, and Merchant onboarding flows. This includes integration of OnboardingProvider into the main application layout, creation of missing onboarding infrastructure components (OnboardingLayout, OnboardingSteps, ProgressBar), and enhancement of all three role-specific onboarding flows with advanced features, step-by-step guidance, validation, and seamless integration with the existing authentication and role management systems."
+user_problem_statement: "PHASE 4: ADVANCED CLASS MANAGEMENT & SCHEDULING SYSTEM - Building the core booking functionality for the Thryve fitness platform. This comprehensive system includes class template creation, schedule generation with recurring patterns, real-time booking engine with availability tracking, waitlist management with auto-promotion, instructor assignment with conflict detection, advanced search and discovery with filtering capabilities, and a complete calendar-based scheduling interface. The system integrates with existing onboarding, migration, and communication layers to provide end-to-end studio management and customer booking capabilities."
 
 backend:
   - task: "Firebase Authentication Setup & Configuration"
