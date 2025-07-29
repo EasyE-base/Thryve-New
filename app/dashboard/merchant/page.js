@@ -341,6 +341,7 @@ export default function MerchantDashboard() {
                   {activeSection === 'classes' && 'Class Management'}
                   {activeSection === 'staffing' && 'Staff Management'}
                   {activeSection === 'communication' && 'Communication Hub'}
+                  {activeSection === 'migration' && 'Data Migration'}
                   {activeSection === 'calendar' && 'Calendar & Scheduling'}
                   {activeSection === 'analytics' && 'Analytics & Insights'}
                   {activeSection === 'clients' && 'Member Management'}
@@ -354,6 +355,7 @@ export default function MerchantDashboard() {
                   {activeSection === 'classes' && 'Create, manage, and optimize your class schedule'}
                   {activeSection === 'staffing' && 'Manage your team and instructor schedules'}
                   {activeSection === 'communication' && 'Manage member communications, broadcasts, and messaging'}
+                  {activeSection === 'migration' && 'Import your studio data from Mindbody, Acuity, or custom formats'}
                   {activeSection === 'calendar' && 'View and manage all your studio activities'}
                   {activeSection === 'analytics' && 'Deep insights into your studio performance'}
                   {activeSection === 'clients' && 'Manage your member base and relationships'}
