@@ -356,31 +356,54 @@ export default function Home() {
 
       {/* Hero Section */}
       <section ref={heroRef} className="relative min-h-screen flex items-center justify-center overflow-hidden">
-        {/* Background Video */}
+        {/* Background Videos with Smooth Transition */}
         <div className="absolute inset-0">
-          <video 
-            autoPlay 
-            loop 
-            muted 
-            playsInline
-            className="w-full h-full object-cover"
-          >
-            <source 
-              src="https://customer-assets.emergentagent.com/job_fitness-hub-28/artifacts/9acvnc7j_social_based.him_A_vibrant_dynamic_photograph_captures_a_full_body_y_6b0e1611-f8ba-498d-82cb-f11a897e2e3c_1.mp4" 
-              type="video/mp4" 
+          {HERO_VIDEOS.map((videoSrc, index) => (
+            <video
+              key={index}
+              autoPlay
+              loop
+              muted
+              playsInline
+              className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-2000 ${
+                index === currentVideoIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'
+              }`}
+              style={{
+                transitionDuration: '2000ms',
+                transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)'
+              }}
+            >
+              <source src={videoSrc} type="video/mp4" />
+              {/* Fallback for this specific video */}
+              {index === 0 && (
+                <img 
+                  src={LIFESTYLE_IMAGES[0]} 
+                  alt="Fitness Hero"
+                  className="w-full h-full object-cover"
+                />
+              )}
+            </video>
+          ))}
+          <div className="absolute inset-0 bg-gradient-to-r from-[#1C1C1E]/80 via-[#1C1C1E]/60 to-transparent z-20"></div>
+        </div>
+
+        {/* Video Indicators */}
+        <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 z-30 flex space-x-2">
+          {HERO_VIDEOS.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentVideoIndex(index)}
+              className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                index === currentVideoIndex 
+                  ? 'bg-white w-8' 
+                  : 'bg-white/50 hover:bg-white/75'
+              }`}
             />
-            {/* Fallback image in case video doesn't load */}
-            <img 
-              src={HERO_IMAGES[0]} 
-              alt="Fitness Hero"
-              className="w-full h-full object-cover"
-            />
-          </video>
-          <div className="absolute inset-0 bg-gradient-to-r from-[#1C1C1E]/80 via-[#1C1C1E]/60 to-transparent"></div>
+          ))}
         </div>
 
         {/* Hero Content */}
-        <div className="relative z-10 text-center text-white px-6 max-w-5xl mx-auto">
+        <div className="relative z-30 text-center text-white px-6 max-w-5xl mx-auto">
           <h1 className="text-6xl md:text-8xl font-bold mb-6 leading-tight">
             Train. Book. <span className="text-[#1E90FF]">Thrive.</span>
           </h1>
