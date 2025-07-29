@@ -599,6 +599,13 @@ export default function MerchantDashboard() {
                 <StudioStaffingDashboard />
               </div>
             )}
+
+            {/* Communication Hub */}
+            {activeSection === 'communication' && (
+              <div className="space-y-6">
+                <CommunicationDashboard />
+              </div>
+            )}
             
             {/* Calendar View */}
             {activeSection === 'calendar' && (
