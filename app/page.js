@@ -58,7 +58,7 @@ export default function Home() {
       studio: "Strength Labs",
       time: "6:30 PM",
       price: "$35",
-      image: HERO_IMAGES[1],
+      image: LIFESTYLE_IMAGES[1],
       type: "HIIT"
     },
     {
@@ -78,7 +78,7 @@ export default function Home() {
       studio: "Fight Club NYC",
       time: "8:00 PM",
       price: "$30",
-      image: HERO_IMAGES[2],
+      image: LIFESTYLE_IMAGES[0],
       type: "Boxing"
     }
   ]
