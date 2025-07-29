@@ -338,6 +338,7 @@ export default function MerchantDashboard() {
                   {activeSection === 'dashboard' && 'Dashboard Overview'}
                   {activeSection === 'classes' && 'Class Management'}
                   {activeSection === 'staffing' && 'Staff Management'}
+                  {activeSection === 'communication' && 'Communication Hub'}
                   {activeSection === 'calendar' && 'Calendar & Scheduling'}
                   {activeSection === 'analytics' && 'Analytics & Insights'}
                   {activeSection === 'clients' && 'Member Management'}
@@ -350,6 +351,7 @@ export default function MerchantDashboard() {
                   {activeSection === 'dashboard' && 'Track your studio performance at a glance'}
                   {activeSection === 'classes' && 'Create, manage, and optimize your class schedule'}
                   {activeSection === 'staffing' && 'Manage your team and instructor schedules'}
+                  {activeSection === 'communication' && 'Manage member communications, broadcasts, and messaging'}
                   {activeSection === 'calendar' && 'View and manage all your studio activities'}
                   {activeSection === 'analytics' && 'Deep insights into your studio performance'}
                   {activeSection === 'clients' && 'Manage your member base and relationships'}
