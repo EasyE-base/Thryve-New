@@ -6023,11 +6023,20 @@ async function handleDELETE(request) {
         return NextResponse.json({
           success: true,
           recommendations: enrichedRecommendations,
-          meta: recommendations.meta,
+          meta: {
+            userId: firebaseUser.uid,
+            recommendationType: type,
+            generatedAt: new Date(),
+            totalScored: scoredClasses.length,
+            userPreferences: preferences,
+            behaviorInsights: aiRecommendationEngine.generateBehaviorInsights(behaviorData),
+            timeRange,
+            totalAvailable: classesWithAvailability.length
+          },
           personalizedFor: {
             userId: firebaseUser.uid,
             name: userProfile.name || `${userProfile.firstName} ${userProfile.lastName}`,
-            preferences: recommendations.meta.userPreferences
+            preferences: preferences
           }
         })
 
