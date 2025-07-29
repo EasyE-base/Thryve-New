@@ -4143,6 +4143,418 @@ async function handlePOST(request) {
       }
     }
 
+    // ===== AI MIGRATION & DATA IMPORT ENDPOINTS =====
+
+    // Upload migration file
+    if (path === '/migration/upload') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        // Check if user is a merchant/studio owner
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        if (!userProfile || userProfile.role !== 'merchant') {
+          return NextResponse.json({ error: 'Only studio owners can upload migration data' }, { status: 403 })
+        }
+
+        const body = await request.json()
+        const { fileName, fileData, fileSize, mimeType, chunkIndex, totalChunks } = body
+
+        if (!fileName || !fileData) {
+          return NextResponse.json({ error: 'File name and data are required' }, { status: 400 })
+        }
+
+        // Handle chunked upload
+        const uploadId = `${firebaseUser.uid}_${Date.now()}`
+        
+        if (totalChunks && totalChunks > 1) {
+          // Store chunk in temporary collection
+          await database.collection('migration_chunks').insertOne({
+            uploadId,
+            fileName,
+            chunkIndex: chunkIndex || 0,
+            chunkData: fileData,
+            userId: firebaseUser.uid,
+            createdAt: new Date()
+          })
+
+          // Check if all chunks received
+          const chunks = await database.collection('migration_chunks')
+            .find({ uploadId })
+            .sort({ chunkIndex: 1 })
+            .toArray()
+
+          if (chunks.length === totalChunks) {
+            // Combine chunks
+            const completeFileData = chunks.map(chunk => chunk.chunkData).join('')
+            
+            // Clean up chunks
+            await database.collection('migration_chunks').deleteMany({ uploadId })
+            
+            // Store complete file
+            await database.collection('migration_uploads').insertOne({
+              uploadId,
+              fileName,
+              fileData: completeFileData,
+              fileSize,
+              mimeType,
+              userId: firebaseUser.uid,
+              status: 'uploaded',
+              createdAt: new Date()
+            })
+
+            return NextResponse.json({
+              uploadId,
+              status: 'complete',
+              message: `File ${fileName} uploaded successfully (${fileSize} bytes)`
+            })
+          } else {
+            return NextResponse.json({
+              uploadId,
+              status: 'partial',
+              chunksReceived: chunks.length,
+              totalChunks,
+              message: `Chunk ${chunkIndex + 1}/${totalChunks} received`
+            })
+          }
+        } else {
+          // Single file upload
+          await database.collection('migration_uploads').insertOne({
+            uploadId,
+            fileName,
+            fileData,
+            fileSize,
+            mimeType,
+            userId: firebaseUser.uid,
+            status: 'uploaded',
+            createdAt: new Date()
+          })
+
+          return NextResponse.json({
+            uploadId,
+            status: 'complete',
+            message: `File ${fileName} uploaded successfully`
+          })
+        }
+
+      } catch (error) {
+        console.error('Migration upload error:', error)
+        return NextResponse.json({ error: 'Failed to upload migration file' }, { status: 500 })
+      }
+    }
+
+    // Parse migration data
+    if (path === '/migration/parse') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { uploadId } = body
+
+        if (!uploadId) {
+          return NextResponse.json({ error: 'Upload ID is required' }, { status: 400 })
+        }
+
+        // Get uploaded file
+        const upload = await database.collection('migration_uploads').findOne({
+          uploadId,
+          userId: firebaseUser.uid
+        })
+
+        if (!upload) {
+          return NextResponse.json({ error: 'Upload not found' }, { status: 404 })
+        }
+
+        // Update status to parsing
+        await database.collection('migration_uploads').updateOne(
+          { uploadId },
+          { $set: { status: 'parsing', parsedAt: new Date() } }
+        )
+
+        // Import AI parser
+        const { default: aiParser } = await import('../../../lib/ai-migration-parser.js')
+        
+        // Parse the file data
+        const parseResult = await aiParser.parseFileData(
+          upload.fileData,
+          upload.fileName,
+          upload.mimeType
+        )
+
+        if (!parseResult.success) {
+          await database.collection('migration_uploads').updateOne(
+            { uploadId },
+            { 
+              $set: { 
+                status: 'parse_failed',
+                error: parseResult.error,
+                suggestions: parseResult.suggestions
+              }
+            }
+          )
+
+          return NextResponse.json({
+            success: false,
+            error: parseResult.error,
+            suggestions: parseResult.suggestions
+          }, { status: 400 })
+        }
+
+        // Store parsed data
+        const parsedDataId = `parsed_${uploadId}`
+        await database.collection('migration_parsed_data').insertOne({
+          parsedDataId,
+          uploadId,
+          userId: firebaseUser.uid,
+          fileName: upload.fileName,
+          method: parseResult.method,
+          confidence: parseResult.confidence,
+          data: parseResult.data,
+          warnings: parseResult.warnings || [],
+          aiInsights: parseResult.aiInsights,
+          createdAt: new Date()
+        })
+
+        // Update upload status
+        await database.collection('migration_uploads').updateOne(
+          { uploadId },
+          { 
+            $set: { 
+              status: 'parsed',
+              parsedDataId,
+              parseMethod: parseResult.method,
+              parseConfidence: parseResult.confidence
+            }
+          }
+        )
+
+        return NextResponse.json({
+          success: true,
+          parsedDataId,
+          method: parseResult.method,
+          confidence: parseResult.confidence,
+          summary: {
+            classes: parseResult.data.classes?.length || 0,
+            instructors: parseResult.data.instructors?.length || 0,
+            clients: parseResult.data.clients?.length || 0,
+            schedules: parseResult.data.schedules?.length || 0
+          },
+          warnings: parseResult.warnings || [],
+          aiInsights: parseResult.aiInsights,
+          message: `Data parsed successfully using ${parseResult.method} method`
+        })
+
+      } catch (error) {
+        console.error('Migration parsing error:', error)
+        
+        // Update status to failed
+        if (body?.uploadId) {
+          await database.collection('migration_uploads').updateOne(
+            { uploadId: body.uploadId },
+            { $set: { status: 'parse_failed', error: error.message } }
+          )
+        }
+
+        return NextResponse.json({ error: 'Failed to parse migration data' }, { status: 500 })
+      }
+    }
+
+    // Confirm and import migration data
+    if (path === '/migration/import') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { parsedDataId, selectedData, fieldMappings, resolveConflicts } = body
+
+        if (!parsedDataId) {
+          return NextResponse.json({ error: 'Parsed data ID is required' }, { status: 400 })
+        }
+
+        // Get parsed data
+        const parsedData = await database.collection('migration_parsed_data').findOne({
+          parsedDataId,
+          userId: firebaseUser.uid
+        })
+
+        if (!parsedData) {
+          return NextResponse.json({ error: 'Parsed data not found' }, { status: 404 })
+        }
+
+        // Update status to importing
+        await database.collection('migration_parsed_data').updateOne(
+          { parsedDataId },
+          { $set: { status: 'importing', importStartedAt: new Date() } }
+        )
+
+        const importResults = {
+          classes: { imported: 0, skipped: 0, errors: [] },
+          instructors: { imported: 0, skipped: 0, errors: [] },
+          clients: { imported: 0, skipped: 0, errors: [] },
+          schedules: { imported: 0, skipped: 0, errors: [] }
+        }
+
+        // Import classes
+        if (selectedData?.classes !== false && parsedData.data.classes) {
+          for (const classData of parsedData.data.classes) {
+            try {
+              const classRecord = {
+                id: classData.id || `imported_${Date.now()}_${Math.random()}`,
+                name: classData.name,
+                description: classData.description || '',
+                duration: classData.duration || 60,
+                capacity: classData.capacity || 20,
+                price: classData.price || 0,
+                category: classData.category || 'fitness',
+                level: classData.level || 'all-levels',
+                requirements: classData.requirements || '',
+                studioId: firebaseUser.uid,
+                createdAt: new Date(),
+                imported: true,
+                originalData: classData.originalRecord
+              }
+
+              await database.collection('studio_classes').insertOne(classRecord)
+              importResults.classes.imported++
+            } catch (error) {
+              importResults.classes.errors.push(`${classData.name}: ${error.message}`)
+              importResults.classes.skipped++
+            }
+          }
+        }
+
+        // Import instructors
+        if (selectedData?.instructors !== false && parsedData.data.instructors) {
+          for (const instructorData of parsedData.data.instructors) {
+            try {
+              // Check for existing instructor by email
+              const existingInstructor = await database.collection('profiles').findOne({
+                email: instructorData.email,
+                role: 'instructor'
+              })
+
+              if (existingInstructor && !resolveConflicts?.instructors?.allowDuplicates) {
+                importResults.instructors.skipped++
+                continue
+              }
+
+              const instructorRecord = {
+                userId: instructorData.id || `imported_${Date.now()}_${Math.random()}`,
+                firstName: instructorData.firstName,
+                lastName: instructorData.lastName,
+                name: `${instructorData.firstName} ${instructorData.lastName}`,
+                email: instructorData.email,
+                phone: instructorData.phone || '',
+                role: 'instructor',
+                bio: instructorData.bio || '',
+                specialties: instructorData.specialties || [],
+                certifications: instructorData.certifications || [],
+                experience: instructorData.experience || '',
+                studioId: firebaseUser.uid,
+                onboarding_complete: true,
+                createdAt: new Date(),
+                imported: true,
+                originalData: instructorData.originalRecord
+              }
+
+              await database.collection('profiles').insertOne(instructorRecord)
+              importResults.instructors.imported++
+            } catch (error) {
+              importResults.instructors.errors.push(`${instructorData.firstName} ${instructorData.lastName}: ${error.message}`)
+              importResults.instructors.skipped++
+            }
+          }
+        }
+
+        // Import clients
+        if (selectedData?.clients !== false && parsedData.data.clients) {
+          for (const clientData of parsedData.data.clients) {
+            try {
+              // Check for existing client by email
+              const existingClient = await database.collection('profiles').findOne({
+                email: clientData.email,
+                role: 'customer'
+              })
+
+              if (existingClient && !resolveConflicts?.clients?.allowDuplicates) {
+                importResults.clients.skipped++
+                continue
+              }
+
+              const clientRecord = {
+                userId: clientData.id || `imported_${Date.now()}_${Math.random()}`,
+                firstName: clientData.firstName,
+                lastName: clientData.lastName,
+                name: `${clientData.firstName} ${clientData.lastName}`,
+                email: clientData.email,
+                phone: clientData.phone || '',
+                role: 'customer',
+                membershipType: clientData.membershipType || 'drop-in',
+                joinDate: clientData.joinDate || new Date().toISOString(),
+                notes: clientData.notes || '',
+                studioId: firebaseUser.uid,
+                onboarding_complete: true,
+                createdAt: new Date(),
+                imported: true,
+                originalData: clientData.originalRecord
+              }
+
+              await database.collection('profiles').insertOne(clientRecord)
+              importResults.clients.imported++
+            } catch (error) {
+              importResults.clients.errors.push(`${clientData.firstName} ${clientData.lastName}: ${error.message}`)
+              importResults.clients.skipped++
+            }
+          }
+        }
+
+        // Update final status
+        await database.collection('migration_parsed_data').updateOne(
+          { parsedDataId },
+          { 
+            $set: { 
+              status: 'imported',
+              importResults,
+              importCompletedAt: new Date()
+            }
+          }
+        )
+
+        // Update upload status
+        await database.collection('migration_uploads').updateOne(
+          { uploadId: parsedData.uploadId },
+          { $set: { status: 'completed', importResults } }
+        )
+
+        return NextResponse.json({
+          success: true,
+          importResults,
+          message: `Migration completed successfully! Imported ${importResults.classes.imported} classes, ${importResults.instructors.imported} instructors, ${importResults.clients.imported} clients.`
+        })
+
+      } catch (error) {
+        console.error('Migration import error:', error)
+        
+        // Update status to failed
+        if (body?.parsedDataId) {
+          await database.collection('migration_parsed_data').updateOne(
+            { parsedDataId: body.parsedDataId },
+            { $set: { status: 'import_failed', error: error.message } }
+          )
+        }
+
+        return NextResponse.json({ error: 'Failed to import migration data' }, { status: 500 })
+      }
+    }
+
     return NextResponse.json({ error: 'Endpoint not found' }, { status: 404 })
   } catch (error) {
     console.error('POST Error:', error)
