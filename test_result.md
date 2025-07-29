@@ -102,7 +102,7 @@
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
 
-user_problem_statement: "PHASE 2: COMMUNICATION LAYER INTEGRATION - The Thryve fitness platform's communication layer has been fully integrated into the UI with messaging, notification, and communication dashboard components. The backend communication API endpoints exist and need comprehensive testing to ensure messaging systems, notification delivery, and communication management work correctly for all user roles. Testing focuses on validating the real-time communication functionality and proper role-based access control."
+user_problem_statement: "PHASE 3: COMPLETE MULTI-ROLE ONBOARDING SYSTEM - Building a comprehensive onboarding infrastructure for the Thryve fitness platform that supports enhanced Customer, Instructor, and Merchant onboarding flows. This includes integration of OnboardingProvider into the main application layout, creation of missing onboarding infrastructure components (OnboardingLayout, OnboardingSteps, ProgressBar), and enhancement of all three role-specific onboarding flows with advanced features, step-by-step guidance, validation, and seamless integration with the existing authentication and role management systems."
 
 backend:
   - task: "Firebase Authentication Setup & Configuration"
