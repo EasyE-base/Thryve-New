@@ -272,7 +272,7 @@ async function handleGET(request) {
     // Enhanced Booking System Endpoints
   
   // Real-time class availability
-  if (method === 'GET' && path.startsWith('/classes/') && path.endsWith('/availability')) {
+  if (path.startsWith('/classes/') && path.endsWith('/availability')) {
     const classId = path.split('/')[2]
     try {
       const classData = await db.collection('classes').doc(classId).get()
