@@ -6117,6 +6117,448 @@ async function handlePOST(request) {
       }
     }
 
+    // ========================================
+    // PHASE 1: CORE PAYMENT INFRASTRUCTURE & STRIPE INTEGRATION
+    // ========================================
+
+    // Create Stripe customer and save payment method
+    if (path === '/payments/setup-intent') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        // Check if user already has a Stripe customer ID
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        let stripeCustomerId = userProfile?.stripeCustomerId
+
+        // Create Stripe customer if doesn't exist
+        if (!stripeCustomerId) {
+          const customer = await stripe.customers.create({
+            email: firebaseUser.email,
+            name: userProfile?.name || `${userProfile?.firstName} ${userProfile?.lastName}`,
+            metadata: {
+              firebase_uid: firebaseUser.uid,
+              role: userProfile?.role || 'customer'
+            }
+          })
+          
+          stripeCustomerId = customer.id
+          
+          // Update user profile with Stripe customer ID
+          await database.collection('profiles').updateOne(
+            { userId: firebaseUser.uid },
+            { $set: { stripeCustomerId: stripeCustomerId } }
+          )
+        }
+
+        // Create setup intent for saving payment method
+        const setupIntent = await stripe.setupIntents.create({
+          customer: stripeCustomerId,
+          payment_method_types: ['card'],
+          usage: 'off_session'
+        })
+
+        return NextResponse.json({
+          success: true,
+          clientSecret: setupIntent.client_secret,
+          customerId: stripeCustomerId
+        })
+
+      } catch (error) {
+        console.error('Setup intent error:', error)
+        return NextResponse.json({ error: 'Failed to create setup intent' }, { status: 500 })
+      }
+    }
+
+    // Create subscription
+    if (path === '/payments/create-subscription') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { priceId, paymentMethodId, studioId, subscriptionType } = body
+
+        if (!priceId || !paymentMethodId) {
+          return NextResponse.json({ error: 'Price ID and payment method are required' }, { status: 400 })
+        }
+
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        let stripeCustomerId = userProfile?.stripeCustomerId
+
+        if (!stripeCustomerId) {
+          return NextResponse.json({ error: 'Customer not found. Please set up payment method first.' }, { status: 400 })
+        }
+
+        // Attach payment method to customer
+        await stripe.paymentMethods.attach(paymentMethodId, {
+          customer: stripeCustomerId,
+        })
+
+        // Set as default payment method
+        await stripe.customers.update(stripeCustomerId, {
+          invoice_settings: {
+            default_payment_method: paymentMethodId,
+          },
+        })
+
+        // Create subscription
+        const subscription = await stripe.subscriptions.create({
+          customer: stripeCustomerId,
+          items: [{ price: priceId }],
+          default_payment_method: paymentMethodId,
+          expand: ['latest_invoice.payment_intent'],
+          metadata: {
+            firebase_uid: firebaseUser.uid,
+            studio_id: studioId || '',
+            subscription_type: subscriptionType || 'unlimited_membership'
+          }
+        })
+
+        // Store subscription details in database
+        const subscriptionRecord = {
+          id: `subscription-${Date.now()}`,
+          stripeSubscriptionId: subscription.id,
+          userId: firebaseUser.uid,
+          studioId: studioId,
+          subscriptionType: subscriptionType,
+          priceId: priceId,
+          status: subscription.status,
+          currentPeriodStart: new Date(subscription.current_period_start * 1000),
+          currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+
+        await database.collection('subscriptions').insertOne(subscriptionRecord)
+
+        return NextResponse.json({
+          success: true,
+          subscription: subscription,
+          subscriptionRecord: subscriptionRecord
+        })
+
+      } catch (error) {
+        console.error('Create subscription error:', error)
+        return NextResponse.json({ error: 'Failed to create subscription' }, { status: 500 })
+      }
+    }
+
+    // Create one-time payment for class booking
+    if (path === '/payments/create-payment-intent') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { amount, classId, studioId, currency = 'usd', paymentType = 'class_booking' } = body
+
+        if (!amount || !classId) {
+          return NextResponse.json({ error: 'Amount and class ID are required' }, { status: 400 })
+        }
+
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        let stripeCustomerId = userProfile?.stripeCustomerId
+
+        // Create customer if doesn't exist
+        if (!stripeCustomerId) {
+          const customer = await stripe.customers.create({
+            email: firebaseUser.email,
+            name: userProfile?.name || `${userProfile?.firstName} ${userProfile?.lastName}`,
+            metadata: {
+              firebase_uid: firebaseUser.uid,
+              role: userProfile?.role || 'customer'
+            }
+          })
+          
+          stripeCustomerId = customer.id
+          await database.collection('profiles').updateOne(
+            { userId: firebaseUser.uid },
+            { $set: { stripeCustomerId: stripeCustomerId } }
+          )
+        }
+
+        // Calculate platform fee (3.75% for standard transactions)
+        const platformFeeAmount = Math.round(amount * 0.0375)
+        const totalAmount = amount + platformFeeAmount
+
+        // Create payment intent
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: totalAmount,
+          currency: currency,
+          customer: stripeCustomerId,
+          metadata: {
+            firebase_uid: firebaseUser.uid,
+            class_id: classId,
+            studio_id: studioId || '',
+            payment_type: paymentType,
+            platform_fee: platformFeeAmount.toString(),
+            net_amount: amount.toString()
+          }
+        })
+
+        return NextResponse.json({
+          success: true,
+          clientSecret: paymentIntent.client_secret,
+          paymentIntentId: paymentIntent.id,
+          totalAmount,
+          platformFee: platformFeeAmount,
+          netAmount: amount
+        })
+
+      } catch (error) {
+        console.error('Create payment intent error:', error)
+        return NextResponse.json({ error: 'Failed to create payment intent' }, { status: 500 })
+      }
+    }
+
+    // Purchase X Pass credits
+    if (path === '/payments/purchase-xpass') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { packageType, amount, creditCount, paymentMethodId } = body
+
+        if (!packageType || !amount || !creditCount || !paymentMethodId) {
+          return NextResponse.json({ error: 'Package type, amount, credit count, and payment method are required' }, { status: 400 })
+        }
+
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        const stripeCustomerId = userProfile?.stripeCustomerId
+
+        if (!stripeCustomerId) {
+          return NextResponse.json({ error: 'Customer not found. Please set up payment method first.' }, { status: 400 })
+        }
+
+        // Create payment intent for X Pass purchase
+        const platformFeeAmount = Math.round(amount * 0.0375)
+        const totalAmount = amount + platformFeeAmount
+
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: totalAmount,
+          currency: 'usd',
+          customer: stripeCustomerId,
+          payment_method: paymentMethodId,
+          confirm: true,
+          metadata: {
+            firebase_uid: firebaseUser.uid,
+            payment_type: 'xpass_purchase',
+            package_type: packageType,
+            credit_count: creditCount.toString(),
+            platform_fee: platformFeeAmount.toString(),
+            net_amount: amount.toString()
+          }
+        })
+
+        // If payment successful, add credits to user account
+        if (paymentIntent.status === 'succeeded') {
+          await database.collection('xpass_credits').updateOne(
+            { userId: firebaseUser.uid },
+            {
+              $inc: { availableCredits: creditCount },
+              $set: { updatedAt: new Date() },
+              $setOnInsert: { 
+                createdAt: new Date(),
+                totalEarned: 0,
+                totalSpent: 0
+              }
+            },
+            { upsert: true }
+          )
+
+          // Record purchase transaction
+          const transaction = {
+            id: `xpass-purchase-${Date.now()}`,
+            userId: firebaseUser.uid,
+            type: 'xpass_purchase',
+            packageType: packageType,
+            creditsAdded: creditCount,
+            amount: totalAmount,
+            platformFee: platformFeeAmount,
+            netAmount: amount,
+            paymentIntentId: paymentIntent.id,
+            status: 'completed',
+            createdAt: new Date()
+          }
+
+          await database.collection('xpass_transactions').insertOne(transaction)
+        }
+
+        return NextResponse.json({
+          success: true,
+          paymentIntent: paymentIntent,
+          creditsAdded: creditCount,
+          totalAmount,
+          platformFee: platformFeeAmount
+        })
+
+      } catch (error) {
+        console.error('X Pass purchase error:', error)
+        return NextResponse.json({ error: 'Failed to purchase X Pass credits' }, { status: 500 })
+      }
+    }
+
+    // Create customer portal session
+    if (path === '/payments/customer-portal') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { returnUrl } = body
+
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        const stripeCustomerId = userProfile?.stripeCustomerId
+
+        if (!stripeCustomerId) {
+          return NextResponse.json({ error: 'No payment methods found. Please set up payment first.' }, { status: 400 })
+        }
+
+        // Create customer portal session
+        const portalSession = await stripe.billingPortal.sessions.create({
+          customer: stripeCustomerId,
+          return_url: returnUrl || `${process.env.NEXT_PUBLIC_BASE_URL}/dashboard/customer`,
+        })
+
+        return NextResponse.json({
+          success: true,
+          url: portalSession.url
+        })
+
+      } catch (error) {
+        console.error('Customer portal error:', error)
+        return NextResponse.json({ error: 'Failed to create customer portal session' }, { status: 500 })
+      }
+    }
+
+    // Process refund
+    if (path === '/payments/refund') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { paymentIntentId, amount, reason, bookingId } = body
+
+        if (!paymentIntentId) {
+          return NextResponse.json({ error: 'Payment intent ID is required' }, { status: 400 })
+        }
+
+        // Create refund
+        const refund = await stripe.refunds.create({
+          payment_intent: paymentIntentId,
+          amount: amount, // Optional - refunds full amount if not specified
+          reason: reason || 'requested_by_customer',
+          metadata: {
+            firebase_uid: firebaseUser.uid,
+            booking_id: bookingId || '',
+            refund_reason: reason || 'requested_by_customer'
+          }
+        })
+
+        // Update booking status if booking ID provided
+        if (bookingId) {
+          await database.collection('bookings').updateOne(
+            { id: bookingId },
+            {
+              $set: {
+                status: 'refunded',
+                refundId: refund.id,
+                refundAmount: refund.amount,
+                refundedAt: new Date(),
+                updatedAt: new Date()
+              }
+            }
+          )
+        }
+
+        return NextResponse.json({
+          success: true,
+          refund: refund,
+          refundAmount: refund.amount,
+          status: refund.status
+        })
+
+      } catch (error) {
+        console.error('Refund error:', error)
+        return NextResponse.json({ error: 'Failed to process refund' }, { status: 500 })
+      }
+    }
+
+    // Enhanced Stripe webhook handling
+    if (path === '/payments/webhook') {
+      const body = await request.text()
+      const sig = request.headers.get('stripe-signature')
+
+      let event
+
+      try {
+        event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET)
+      } catch (err) {
+        console.error('Webhook signature verification failed:', err.message)
+        return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
+      }
+
+      try {
+        switch (event.type) {
+          case 'payment_intent.succeeded':
+            await handlePaymentIntentSucceeded(event.data.object, database)
+            break
+
+          case 'payment_intent.payment_failed':
+            await handlePaymentIntentFailed(event.data.object, database)
+            break
+
+          case 'invoice.payment_succeeded':
+            await handleInvoicePaymentSucceeded(event.data.object, database)
+            break
+
+          case 'invoice.payment_failed':
+            await handleInvoicePaymentFailed(event.data.object, database)
+            break
+
+          case 'customer.subscription.created':
+            await handleSubscriptionCreated(event.data.object, database)
+            break
+
+          case 'customer.subscription.updated':
+            await handleSubscriptionUpdated(event.data.object, database)
+            break
+
+          case 'customer.subscription.deleted':
+            await handleSubscriptionDeleted(event.data.object, database)
+            break
+
+          case 'setup_intent.succeeded':
+            await handleSetupIntentSucceeded(event.data.object, database)
+            break
+
+          default:
+            console.log(`Unhandled event type ${event.type}`)
+        }
+
+        return NextResponse.json({ received: true })
+
+      } catch (error) {
+        console.error('Webhook processing error:', error)
+        return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 })
+      }
+    }
+
     return NextResponse.json({ error: 'Endpoint not found' }, { status: 404 })
   } catch (error) {
     console.error('POST Error:', error)
