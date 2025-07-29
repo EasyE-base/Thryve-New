@@ -837,6 +837,17 @@ export default function Home() {
 
       {/* SignIn Modal */}
       <SignInModal />
+
+      {/* Booking Modal */}
+      <BookingModal
+        classData={selectedClass}
+        isOpen={showBookingModal}
+        onClose={() => {
+          setShowBookingModal(false)
+          setSelectedClass(null)
+        }}
+        onBookingSuccess={handleBookingSuccess}
+      />
     </div>
   )
 }
