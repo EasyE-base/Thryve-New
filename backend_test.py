@@ -1,12 +1,7 @@
 #!/usr/bin/env python3
 """
-Comprehensive Backend API Testing for Communication Layer
-Testing Priority Communication Endpoints as requested in review:
-1. Message Thread Management (/server-api/messages/threads)
-2. Message Sending System (/server-api/messages/send)
-3. Notification Inbox System (/server-api/notifications)
-4. Notification Management (/server-api/notifications/*)
-5. Communication Dashboard APIs (/server-api/communication/*)
+Comprehensive Communication Layer Backend Testing
+Tests all communication endpoints mentioned in the review request
 """
 
 import requests
@@ -19,11 +14,11 @@ from datetime import datetime
 BASE_URL = "https://b73e2584-2b4f-4f74-99b8-7dca9ad0bf29.preview.emergentagent.com"
 API_BASE = f"{BASE_URL}/server-api"
 
-# Mock Firebase authentication token for testing
-MOCK_AUTH_TOKEN = "Bearer mock-firebase-token"
+# Mock Firebase token for testing (matches backend mock implementation)
+MOCK_TOKEN = "mock-firebase-token"
 HEADERS = {
-    "Content-Type": "application/json",
-    "Authorization": MOCK_AUTH_TOKEN
+    "Authorization": f"Bearer {MOCK_TOKEN}",
+    "Content-Type": "application/json"
 }
 
 def log_test_result(test_name, success, details="", response_data=None):
