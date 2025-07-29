@@ -161,6 +161,279 @@ async function handleGET(request) {
       }
     }
 
+    // Enhanced Booking System Endpoints
+  
+  // Real-time class availability
+  if (method === 'GET' && path.startsWith('/classes/') && path.endsWith('/availability')) {
+    const classId = path.split('/')[2]
+    try {
+      const classData = await db.collection('classes').doc(classId).get()
+      const bookings = await db.collection('bookings')
+        .where('classId', '==', classId)
+        .where('status', '==', 'confirmed')
+        .get()
+
+      const confirmedBookings = bookings.size
+      const capacity = classData.data()?.capacity || 20
+      const availableSpots = Math.max(0, capacity - confirmedBookings)
+      
+      // Check if current user is waitlisted
+      let isUserWaitlisted = false
+      if (user) {
+        const waitlistCheck = await db.collection('waitlist')
+          .where('classId', '==', classId)
+          .where('userId', '==', user.uid)
+          .where('status', '==', 'active')
+          .get()
+        isUserWaitlisted = !waitlistCheck.empty
+      }
+
+      return NextResponse.json({
+        success: true,
+        availableSpots,
+        capacity,
+        confirmedBookings,
+        isUserWaitlisted,
+        lastUpdated: new Date().toISOString()
+      })
+    } catch (error) {
+      return NextResponse.json({ error: 'Failed to fetch availability' }, { status: 500 })
+    }
+  }
+
+  // Enhanced booking creation with waitlist logic
+  if (method === 'POST' && path === '/bookings/create') {
+    try {
+      const { classId, paymentMethod, date } = await request.json()
+      
+      // Check real-time availability
+      const classData = await db.collection('classes').doc(classId).get()
+      if (!classData.exists) {
+        return NextResponse.json({ error: 'Class not found' }, { status: 404 })
+      }
+
+      const capacity = classData.data().capacity || 20
+      const existingBookings = await db.collection('bookings')
+        .where('classId', '==', classId)
+        .where('status', '==', 'confirmed')
+        .get()
+
+      const availableSpots = capacity - existingBookings.size
+
+      // Check if user already has a booking
+      const userBookingCheck = await db.collection('bookings')
+        .where('classId', '==', classId)
+        .where('userId', '==', user.uid)
+        .where('status', 'in', ['confirmed', 'pending'])
+        .get()
+
+      if (!userBookingCheck.empty) {
+        return NextResponse.json({ error: 'You already have a booking for this class' }, { status: 400 })
+      }
+
+      let bookingResult
+      let waitlisted = false
+
+      if (availableSpots > 0) {
+        // Create confirmed booking
+        const bookingRef = await db.collection('bookings').add({
+          id: generateId(),
+          userId: user.uid,
+          classId,
+          status: 'confirmed',
+          paymentMethod,
+          paymentStatus: paymentMethod === 'credit' ? 'pending' : 'completed',
+          bookingDate: new Date(),
+          classDate: new Date(date),
+          price: classData.data().price || 0,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        })
+        
+        bookingResult = { id: bookingRef.id, status: 'confirmed' }
+
+        // Process payment if needed
+        if (paymentMethod === 'credit') {
+          // Implement Stripe payment processing here
+        }
+      } else {
+        // Add to waitlist
+        const waitlistRef = await db.collection('waitlist').add({
+          id: generateId(),
+          userId: user.uid,
+          classId,
+          status: 'active',
+          position: await getWaitlistPosition(classId),
+          joinedAt: new Date(),
+          createdAt: new Date()
+        })
+        
+        bookingResult = { id: waitlistRef.id, status: 'waitlisted' }
+        waitlisted = true
+      }
+
+      return NextResponse.json({
+        success: true,
+        booking: bookingResult,
+        waitlisted,
+        availableSpots: Math.max(0, availableSpots - (waitlisted ? 0 : 1))
+      })
+    } catch (error) {
+      console.error('Booking creation error:', error)
+      return NextResponse.json({ error: 'Booking failed' }, { status: 500 })
+    }
+  }
+
+  // Join waitlist endpoint
+  if (method === 'POST' && path === '/bookings/waitlist') {
+    try {
+      const { classId, date } = await request.json()
+      
+      // Check if already on waitlist
+      const existingWaitlist = await db.collection('waitlist')
+        .where('classId', '==', classId)
+        .where('userId', '==', user.uid)
+        .where('status', '==', 'active')
+        .get()
+
+      if (!existingWaitlist.empty) {
+        return NextResponse.json({ error: 'Already on waitlist for this class' }, { status: 400 })
+      }
+
+      const position = await getWaitlistPosition(classId)
+      await db.collection('waitlist').add({
+        id: generateId(),
+        userId: user.uid,
+        classId,
+        status: 'active',
+        position,
+        joinedAt: new Date(),
+        classDate: new Date(date),
+        createdAt: new Date()
+      })
+
+      return NextResponse.json({ success: true, position })
+    } catch (error) {
+      return NextResponse.json({ error: 'Failed to join waitlist' }, { status: 500 })
+    }
+  }
+
+  // Cancel booking with waitlist promotion
+  if (method === 'DELETE' && path.startsWith('/bookings/') && path.endsWith('/cancel')) {
+    const bookingId = path.split('/')[2]
+    try {
+      const bookingRef = db.collection('bookings').doc(bookingId)
+      const booking = await bookingRef.get()
+      
+      if (!booking.exists || booking.data().userId !== user.uid) {
+        return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
+      }
+
+      const classId = booking.data().classId
+
+      // Cancel the booking
+      await bookingRef.update({
+        status: 'cancelled',
+        cancelledAt: new Date(),
+        updatedAt: new Date()
+      })
+
+      // Promote from waitlist
+      await promoteFromWaitlist(classId)
+
+      return NextResponse.json({ success: true })
+    } catch (error) {
+      return NextResponse.json({ error: 'Cancellation failed' }, { status: 500 })
+    }
+  }
+
+  // Reschedule booking
+  if (method === 'PUT' && path.startsWith('/bookings/') && path.endsWith('/reschedule')) {
+    const bookingId = path.split('/')[2]
+    try {
+      const { newDate } = await request.json()
+      
+      const bookingRef = db.collection('bookings').doc(bookingId)
+      const booking = await bookingRef.get()
+      
+      if (!booking.exists || booking.data().userId !== user.uid) {
+        return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
+      }
+
+      await bookingRef.update({
+        classDate: new Date(newDate),
+        updatedAt: new Date(),
+        rescheduledAt: new Date()
+      })
+
+      return NextResponse.json({ success: true })
+    } catch (error) {
+      return NextResponse.json({ error: 'Reschedule failed' }, { status: 500 })
+    }
+  }
+
+  // Get user's bookings
+  if (method === 'GET' && path === '/bookings/user') {
+    try {
+      const bookings = await db.collection('bookings')
+        .where('userId', '==', user.uid)
+        .where('status', 'in', ['confirmed', 'pending'])
+        .orderBy('classDate', 'desc')
+        .get()
+
+      const bookingsData = []
+      bookings.forEach(doc => {
+        const data = doc.data()
+        bookingsData.push({
+          id: doc.id,
+          ...data,
+          classDate: data.classDate?.toDate?.()?.toISOString() || data.classDate,
+          bookingDate: data.bookingDate?.toDate?.()?.toISOString() || data.bookingDate
+        })
+      })
+
+      return NextResponse.json({ success: true, bookings: bookingsData })
+    } catch (error) {
+      return NextResponse.json({ error: 'Failed to fetch bookings' }, { status: 500 })
+    }
+  }
+
+  // Get similar classes
+  if (method === 'GET' && path.startsWith('/classes/similar/')) {
+    const classId = path.split('/')[3]
+    const limit = parseInt(request.nextUrl.searchParams.get('limit') || '3')
+    
+    try {
+      // Simple similar classes logic - same type or instructor
+      const classData = await db.collection('classes').doc(classId).get()
+      if (!classData.exists) {
+        return NextResponse.json({ classes: [] })
+      }
+
+      const { type, instructor } = classData.data()
+      const similarClasses = await db.collection('classes')
+        .where('type', '==', type)
+        .limit(limit + 1) // Get one extra to exclude current class
+        .get()
+
+      const classes = []
+      similarClasses.forEach(doc => {
+        if (doc.id !== classId) { // Exclude current class
+          const data = doc.data()
+          classes.push({
+            id: doc.id,
+            ...data,
+            date: data.date?.toDate?.()?.toLocaleDateString() || data.date
+          })
+        }
+      })
+
+      return NextResponse.json({ success: true, classes: classes.slice(0, limit) })
+    } catch (error) {
+      return NextResponse.json({ error: 'Failed to fetch similar classes' }, { status: 500 })
+    }
+  }
+
     // Bookings endpoint
     if (path === '/bookings') {
       const firebaseUser = await getFirebaseUser(request)
