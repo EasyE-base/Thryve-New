@@ -312,12 +312,12 @@ def test_class_package_usage(results):
                 print(f"DEBUG: Class package usage response keys: {list(data.keys())}")
                 has_usage = "usage" in data
                 has_success = "success" in data
-                has_summary = "summary" in data
+                has_total = "totalUsage" in data
                 
                 results.add_result(
                     "Class package usage structure",
-                    has_usage and has_success and has_summary,
-                    f"Has usage: {has_usage}, success: {has_success}, summary: {has_summary}"
+                    has_usage and has_success and has_total,
+                    f"Has usage: {has_usage}, success: {has_success}, totalUsage: {has_total}"
                 )
             except json.JSONDecodeError:
                 results.add_result("Class package usage JSON parsing", False, "Invalid JSON response")
