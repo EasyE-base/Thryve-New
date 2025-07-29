@@ -568,8 +568,11 @@ export default function Home() {
                           <Clock className="h-5 w-5 mr-2" />
                           <span className="text-lg">{classItem.time}</span>
                         </div>
-                        <Button className="btn-modern bg-[#1E90FF] hover:bg-[#1976D2] text-white px-6 py-3 rounded-xl">
-                          Book Now
+                        <Button 
+                          className="btn-modern bg-[#1E90FF] hover:bg-[#1976D2] text-white px-6 py-3 rounded-xl"
+                          onClick={() => handleBookClass(classItem)}
+                        >
+                          {classItem.booked >= classItem.capacity ? 'Join Waitlist' : 'Book Now'}
                         </Button>
                       </div>
                     </CardContent>
