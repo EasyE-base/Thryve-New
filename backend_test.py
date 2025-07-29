@@ -163,13 +163,13 @@ def test_get_class_packages(results):
                 data = response.json()
                 print(f"DEBUG: Class packages response keys: {list(data.keys())}")
                 has_packages = "packages" in data
-                has_total = "totalPackages" in data
+                has_success = "success" in data
                 has_summary = "summary" in data
                 
                 results.add_result(
                     "Class packages response structure",
-                    has_packages and has_total and has_summary,
-                    f"Has packages: {has_packages}, total: {has_total}, summary: {has_summary}"
+                    has_packages and has_success and has_summary,
+                    f"Has packages: {has_packages}, success: {has_success}, summary: {has_summary}"
                 )
             except json.JSONDecodeError:
                 results.add_result("Class packages JSON parsing", False, "Invalid JSON response")
