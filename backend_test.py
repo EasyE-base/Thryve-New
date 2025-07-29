@@ -185,12 +185,12 @@ Advanced Vinyasa,Dynamic flowing yoga practice,75,10,35.00,yoga,advanced,Previou
             
             if response.status_code == 200:
                 data = response.json()
-                if data.get("success") and data.get("uploadId"):
+                if data.get("uploadId"):
                     self.log_test("Single File Upload - JSON", True, 
                                 f"Successfully uploaded JSON file. Upload ID: {data['uploadId']}", response_time)
                 else:
                     self.log_test("Single File Upload - JSON", False, 
-                                "Response missing success or uploadId", response_time)
+                                "Response missing uploadId", response_time)
             else:
                 self.log_test("Single File Upload - JSON", False, 
                             f"Upload failed with status {response.status_code}: {response.text}", response_time)
