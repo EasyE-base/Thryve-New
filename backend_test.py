@@ -161,6 +161,7 @@ def test_get_class_packages(results):
         if passed:
             try:
                 data = response.json()
+                print(f"DEBUG: Class packages response keys: {list(data.keys())}")
                 has_packages = "packages" in data
                 has_total = "totalPackages" in data
                 has_summary = "summary" in data
