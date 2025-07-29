@@ -31,6 +31,14 @@ export default function Home() {
   const [showSignInModal, setShowSignInModal] = useState(false)
   const heroRef = useRef(null)
 
+  // Auto-rotate videos with smooth transitions
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentVideoIndex((prev) => (prev + 1) % HERO_VIDEOS.length)
+    }, 8000) // 8 seconds per video
+    return () => clearInterval(interval)
+  }, [])
+
   // Auto-rotate testimonials
   useEffect(() => {
     const interval = setInterval(() => {
