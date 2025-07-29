@@ -167,25 +167,33 @@ async function promoteFromWaitlist(classId) {
 }
 
 // Helper function to create notifications
-async function createNotification(userId, type, title, message, data = {}) {
+async function createNotification(database, userId, type, title, message, data = {}, deliveryType = 'inApp') {
   try {
-    await db.collection('notifications').add({
-      id: generateId(),
+    const notificationId = `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    
+    const notification = {
+      id: notificationId,
       userId,
       type,
       title,
       message,
       data,
+      deliveryType,
       read: false,
       createdAt: new Date()
-    })
+    }
     
-    // TODO: Send push notification, email, or SMS based on user preferences
-    // await sendPushNotification(userId, title, message)
-    // await sendEmailNotification(userId, title, message)
+    await database.collection('notifications').insertOne(notification)
     
+    // TODO: Send push notification, email, or SMS based on deliveryType
+    // if (deliveryType.includes('push')) await sendPushNotification(userId, title, message)
+    // if (deliveryType.includes('email')) await sendEmailNotification(userId, title, message)
+    // if (deliveryType.includes('sms')) await sendSMSNotification(userId, title, message)
+    
+    return notificationId
   } catch (error) {
     console.error('Error creating notification:', error)
+    throw error
   }
 }
 
