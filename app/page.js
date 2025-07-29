@@ -9,11 +9,10 @@ import { ArrowRight, Play, Calendar, Users, TrendingUp, Star, CheckCircle, MapPi
 import Link from 'next/link'
 import { toast } from 'sonner'
 
-// Premium fitness images from vision expert
-const HERO_IMAGES = [
-  "https://images.unsplash.com/photo-1651340048718-6185c00f1833?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzZ8MHwxfHNlYXJjaHwzfHxmaXRuZXNzJTIwY2xhc3Nlc3xlbnwwfHx8YmxhY2tfYW5kX3doaXRlfDE3NTM3Mzk2MjV8MA&ixlib=rb-4.1.0&q=85",
-  "https://images.unsplash.com/photo-1602611001078-4512cf999d27?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzZ8MHwxfHNlYXJjaHw0fHxmaXRuZXNzJTIwY2xhc3Nlc3xlbnwwfHx8YmxhY2tfYW5kX3doaXRlfDE3NTM3Mzk2MjV8MA&ixlib=rb-4.1.0&q=85",
-  "https://images.pexels.com/photos/4587290/pexels-photo-4587290.jpeg"
+// Premium fitness videos for hero section
+const HERO_VIDEOS = [
+  "https://customer-assets.emergentagent.com/job_fitness-hub-28/artifacts/9acvnc7j_social_based.him_A_vibrant_dynamic_photograph_captures_a_full_body_y_6b0e1611-f8ba-498d-82cb-f11a897e2e3c_1.mp4",
+  "https://customer-assets.emergentagent.com/job_fitness-hub-28/artifacts/ecnrqgwm_social_based.him_A_vibrant_dynamic_photograph_captures_a_young_man_r_b5e14506-2983-42c6-8ad5-d9fd686f8466_3.mp4"
 ]
 
 const LIFESTYLE_IMAGES = [
