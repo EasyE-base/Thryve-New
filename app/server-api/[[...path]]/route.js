@@ -155,41 +155,26 @@ async function promoteFromWaitlist(classId) {
   }
 }
 
-// Helper function to send waitlist promotion notification
-async function sendWaitlistPromotionNotification(userId, classId) {
+// Helper function to create notifications
+async function createNotification(userId, type, title, message, data = {}) {
   try {
-    // Get user and class data
-    const userDoc = await db.collection('users').doc(userId).get()
-    const classDoc = await db.collection('classes').doc(classId).get()
-    
-    if (!userDoc.exists || !classDoc.exists) return
-
-    const userData = userDoc.data()
-    const classData = classDoc.data()
-
-    // Create notification record
     await db.collection('notifications').add({
       id: generateId(),
-      userId: userId,
-      type: 'waitlist_promotion',
-      title: 'Spot Available!',
-      message: `Great news! A spot opened up in ${classData.title}. You've been automatically booked.`,
-      data: {
-        classId: classId,
-        className: classData.title,
-        classDate: classData.date,
-        classTime: classData.time
-      },
+      userId,
+      type,
+      title,
+      message,
+      data,
       read: false,
       createdAt: new Date()
     })
-
-    // TODO: Send email/SMS notification
-    // await sendEmail(userData.email, 'Spot Available!', notificationTemplate)
-    // await sendSMS(userData.phone, `Spot available in ${classData.title}!`)
+    
+    // TODO: Send push notification, email, or SMS based on user preferences
+    // await sendPushNotification(userId, title, message)
+    // await sendEmailNotification(userId, title, message)
     
   } catch (error) {
-    console.error('Error sending waitlist notification:', error)
+    console.error('Error creating notification:', error)
   }
 }
 
