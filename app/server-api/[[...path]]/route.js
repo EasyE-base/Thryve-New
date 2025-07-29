@@ -410,6 +410,11 @@ async function handleGET(request) {
 
     // Get Notification Settings
     if (path === '/notifications/settings') {
+      const user = await getFirebaseUser(request)
+      if (!user) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
       try {
         const userSettings = await database.collection('userSettings').findOne({ userId: user.uid })
         const settings = userSettings?.notifications || {
