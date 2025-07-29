@@ -4059,7 +4059,49 @@ async function handlePOST(request) {
 }
 
 async function handlePUT(request) {
-  return NextResponse.json({ error: 'Method not implemented' }, { status: 501 })
+  try {
+    const url = new URL(request.url)
+    const path = url.pathname.replace('/server-api', '')
+    const database = await connectDB()
+
+    console.log('SERVER-API PUT Request:', path)
+
+    // Get authenticated user for communication endpoints
+    const user = await getFirebaseUser(request)
+    if (!user && (path.startsWith('/notifications'))) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
+    // ===== COMMUNICATION LAYER ENDPOINTS (PUT) =====
+
+    // Update Notification Settings
+    if (path === '/notifications/settings') {
+      try {
+        const { settings } = await request.json()
+        
+        await database.collection('userSettings').updateOne(
+          { userId: user.uid },
+          {
+            $set: {
+              notifications: settings,
+              updatedAt: new Date()
+            }
+          },
+          { upsert: true }
+        )
+
+        return NextResponse.json({ success: true })
+      } catch (error) {
+        console.error('Error updating notification settings:', error)
+        return NextResponse.json({ error: 'Failed to update settings' }, { status: 500 })
+      }
+    }
+
+    return NextResponse.json({ error: 'Endpoint not found' }, { status: 404 })
+  } catch (error) {
+    console.error('PUT Error:', error)
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
 }
 
 async function handleDELETE(request) {
