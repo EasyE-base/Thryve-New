@@ -281,6 +281,11 @@ async function handleGET(request) {
     
     // Get Message Threads
     if (path === '/messages/threads') {
+      const user = await getFirebaseUser(request)
+      if (!user) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
       try {
         const threads = await database.collection('messageThreads')
           .find({ participantIds: user.uid })
