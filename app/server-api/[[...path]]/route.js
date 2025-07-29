@@ -3467,6 +3467,392 @@ async function handleGET(request) {
       }
     }
 
+    // ========================================
+    // PHASE 3: BUSINESS LOGIC & FEE PROCESSING - GET ENDPOINTS
+    // ========================================
+
+    // Get studio cancellation policy
+    if (path === '/payments/cancellation-policy') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const url = new URL(request.url)
+        const studioId = url.searchParams.get('studioId')
+
+        if (!studioId) {
+          return NextResponse.json({ error: 'Studio ID is required' }, { status: 400 })
+        }
+
+        // Get studio cancellation policy
+        const studioPolicy = await database.collection('studio_policies').findOne({
+          studioId: studioId
+        })
+
+        const defaultPolicy = {
+          cancellationWindow: 24, // hours
+          lateCancelFee: 1500, // $15 in cents
+          noShowFee: 2000, // $20 in cents
+          refundPolicy: 'full_refund_within_window',
+          freeTrialCancellations: 1,
+          gracePeriod: 15, // minutes
+          autoMarkNoShow: true,
+          weekendPolicy: 'same_as_weekday',
+          holidayPolicy: 'extended_window'
+        }
+
+        const policy = studioPolicy || defaultPolicy
+
+        // Get user's cancellation history
+        const userCancellations = await database.collection('bookings')
+          .find({
+            userId: firebaseUser.uid,
+            studioId: studioId,
+            status: { $in: ['cancelled', 'no_show'] }
+          })
+          .sort({ createdAt: -1 })
+          .limit(10)
+          .toArray()
+
+        // Calculate user's free trial cancellations used
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        const freeCancellationsUsed = userProfile?.freeCancellationsUsed || 0
+        const remainingFreeCancellations = Math.max(0, policy.freeTrialCancellations - freeCancellationsUsed)
+
+        return NextResponse.json({
+          success: true,
+          policy: policy,
+          userCancellationHistory: userCancellations.map(booking => ({
+            id: booking.id,
+            className: booking.className,
+            cancellationReason: booking.cancellationReason,
+            cancelledAt: booking.cancelledAt,
+            cancellationFee: booking.cancellationFee,
+            refundAmount: booking.refundAmount,
+            status: booking.status
+          })),
+          userStats: {
+            freeCancellationsUsed: freeCancellationsUsed,
+            remainingFreeCancellations: remainingFreeCancellations,
+            totalCancellations: userCancellations.length
+          }
+        })
+
+      } catch (error) {
+        console.error('Cancellation policy error:', error)
+        return NextResponse.json({ error: 'Failed to retrieve cancellation policy' }, { status: 500 })
+      }
+    }
+
+    // Get platform fee structure
+    if (path === '/payments/fee-structure') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const url = new URL(request.url)
+        const studioId = url.searchParams.get('studioId')
+
+        // Get studio-specific fee structure
+        const studioSettings = studioId ? await database.collection('studio_fee_settings').findOne({
+          studioId: studioId
+        }) : null
+
+        // Base platform fee rates
+        const baseFeeRates = {
+          class_booking: 0.0375,      // 3.75%
+          subscription: 0.0375,       // 3.75%
+          class_package: 0.0375,      // 3.75%
+          xpass_redemption: 0.075,    // 7.5%
+          instructor_payout: 0.05     // 5%
+        }
+
+        // Volume-based discounts
+        const volumeDiscounts = {
+          bronze: { threshold: 0, discount: 0, name: 'Bronze' },
+          silver: { threshold: 100, discount: 0.0025, name: 'Silver' },
+          gold: { threshold: 500, discount: 0.005, name: 'Gold' },
+          platinum: { threshold: 1000, discount: 0.0075, name: 'Platinum' }
+        }
+
+        // If studio ID provided, get their current volume tier
+        let currentVolumeTier = null
+        if (studioId) {
+          const thirtyDaysAgo = new Date()
+          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+          const studioTransactions = await database.collection('transactions')
+            .countDocuments({
+              studioId: studioId,
+              createdAt: { $gte: thirtyDaysAgo },
+              status: 'completed'
+            })
+
+          if (studioTransactions >= 1000) currentVolumeTier = 'platinum'
+          else if (studioTransactions >= 500) currentVolumeTier = 'gold'
+          else if (studioTransactions >= 100) currentVolumeTier = 'silver'
+          else currentVolumeTier = 'bronze'
+        }
+
+        // Calculate effective rates
+        const effectiveRates = {}
+        Object.keys(baseFeeRates).forEach(paymentType => {
+          const baseRate = baseFeeRates[paymentType]
+          const studioRate = studioSettings?.customRates?.[paymentType] || baseRate
+          const volumeDiscount = currentVolumeTier ? volumeDiscounts[currentVolumeTier].discount : 0
+          effectiveRates[paymentType] = Math.max(0, studioRate - volumeDiscount)
+        })
+
+        return NextResponse.json({
+          success: true,
+          feeStructure: {
+            baseFeeRates: baseFeeRates,
+            effectiveRates: effectiveRates,
+            volumeDiscounts: volumeDiscounts,
+            currentVolumeTier: currentVolumeTier,
+            studioCustomRates: studioSettings?.customRates || null,
+            lastUpdated: studioSettings?.updatedAt || null
+          }
+        })
+
+      } catch (error) {
+        console.error('Fee structure error:', error)
+        return NextResponse.json({ error: 'Failed to retrieve fee structure' }, { status: 500 })
+      }
+    }
+
+    // Get failed payment retry history
+    if (path === '/payments/retry-history') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const url = new URL(request.url)
+        const paymentIntentId = url.searchParams.get('paymentIntentId')
+        const limit = parseInt(url.searchParams.get('limit')) || 10
+
+        let query = { userId: firebaseUser.uid }
+        if (paymentIntentId) {
+          query.originalPaymentIntentId = paymentIntentId
+        }
+
+        const retryHistory = await database.collection('payment_retries')
+          .find(query)
+          .sort({ createdAt: -1 })
+          .limit(limit)
+          .toArray()
+
+        // Get associated transaction details
+        const paymentIntentIds = retryHistory.map(retry => retry.originalPaymentIntentId)
+        const transactions = await database.collection('transactions')
+          .find({ paymentIntentId: { $in: paymentIntentIds } })
+          .toArray()
+
+        const enrichedRetries = retryHistory.map(retry => {
+          const transaction = transactions.find(t => t.paymentIntentId === retry.originalPaymentIntentId)
+          return {
+            ...retry,
+            transaction: transaction ? {
+              id: transaction.id,
+              type: transaction.type,
+              amount: transaction.amount,
+              originalFailureReason: transaction.failureReason
+            } : null
+          }
+        })
+
+        return NextResponse.json({
+          success: true,
+          retryHistory: enrichedRetries,
+          totalRetries: retryHistory.length
+        })
+
+      } catch (error) {
+        console.error('Retry history error:', error)
+        return NextResponse.json({ error: 'Failed to retrieve retry history' }, { status: 500 })
+      }
+    }
+
+    // Get proration calculations
+    if (path === '/payments/proration-preview') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const url = new URL(request.url)
+        const subscriptionId = url.searchParams.get('subscriptionId')
+        const newPriceId = url.searchParams.get('newPriceId')
+
+        if (!subscriptionId || !newPriceId) {
+          return NextResponse.json({ error: 'Subscription ID and new price ID are required' }, { status: 400 })
+        }
+
+        // Get current subscription
+        const subscription = await database.collection('subscriptions').findOne({
+          stripeSubscriptionId: subscriptionId,
+          userId: firebaseUser.uid
+        })
+
+        if (!subscription) {
+          return NextResponse.json({ error: 'Subscription not found or unauthorized' }, { status: 404 })
+        }
+
+        // Get prices from Stripe
+        const currentPrice = await stripe.prices.retrieve(subscription.priceId)
+        const newPrice = await stripe.prices.retrieve(newPriceId)
+
+        // Calculate proration preview
+        const now = new Date()
+        const periodEnd = new Date(subscription.currentPeriodEnd)
+        const periodStart = new Date(subscription.currentPeriodStart)
+        const totalPeriodDays = (periodEnd - periodStart) / (1000 * 60 * 60 * 24)
+        const remainingDays = Math.max(0, (periodEnd - now) / (1000 * 60 * 60 * 24))
+        const usedDays = totalPeriodDays - remainingDays
+
+        // Calculate amounts
+        const currentMonthlyAmount = currentPrice.unit_amount
+        const newMonthlyAmount = newPrice.unit_amount
+        const currentPeriodUsed = (usedDays / totalPeriodDays) * currentMonthlyAmount
+        const newPeriodRemaining = (remainingDays / totalPeriodDays) * newMonthlyAmount
+
+        const isUpgrade = newMonthlyAmount > currentMonthlyAmount
+        const changeType = isUpgrade ? 'upgrade' : 'downgrade'
+
+        let prorationAmount = 0
+        let prorationCredit = 0
+
+        if (isUpgrade) {
+          prorationAmount = Math.max(0, newPeriodRemaining - (currentMonthlyAmount - currentPeriodUsed))
+        } else {
+          prorationCredit = Math.max(0, (currentMonthlyAmount - currentPeriodUsed) - newPeriodRemaining)
+        }
+
+        return NextResponse.json({
+          success: true,
+          prorationPreview: {
+            currentPlan: {
+              name: currentPrice.nickname || 'Current Plan',
+              amount: currentMonthlyAmount,
+              priceId: currentPrice.id
+            },
+            newPlan: {
+              name: newPrice.nickname || 'New Plan',
+              amount: newMonthlyAmount,
+              priceId: newPrice.id
+            },
+            changeType: changeType,
+            billingPeriod: {
+              start: periodStart,
+              end: periodEnd,
+              totalDays: Math.round(totalPeriodDays),
+              remainingDays: Math.round(remainingDays),
+              usedDays: Math.round(usedDays)
+            },
+            prorationAmount: prorationAmount,
+            prorationCredit: prorationCredit,
+            nextBillingAmount: newMonthlyAmount,
+            effectiveDate: now
+          }
+        })
+
+      } catch (error) {
+        console.error('Proration preview error:', error)
+        return NextResponse.json({ error: 'Failed to calculate proration preview' }, { status: 500 })
+      }
+    }
+
+    // Get studio policy settings (for merchants)
+    if (path === '/payments/studio-policies') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        
+        if (userProfile?.role !== 'merchant') {
+          return NextResponse.json({ error: 'Access denied. Merchant role required.' }, { status: 403 })
+        }
+
+        // Get studio policies
+        const studioPolicy = await database.collection('studio_policies').findOne({
+          studioId: firebaseUser.uid
+        })
+
+        const studioFeeSettings = await database.collection('studio_fee_settings').findOne({
+          studioId: firebaseUser.uid
+        })
+
+        // Get policy statistics
+        const thirtyDaysAgo = new Date()
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+        const policyStats = await database.collection('bookings')
+          .aggregate([
+            {
+              $match: {
+                studioId: firebaseUser.uid,
+                createdAt: { $gte: thirtyDaysAgo }
+              }
+            },
+            {
+              $group: {
+                _id: '$status',
+                count: { $sum: 1 },
+                totalFees: { $sum: '$cancellationFee' }
+              }
+            }
+          ])
+          .toArray()
+
+        const totalBookings = policyStats.reduce((sum, stat) => sum + stat.count, 0)
+        const cancellations = policyStats.find(stat => stat._id === 'cancelled')?.count || 0
+        const noShows = policyStats.find(stat => stat._id === 'no_show')?.count || 0
+        const totalFees = policyStats.reduce((sum, stat) => sum + (stat.totalFees || 0), 0)
+
+        return NextResponse.json({
+          success: true,
+          policies: {
+            cancellationPolicy: studioPolicy || {
+              cancellationWindow: 24,
+              lateCancelFee: 1500,
+              noShowFee: 2000,
+              refundPolicy: 'full_refund_within_window',
+              freeTrialCancellations: 1,
+              gracePeriod: 15,
+              autoMarkNoShow: true
+            },
+            feeSettings: studioFeeSettings || {
+              customRates: null,
+              volumeDiscountEnabled: true
+            }
+          },
+          statistics: {
+            totalBookings: totalBookings,
+            cancellations: cancellations,
+            noShows: noShows,
+            cancellationRate: totalBookings > 0 ? Math.round((cancellations / totalBookings) * 100) : 0,
+            noShowRate: totalBookings > 0 ? Math.round((noShows / totalBookings) * 100) : 0,
+            totalFeesCollected: totalFees,
+            period: '30 days'
+          }
+        })
+
+      } catch (error) {
+        console.error('Studio policies error:', error)
+        return NextResponse.json({ error: 'Failed to retrieve studio policies' }, { status: 500 })
+      }
+    }
+
     // Get studio's payment statistics (for merchants)
     if (path === '/payments/studio-stats') {
       const firebaseUser = await getFirebaseUser(request)
