@@ -10,11 +10,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Textarea } from '@/components/ui/textarea'
+import { Slider } from '@/components/ui/slider'
 import OnboardingLayout from '@/components/onboarding/OnboardingLayout'
 import OnboardingSteps from '@/components/onboarding/OnboardingSteps'
 import WelcomeTour from '@/components/onboarding/WelcomeTour'
 import StepIndicator from '@/components/onboarding/StepIndicator'
-import { ArrowRight, ArrowLeft, CheckCircle, User, Award, Calendar, CreditCard, FileText, Camera } from 'lucide-react'
+import { ArrowRight, ArrowLeft, CheckCircle, User, Award, Calendar, CreditCard, FileText, Camera, Zap, DollarSign } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function InstructorOnboarding() {
@@ -36,7 +37,7 @@ export default function InstructorOnboarding() {
     specialties: [],
     experience: '',
     education: '',
-    languages: [],
+    languages: ['English'],
     
     // Step 3: Availability & Teaching Preferences
     availability: [],
@@ -73,19 +74,34 @@ export default function InstructorOnboarding() {
     'Yoga Alliance RYT-500',
     'Pilates Instructor',
     'CrossFit Level 1',
+    'PADI Scuba Instructor',
+    'Group Fitness Instructor',
+    'Nutrition Coach Certification',
     'Other'
   ]
 
   const specialtyOptions = [
     'Weight Training', 'Cardio', 'Yoga', 'Pilates', 'HIIT',
     'CrossFit', 'Dance', 'Martial Arts', 'Rehabilitation',
-    'Senior Fitness', 'Youth Fitness', 'Nutrition Coaching'
+    'Senior Fitness', 'Youth Fitness', 'Nutrition Coaching',
+    'Prenatal Fitness', 'Injury Recovery', 'Sports Performance'
   ]
 
   const availabilityOptions = [
     'Early Morning (5-8 AM)', 'Morning (8-12 PM)', 
     'Afternoon (12-5 PM)', 'Evening (5-8 PM)', 
-    'Night (8-10 PM)', 'Weekends'
+    'Night (8-10 PM)', 'Weekends', 'Holidays'
+  ]
+
+  const languageOptions = [
+    'English', 'Spanish', 'French', 'German', 'Italian',
+    'Portuguese', 'Chinese', 'Japanese', 'Korean', 'Arabic'
+  ]
+
+  const teachingStyleOptions = [
+    'Encouraging & Supportive', 'High Energy & Motivational', 
+    'Calm & Mindful', 'Technical & Detailed', 'Fun & Interactive',
+    'Challenging & Intense', 'Beginner Friendly', 'Advanced Training'
   ]
 
   useEffect(() => {
@@ -97,10 +113,7 @@ export default function InstructorOnboarding() {
       return
     }
 
-    // Only redirect if we have a definitive role that doesn't match AND it's not loading
-    // This prevents redirect loops when role data is still being loaded or updated
     if (role && role !== 'instructor' && !authLoading) {
-      // Add a small delay to ensure this isn't a race condition
       const redirectTimer = setTimeout(() => {
         console.log('🔄 Instructor onboarding: Redirecting user with role', role, 'to correct onboarding')
         router.push(`/onboarding/${role}`)
@@ -108,26 +121,44 @@ export default function InstructorOnboarding() {
 
       return () => clearTimeout(redirectTimer)
     }
-  }, [user, role, authLoading, router])
 
-  const handleInputChange = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }))
+    // Check if this is first time user
+    const hasSeenTour = localStorage.getItem(`tour_seen_${user?.uid}`)
+    if (!hasSeenTour && user) {
+      setShowWelcomeTour(true)
+    }
+    
+    // Load saved data
+    if (formData.step1) {
+      setStepData(prev => ({ ...prev, ...formData.step1 }))
+    }
+  }, [user, role, authLoading, router, formData])
+
+  const updateStepData = (field, value) => {
+    setStepData(prev => {
+      const newData = { ...prev, [field]: value }
+      updateFormData(newData, currentStep)
+      return newData
+    })
   }
 
-  const handleArrayToggle = (field, value) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: prev[field].includes(value)
-        ? prev[field].filter(item => item !== value)
-        : [...prev[field], value]
-    }))
+  const updateNestedData = (parent, field, value) => {
+    setStepData(prev => {
+      const newData = {
+        ...prev,
+        [parent]: {
+          ...prev[parent],
+          [field]: value
+        }
+      }
+      updateFormData(newData, currentStep)
+      return newData
+    })
   }
 
   const nextStep = () => {
-    if (currentStep < totalSteps) {
+    if (currentStep < totalSteps && isStepValid()) {
+      completeStep(currentStep)
       setCurrentStep(currentStep + 1)
     }
   }
@@ -138,118 +169,43 @@ export default function InstructorOnboarding() {
     }
   }
 
-  const completeOnboarding = async () => {
-    if (loading) return
+  const isStepValid = () => {
+    switch (currentStep) {
+      case 1:
+        return stepData.firstName && stepData.lastName && stepData.phone && stepData.bio
+      case 2:
+        return stepData.certifications.length > 0 && stepData.specialties.length > 0 && stepData.experience
+      case 3:
+        return stepData.availability.length > 0 && stepData.teachingStyle
+      case 4:
+        return stepData.insurance
+      case 5:
+        return stepData.termsAccepted && stepData.liabilityWaiver
+      default:
+        return false
+    }
+  }
+
+  const handleArrayToggle = (field, value) => {
+    const current = stepData[field] || []
+    const updated = current.includes(value)
+      ? current.filter(item => item !== value)
+      : [...current, value]
+    updateStepData(field, updated)
+  }
+
+  const handleComplete = async () => {
+    if (!isStepValid() || loading) return
 
     setLoading(true)
-
     try {
-      if (!user) {
-        throw new Error('User not authenticated')
-      }
-
-      // Use user.uid and role from context, with fallback
-      const userRole = role || 'instructor' // Default to instructor if role is still loading
-      
-      console.log('🔥 Instructor Onboarding: Completing onboarding for user:', user.uid, 'role:', userRole)
-
-      const response = await fetch('/api/onboarding/complete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          role: userRole,
-          profileData: formData
-        })
-      })
-
-      // Handle 502 API routing issues gracefully
-      if (response.status === 502) {
-        // Store onboarding completion data locally as fallback
-        const onboardingData = {
-          uid: user.uid,
-          email: user.email,
-          role: userRole,
-          profileData: formData,
-          onboarding_complete: true,
-          completed_at: new Date().toISOString()
-        }
-        
-        localStorage.setItem('onboardingComplete', JSON.stringify(onboardingData))
-        localStorage.setItem('tempUserData', JSON.stringify({
-          uid: user.uid,
-          email: user.email,
-          role: userRole,
-          onboarding_complete: true
-        }))
-
-        toast.success('Onboarding completed! Due to server routing issues, your data has been saved locally and will sync when the server is fully available.')
-        
-        // Still redirect to dashboard
-        setTimeout(() => {
-          router.push('/dashboard/instructor')
-        }, 2000)
-        return
-      }
-
-      if (!response.ok) {
-        let errorMessage = 'Failed to complete onboarding'
-        
-        try {
-          const errorData = await response.json()
-          errorMessage = errorData.error || errorMessage
-        } catch (parseError) {
-          console.error('❌ Failed to parse error response:', parseError)
-          if (response.status === 502) {
-            errorMessage = 'Server routing issue - onboarding saved locally'
-          } else {
-            errorMessage = `Server error (${response.status})`
-          }
-        }
-        
-        throw new Error(errorMessage)
-      }
-
+      await completeOnboarding(stepData)
+      setShowWelcomeTour(true)
+      localStorage.setItem(`tour_seen_${user.uid}`, 'true')
       toast.success('Welcome to Thryve! Your instructor profile is complete.')
-      
-      // Add a small delay to ensure the redirect works properly
-      setTimeout(() => {
-        router.push('/dashboard/instructor')
-      }, 1000)
     } catch (error) {
       console.error('Onboarding completion error:', error)
-      
-      // Check if it's a network/API error and implement fallback
-      if (error.message.includes('Failed to fetch') || 
-          error.message.includes('Server routing issue') ||
-          error.message.includes('502')) {
-        
-        // Store onboarding completion data locally as fallback
-        const onboardingData = {
-          uid: user.uid,
-          email: user.email,
-          role: role || 'instructor',
-          profileData: formData,
-          onboarding_complete: true,
-          completed_at: new Date().toISOString()
-        }
-        
-        localStorage.setItem('onboardingComplete', JSON.stringify(onboardingData))
-        localStorage.setItem('tempUserData', JSON.stringify({
-          uid: user.uid,
-          email: user.email,
-          role: role || 'instructor',
-          onboarding_complete: true
-        }))
-
-        toast.success('API routing issue detected. Your onboarding has been completed locally and will sync when the server is available. Redirecting to dashboard...')
-        
-        // Still redirect to dashboard after a short delay
-        setTimeout(() => {
-          router.push('/dashboard/instructor')
-        }, 3000)
-      } else {
-        toast.error(error.message || 'Failed to complete onboarding')
-      }
+      toast.error('Failed to complete onboarding. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -260,28 +216,29 @@ export default function InstructorOnboarding() {
       case 1:
         return (
           <div className="space-y-6">
-            <div>
+            <div className="text-center">
+              <User className="h-12 w-12 text-[#1E90FF] mx-auto mb-4" />
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Personal Information</h2>
-              <p className="text-gray-600">Tell us about yourself</p>
+              <p className="text-gray-600">Tell us about yourself as a fitness professional</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="firstName">First Name</Label>
+                <Label htmlFor="firstName">First Name *</Label>
                 <Input
                   id="firstName"
-                  value={formData.firstName}
-                  onChange={(e) => handleInputChange('firstName', e.target.value)}
+                  value={stepData.firstName}
+                  onChange={(e) => updateStepData('firstName', e.target.value)}
                   placeholder="Enter your first name"
                   required
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name</Label>
+                <Label htmlFor="lastName">Last Name *</Label>
                 <Input
                   id="lastName"
-                  value={formData.lastName}
-                  onChange={(e) => handleInputChange('lastName', e.target.value)}
+                  value={stepData.lastName}
+                  onChange={(e) => updateStepData('lastName', e.target.value)}
                   placeholder="Enter your last name"
                   required
                 />
@@ -289,25 +246,26 @@ export default function InstructorOnboarding() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
+              <Label htmlFor="phone">Phone Number *</Label>
               <Input
                 id="phone"
                 type="tel"
-                value={formData.phone}
-                onChange={(e) => handleInputChange('phone', e.target.value)}
+                value={stepData.phone}
+                onChange={(e) => updateStepData('phone', e.target.value)}
                 placeholder="(555) 123-4567"
+                required
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="bio">Bio</Label>
-              <textarea
+              <Label htmlFor="bio">Professional Bio *</Label>
+              <Textarea
                 id="bio"
-                rows={4}
-                value={formData.bio}
-                onChange={(e) => handleInputChange('bio', e.target.value)}
+                value={stepData.bio}
+                onChange={(e) => updateStepData('bio', e.target.value)}
                 placeholder="Tell potential clients about yourself, your experience, and your approach to fitness..."
-                className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                className="min-h-[120px]"
+                required
               />
             </div>
           </div>
@@ -316,31 +274,23 @@ export default function InstructorOnboarding() {
       case 2:
         return (
           <div className="space-y-6">
-            <div>
+            <div className="text-center">
+              <Award className="h-12 w-12 text-[#1E90FF] mx-auto mb-4" />
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Certifications & Specialties</h2>
-              <p className="text-gray-600">What certifications do you have?</p>
+              <p className="text-gray-600">What are your professional qualifications?</p>
             </div>
 
             <div>
-              <Label className="text-base font-medium">Certifications</Label>
+              <Label className="text-base font-medium">Certifications *</Label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
                 {certificationOptions.map((cert) => (
                   <div key={cert} className="flex items-center space-x-2">
                     <Checkbox
                       id={cert}
-                      checked={formData.certifications.includes(cert)}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          handleArrayToggle('certifications', cert)
-                        } else {
-                          handleArrayToggle('certifications', cert)
-                        }
-                      }}
+                      checked={stepData.certifications.includes(cert)}
+                      onCheckedChange={() => handleArrayToggle('certifications', cert)}
                     />
-                    <Label
-                      htmlFor={cert}
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
+                    <Label htmlFor={cert} className="text-sm">
                       {cert}
                     </Label>
                   </div>
@@ -349,25 +299,16 @@ export default function InstructorOnboarding() {
             </div>
 
             <div>
-              <Label className="text-base font-medium">Specialties</Label>
+              <Label className="text-base font-medium">Specialties *</Label>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
                 {specialtyOptions.map((specialty) => (
                   <div key={specialty} className="flex items-center space-x-2">
                     <Checkbox
                       id={specialty}
-                      checked={formData.specialties.includes(specialty)}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          handleArrayToggle('specialties', specialty)
-                        } else {
-                          handleArrayToggle('specialties', specialty)
-                        }
-                      }}
+                      checked={stepData.specialties.includes(specialty)}
+                      onCheckedChange={() => handleArrayToggle('specialties', specialty)}
                     />
-                    <Label
-                      htmlFor={specialty}
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
+                    <Label htmlFor={specialty} className="text-sm">
                       {specialty}
                     </Label>
                   </div>
@@ -375,21 +316,50 @@ export default function InstructorOnboarding() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="experience">Years of Experience</Label>
-              <select
-                id="experience"
-                value={formData.experience}
-                onChange={(e) => handleInputChange('experience', e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <option value="">Select experience level</option>
-                <option value="less-than-1">Less than 1 year</option>
-                <option value="1-3">1-3 years</option>
-                <option value="3-5">3-5 years</option>
-                <option value="5-10">5-10 years</option>
-                <option value="more-than-10">More than 10 years</option>
-              </select>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="experience">Years of Experience *</Label>
+                <select
+                  id="experience"
+                  value={stepData.experience}
+                  onChange={(e) => updateStepData('experience', e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                >
+                  <option value="">Select experience level</option>
+                  <option value="less-than-1">Less than 1 year</option>
+                  <option value="1-3">1-3 years</option>
+                  <option value="3-5">3-5 years</option>
+                  <option value="5-10">5-10 years</option>
+                  <option value="more-than-10">More than 10 years</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="education">Education Background</Label>
+                <Input
+                  id="education"
+                  value={stepData.education}
+                  onChange={(e) => updateStepData('education', e.target.value)}
+                  placeholder="Degree in Exercise Science, Kinesiology, etc."
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-base font-medium">Languages Spoken</Label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
+                {languageOptions.map((language) => (
+                  <div key={language} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={language}
+                      checked={stepData.languages.includes(language)}
+                      onCheckedChange={() => handleArrayToggle('languages', language)}
+                    />
+                    <Label htmlFor={language} className="text-sm">
+                      {language}
+                    </Label>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )
@@ -397,31 +367,23 @@ export default function InstructorOnboarding() {
       case 3:
         return (
           <div className="space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Availability</h2>
-              <p className="text-gray-600">When are you typically available to teach?</p>
+            <div className="text-center">
+              <Calendar className="h-12 w-12 text-[#1E90FF] mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Teaching Preferences</h2>
+              <p className="text-gray-600">When and how do you like to teach?</p>
             </div>
 
             <div>
-              <Label className="text-base font-medium">Available Times</Label>
+              <Label className="text-base font-medium">Available Times *</Label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
                 {availabilityOptions.map((time) => (
                   <div key={time} className="flex items-center space-x-2">
                     <Checkbox
                       id={time}
-                      checked={formData.availability.includes(time)}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          handleArrayToggle('availability', time)
-                        } else {
-                          handleArrayToggle('availability', time)
-                        }
-                      }}
+                      checked={stepData.availability.includes(time)}
+                      onCheckedChange={() => handleArrayToggle('availability', time)}
                     />
-                    <Label
-                      htmlFor={time}
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
+                    <Label htmlFor={time} className="text-sm">
                       {time}
                     </Label>
                   </div>
@@ -429,13 +391,186 @@ export default function InstructorOnboarding() {
               </div>
             </div>
 
-            <div className="bg-blue-50 p-4 rounded-lg">
-              <div className="flex items-center mb-2">
-                <CheckCircle className="h-5 w-5 text-blue-600 mr-2" />
-                <h3 className="font-semibold text-blue-900">You're all set!</h3>
+            <div className="space-y-2">
+              <Label htmlFor="teachingStyle">Teaching Style *</Label>
+              <select
+                id="teachingStyle"
+                value={stepData.teachingStyle}
+                onChange={(e) => updateStepData('teachingStyle', e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+              >
+                <option value="">Select your teaching style</option>
+                {teachingStyleOptions.map(style => (
+                  <option key={style} value={style}>{style}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <Label className="text-base font-medium">Preferred Max Class Size</Label>
+                <div className="mt-3">
+                  <Slider
+                    value={stepData.maxClassSize}
+                    onValueChange={(value) => updateStepData('maxClassSize', value)}
+                    max={50}
+                    min={1}
+                    step={1}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-sm text-gray-500 mt-1">
+                    <span>1</span>
+                    <span className="font-medium text-[#1E90FF]">
+                      {stepData.maxClassSize[0]} students
+                    </span>
+                    <span>50+</span>
+                  </div>
+                </div>
               </div>
-              <p className="text-blue-800 text-sm">
-                Click "Complete Setup" to finish your instructor onboarding and start creating classes.
+
+              <div>
+                <Label className="text-base font-medium">Hourly Rate</Label>
+                <div className="mt-3">
+                  <Slider
+                    value={stepData.ratePerHour}
+                    onValueChange={(value) => updateStepData('ratePerHour', value)}
+                    max={200}
+                    min={25}
+                    step={5}
+                    className="w-full"
+                  />
+                  <div className="flex justify-between text-sm text-gray-500 mt-1">
+                    <span>$25</span>
+                    <span className="font-medium text-[#1E90FF]">
+                      ${stepData.ratePerHour[0]}/hour
+                    </span>
+                    <span>$200+</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+
+      case 4:
+        return (
+          <div className="space-y-6">
+            <div className="text-center">
+              <FileText className="h-12 w-12 text-[#1E90FF] mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Verification & Professional Details</h2>
+              <p className="text-gray-600">Help us verify your professional credentials</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="insurance">Professional Liability Insurance *</Label>
+              <select
+                id="insurance"
+                value={stepData.insurance}
+                onChange={(e) => updateStepData('insurance', e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+              >
+                <option value="">Select insurance status</option>
+                <option value="current">I have current liability insurance</option>
+                <option value="obtaining">I am in the process of obtaining insurance</option>
+                <option value="none">I do not have insurance</option>
+              </select>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="backgroundCheck"
+                checked={stepData.backgroundCheck}
+                onCheckedChange={(checked) => updateStepData('backgroundCheck', checked)}
+              />
+              <Label htmlFor="backgroundCheck" className="text-sm">
+                I consent to a background check (required for certain class types)
+              </Label>
+            </div>
+
+            <div className="space-y-4">
+              <Label className="text-base font-medium">Social Media & Professional Links</Label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="instagram">Instagram</Label>
+                  <Input
+                    id="instagram"
+                    value={stepData.socialMedia.instagram}
+                    onChange={(e) => updateNestedData('socialMedia', 'instagram', e.target.value)}
+                    placeholder="@yourusername"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="youtube">YouTube</Label>
+                  <Input
+                    id="youtube"
+                    value={stepData.socialMedia.youtube}
+                    onChange={(e) => updateNestedData('socialMedia', 'youtube', e.target.value)}
+                    placeholder="Channel URL"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="website">Personal Website</Label>
+                  <Input
+                    id="website"
+                    value={stepData.socialMedia.website}
+                    onChange={(e) => updateNestedData('socialMedia', 'website', e.target.value)}
+                    placeholder="https://yoursite.com"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+
+      case 5:
+        return (
+          <div className="space-y-6">
+            <div className="text-center">
+              <CheckCircle className="h-12 w-12 text-[#1E90FF] mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Final Setup</h2>
+              <p className="text-gray-600">Just a few more details to get you started</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="taxId">Tax ID / EIN (Optional)</Label>
+              <Input
+                id="taxId"
+                value={stepData.taxId}
+                onChange={(e) => updateStepData('taxId', e.target.value)}
+                placeholder="For tax reporting purposes"
+              />
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="termsAccepted"
+                  checked={stepData.termsAccepted}
+                  onCheckedChange={(checked) => updateStepData('termsAccepted', checked)}
+                />
+                <Label htmlFor="termsAccepted" className="text-sm">
+                  I agree to the Terms of Service and Instructor Agreement *
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="liabilityWaiver"
+                  checked={stepData.liabilityWaiver}
+                  onCheckedChange={(checked) => updateStepData('liabilityWaiver', checked)}
+                />
+                <Label htmlFor="liabilityWaiver" className="text-sm">
+                  I understand and accept liability waivers and safety requirements *
+                </Label>
+              </div>
+            </div>
+
+            <div className="bg-green-50 p-4 rounded-lg">
+              <div className="flex items-center mb-2">
+                <Zap className="h-5 w-5 text-green-600 mr-2" />
+                <h3 className="font-semibold text-green-900">Ready to Inspire!</h3>
+              </div>
+              <p className="text-green-800 text-sm">
+                Complete your setup to start teaching, earning, and building your fitness community on Thryve.
               </p>
             </div>
           </div>
@@ -443,19 +578,6 @@ export default function InstructorOnboarding() {
 
       default:
         return null
-    }
-  }
-
-  const canProceed = () => {
-    switch (currentStep) {
-      case 1:
-        return formData.firstName && formData.lastName && formData.bio
-      case 2:
-        return formData.certifications.length > 0 && formData.specialties.length > 0 && formData.experience
-      case 3:
-        return formData.availability.length > 0
-      default:
-        return false
     }
   }
 
@@ -469,66 +591,54 @@ export default function InstructorOnboarding() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-2xl mx-auto">
-        <div className="mb-8">
-          <div className="text-center mb-6">
-            <h1 className="text-3xl font-bold text-gray-900">Instructor Onboarding</h1>
-            <p className="text-gray-600">Step {currentStep} of {totalSteps}</p>
-          </div>
-          <Progress value={(currentStep / totalSteps) * 100} className="h-2" />
+      <div className="max-w-3xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">Welcome to Thryve Instructors! 💪</h1>
+          <p className="text-xl text-gray-600 mb-6">Let's set up your professional instructor profile</p>
+          
+          <StepIndicator
+            currentStep={currentStep}
+            totalSteps={totalSteps}
+            completedSteps={onboardingStatus.completedSteps}
+            stepLabels={stepLabels}
+            className="mb-8"
+          />
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Welcome to Thryve Instructors!</CardTitle>
-            <CardDescription>
-              Let's set up your instructor profile so you can start teaching and earning.
+        {/* Main Form */}
+        <Card className="shadow-2xl border-0">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl">Instructor Onboarding</CardTitle>
+            <CardDescription className="text-lg">
+              Step {currentStep} of {totalSteps}
             </CardDescription>
           </CardHeader>
 
-          <CardContent className="space-y-6">
+          <CardContent className="p-8">
             {renderStep()}
 
-            <div className="flex justify-between pt-6">
-              <Button
-                variant="outline"
-                onClick={prevStep}
-                disabled={currentStep === 1}
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Previous
-              </Button>
-
-              {currentStep === totalSteps ? (
-                <Button
-                  onClick={completeOnboarding}
-                  disabled={!canProceed() || loading}
-                >
-                  {loading ? (
-                    <div className="flex items-center">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Completing...
-                    </div>
-                  ) : (
-                    <>
-                      Complete Setup
-                      <CheckCircle className="ml-2 h-4 w-4" />
-                    </>
-                  )}
-                </Button>
-              ) : (
-                <Button
-                  onClick={nextStep}
-                  disabled={!canProceed()}
-                >
-                  Next
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              )}
-            </div>
+            {/* Navigation Buttons */}
+            <OnboardingSteps
+              currentStep={currentStep}
+              totalSteps={totalSteps}
+              onNext={nextStep}
+              onPrevious={prevStep}
+              onComplete={handleComplete}
+              canProceed={isStepValid()}
+              loading={loading}
+              completeLabel="Complete Instructor Setup"
+            />
           </CardContent>
         </Card>
       </div>
+
+      {/* Welcome Tour */}
+      <WelcomeTour
+        isOpen={showWelcomeTour}
+        onClose={() => setShowWelcomeTour(false)}
+        userRole="instructor"
+      />
     </div>
   )
 }
