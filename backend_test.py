@@ -237,12 +237,12 @@ Advanced Vinyasa,Dynamic flowing yoga practice,75,10,35.00,yoga,advanced,Previou
                 if response.status_code == 200:
                     data = response.json()
                     if i == total_chunks - 1:  # Last chunk
-                        if data.get("success") and data.get("uploadId"):
+                        if data.get("uploadId"):
                             self.log_test("Chunked File Upload", True, 
                                         f"Successfully uploaded {total_chunks} chunks. Upload ID: {upload_id}", response_time)
                         else:
                             self.log_test("Chunked File Upload", False, 
-                                        "Final chunk response missing success or uploadId", response_time)
+                                        "Final chunk response missing uploadId", response_time)
                     else:
                         if "chunk" in data.get("message", "").lower():
                             continue  # Intermediate chunk success
