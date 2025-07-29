@@ -137,6 +137,7 @@ def test_authentication_protection(results):
         if response:
             print(f"DEBUG AUTH: {method} {endpoint} - status code: {response.status_code}")
             passed = response.status_code == 401
+            print(f"DEBUG AUTH: {method} {endpoint} - passed: {passed}")
             results.add_result(
                 f"Auth protection {method} {endpoint}",
                 passed,
