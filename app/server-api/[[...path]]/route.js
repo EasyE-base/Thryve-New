@@ -497,6 +497,11 @@ async function handleGET(request) {
 
     // Get Communication Templates (Merchant only)
     if (path === '/communication/templates') {
+      const user = await getFirebaseUser(request)
+      if (!user) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
       const profile = await database.collection('profiles').findOne({ userId: user.uid })
       if (!profile || profile.role !== 'merchant') {
         return NextResponse.json({ error: 'Access denied' }, { status: 403 })
