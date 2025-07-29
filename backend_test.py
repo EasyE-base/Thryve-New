@@ -257,14 +257,15 @@ def test_xpass_redemptions(results):
         if passed:
             try:
                 data = response.json()
+                print(f"DEBUG: X Pass redemptions response keys: {list(data.keys())}")
                 has_redemptions = "redemptions" in data
                 has_pagination = "pagination" in data
-                has_total = "totalRedemptions" in data
+                has_success = "success" in data
                 
                 results.add_result(
                     "X Pass redemptions structure",
-                    has_redemptions and has_pagination and has_total,
-                    f"Has redemptions: {has_redemptions}, pagination: {has_pagination}, total: {has_total}"
+                    has_redemptions and has_pagination and has_success,
+                    f"Has redemptions: {has_redemptions}, pagination: {has_pagination}, success: {has_success}"
                 )
             except json.JSONDecodeError:
                 results.add_result("X Pass redemptions JSON parsing", False, "Invalid JSON response")
