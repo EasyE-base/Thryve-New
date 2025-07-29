@@ -2095,6 +2095,403 @@ async function handleGET(request) {
       }
     }
 
+    // ===== ADVANCED CLASS MANAGEMENT & SCHEDULING ENDPOINTS (GET) =====
+
+    // Get studio classes
+    if (path === '/classes' || path.startsWith('/classes?')) {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const url = new URL(request.url)
+        const includeInactive = url.searchParams.get('includeInactive') === 'true'
+        const category = url.searchParams.get('category')
+        const level = url.searchParams.get('level')
+
+        let query = { studioId: firebaseUser.uid }
+        
+        if (!includeInactive) {
+          query.isActive = true
+        }
+        
+        if (category && category !== 'all') {
+          query.category = category
+        }
+        
+        if (level && level !== 'all') {
+          query.level = level
+        }
+
+        const classes = await database.collection('studio_classes')
+          .find(query)
+          .sort({ createdAt: -1 })
+          .toArray()
+
+        return NextResponse.json({
+          success: true,
+          classes,
+          total: classes.length
+        })
+
+      } catch (error) {
+        console.error('Get classes error:', error)
+        return NextResponse.json({ error: 'Failed to retrieve classes' }, { status: 500 })
+      }
+    }
+
+    // Get class schedules with availability
+    if (path === '/schedules' || path.startsWith('/schedules?')) {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const url = new URL(request.url)
+        const startDate = url.searchParams.get('startDate')
+        const endDate = url.searchParams.get('endDate')
+        const classId = url.searchParams.get('classId')
+        const instructorId = url.searchParams.get('instructorId')
+        const category = url.searchParams.get('category')
+        const availableOnly = url.searchParams.get('availableOnly') === 'true'
+        const view = url.searchParams.get('view') || 'week'
+
+        let query = {}
+        
+        // For studio owners, show their classes
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        if (userProfile && userProfile.role === 'merchant') {
+          query.studioId = firebaseUser.uid
+        }
+
+        if (startDate && endDate) {
+          query.startTime = {
+            $gte: new Date(startDate).toISOString(),
+            $lte: new Date(endDate).toISOString()
+          }
+        }
+
+        if (classId) {
+          query.classId = classId
+        }
+
+        if (instructorId) {
+          query.instructorId = instructorId
+        }
+
+        let schedules = await database.collection('class_schedules')
+          .find(query)
+          .sort({ startTime: 1 })
+          .toArray()
+
+        // Get bookings and waitlists for availability calculation
+        const scheduleIds = schedules.map(s => s.id)
+        const bookings = await database.collection('bookings')
+          .find({ 
+            classInstanceId: { $in: scheduleIds },
+            status: 'confirmed'
+          })
+          .toArray()
+
+        const waitlists = await database.collection('waitlists')
+          .find({ 
+            classInstanceId: { $in: scheduleIds },
+            status: 'active'
+          })
+          .toArray()
+
+        // Import scheduling engine
+        const { default: schedulingEngine } = await import('../../../lib/class-scheduling-engine.js')
+        
+        // Calculate availability
+        schedules = schedulingEngine.calculateAvailability(schedules, bookings, waitlists)
+
+        // Apply filters
+        if (category && category !== 'all') {
+          schedules = schedules.filter(s => s.category === category)
+        }
+
+        if (availableOnly) {
+          schedules = schedules.filter(s => s.availableSpots > 0)
+        }
+
+        return NextResponse.json({
+          success: true,
+          schedules,
+          total: schedules.length,
+          view,
+          dateRange: { startDate, endDate }
+        })
+
+      } catch (error) {
+        console.error('Get schedules error:', error)
+        return NextResponse.json({ error: 'Failed to retrieve schedules' }, { status: 500 })
+      }
+    }
+
+    // Get user bookings
+    if (path === '/bookings' || path.startsWith('/bookings?')) {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const url = new URL(request.url)
+        const status = url.searchParams.get('status')
+        const upcoming = url.searchParams.get('upcoming') === 'true'
+        const limit = parseInt(url.searchParams.get('limit')) || 50
+
+        let query = { userId: firebaseUser.uid }
+        
+        if (status) {
+          query.status = status
+        }
+
+        if (upcoming) {
+          query.startTime = { $gte: new Date().toISOString() }
+        }
+
+        const bookings = await database.collection('bookings')
+          .find(query)
+          .sort({ startTime: -1 })
+          .limit(limit)
+          .toArray()
+
+        // Get waitlist entries for the user
+        const waitlistEntries = await database.collection('waitlists')
+          .find({ 
+            userId: firebaseUser.uid,
+            status: 'active'
+          })
+          .sort({ createdAt: -1 })
+          .toArray()
+
+        return NextResponse.json({
+          success: true,
+          bookings,
+          waitlist: waitlistEntries,
+          totalBookings: bookings.length,
+          totalWaitlist: waitlistEntries.length
+        })
+
+      } catch (error) {
+        console.error('Get bookings error:', error)
+        return NextResponse.json({ error: 'Failed to retrieve bookings' }, { status: 500 })
+      }
+    }
+
+    // Search classes with advanced filtering
+    if (path === '/search/classes' || path.startsWith('/search/classes?')) {
+      try {
+        const url = new URL(request.url)
+        const query = url.searchParams.get('q') || ''
+        const category = url.searchParams.get('category')
+        const level = url.searchParams.get('level')
+        const startDate = url.searchParams.get('startDate')
+        const endDate = url.searchParams.get('endDate')
+        const timeOfDay = url.searchParams.get('timeOfDay')
+        const availableOnly = url.searchParams.get('availableOnly') === 'true'
+        const sortBy = url.searchParams.get('sortBy') || 'date'
+        const limit = parseInt(url.searchParams.get('limit')) || 20
+
+        // Search in class schedules
+        let searchQuery = { status: { $ne: 'cancelled' } }
+        
+        if (query) {
+          searchQuery.$or = [
+            { className: { $regex: query, $options: 'i' } },
+            { description: { $regex: query, $options: 'i' } },
+            { instructorName: { $regex: query, $options: 'i' } }
+          ]
+        }
+
+        if (startDate && endDate) {
+          searchQuery.startTime = {
+            $gte: new Date(startDate).toISOString(),
+            $lte: new Date(endDate).toISOString()
+          }
+        }
+
+        let schedules = await database.collection('class_schedules')
+          .find(searchQuery)
+          .limit(limit * 2) // Get more for filtering
+          .toArray()
+
+        // Get real-time availability
+        const scheduleIds = schedules.map(s => s.id)
+        const bookings = await database.collection('bookings')
+          .find({ 
+            classInstanceId: { $in: scheduleIds },
+            status: 'confirmed'
+          })
+          .toArray()
+
+        const waitlists = await database.collection('waitlists')
+          .find({ 
+            classInstanceId: { $in: scheduleIds },
+            status: 'active'
+          })
+          .toArray()
+
+        // Import scheduling engine
+        const { default: schedulingEngine } = await import('../../../lib/class-scheduling-engine.js')
+        
+        // Apply search filters and calculate availability
+        schedules = schedulingEngine.searchClasses(schedules, {
+          category,
+          level,
+          timeOfDay,
+          availableOnly,
+          sortBy
+        })
+
+        schedules = schedulingEngine.calculateAvailability(schedules, bookings, waitlists)
+
+        // Limit final results
+        schedules = schedules.slice(0, limit)
+
+        return NextResponse.json({
+          success: true,
+          results: schedules,
+          total: schedules.length,
+          query: {
+            search: query,
+            category,
+            level,
+            timeOfDay,
+            availableOnly,
+            sortBy
+          }
+        })
+
+      } catch (error) {
+        console.error('Search classes error:', error)
+        return NextResponse.json({ error: 'Failed to search classes' }, { status: 500 })
+      }
+    }
+
+    // Get class details with full information
+    if (path.startsWith('/classes/') && path.split('/').length === 3) {
+      try {
+        const classId = path.split('/')[2]
+        
+        // Get class template
+        const classTemplate = await database.collection('studio_classes').findOne({
+          id: classId
+        })
+
+        if (!classTemplate) {
+          return NextResponse.json({ error: 'Class not found' }, { status: 404 })
+        }
+
+        // Get upcoming instances
+        const upcomingInstances = await database.collection('class_schedules')
+          .find({
+            classId,
+            startTime: { $gte: new Date().toISOString() },
+            status: { $ne: 'cancelled' }
+          })
+          .sort({ startTime: 1 })
+          .limit(10)
+          .toArray()
+
+        // Get instructor details if assigned
+        let instructor = null
+        if (classTemplate.defaultInstructorId) {
+          instructor = await database.collection('profiles').findOne({
+            userId: classTemplate.defaultInstructorId,
+            role: 'instructor'
+          })
+        }
+
+        // Get studio details
+        const studio = await database.collection('profiles').findOne({
+          userId: classTemplate.studioId,
+          role: 'merchant'
+        })
+
+        return NextResponse.json({
+          success: true,
+          class: classTemplate,
+          upcomingInstances,
+          instructor: instructor ? {
+            id: instructor.userId,
+            name: `${instructor.firstName} ${instructor.lastName}`,
+            bio: instructor.bio,
+            specialties: instructor.specialties,
+            experience: instructor.experience
+          } : null,
+          studio: studio ? {
+            id: studio.userId,
+            name: studio.studioName || studio.businessName,
+            description: studio.description
+          } : null
+        })
+
+      } catch (error) {
+        console.error('Get class details error:', error)
+        return NextResponse.json({ error: 'Failed to retrieve class details' }, { status: 500 })
+      }
+    }
+
+    // Get availability calendar
+    if (path === '/calendar/availability' || path.startsWith('/calendar/availability?')) {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const url = new URL(request.url)
+        const startDate = url.searchParams.get('startDate') || new Date().toISOString().split('T')[0]
+        const endDate = url.searchParams.get('endDate') || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+        const view = url.searchParams.get('view') || 'month'
+
+        // Get class schedules for the date range
+        const schedules = await database.collection('class_schedules')
+          .find({
+            studioId: firebaseUser.uid,
+            startTime: {
+              $gte: new Date(startDate).toISOString(),
+              $lte: new Date(endDate).toISOString()
+            },
+            status: { $ne: 'cancelled' }
+          })
+          .toArray()
+
+        // Get bookings for availability calculation
+        const scheduleIds = schedules.map(s => s.id)
+        const bookings = await database.collection('bookings')
+          .find({ 
+            classInstanceId: { $in: scheduleIds },
+            status: 'confirmed'
+          })
+          .toArray()
+
+        // Import scheduling engine
+        const { default: schedulingEngine } = await import('../../../lib/class-scheduling-engine.js')
+        
+        // Calculate availability and generate calendar
+        const schedulesWithAvailability = schedulingEngine.calculateAvailability(schedules, bookings, [])
+        const calendar = schedulingEngine.generateAvailabilityCalendar(schedulesWithAvailability, startDate, endDate)
+
+        return NextResponse.json({
+          success: true,
+          calendar,
+          view,
+          dateRange: { startDate, endDate },
+          totalDays: Object.keys(calendar).length
+        })
+
+      } catch (error) {
+        console.error('Get availability calendar error:', error)
+        return NextResponse.json({ error: 'Failed to retrieve availability calendar' }, { status: 500 })
+      }
+    }
+
     return NextResponse.json({ error: 'Endpoint not found' }, { status: 404 })
   } catch (error) {
     console.error('GET Error:', error)
