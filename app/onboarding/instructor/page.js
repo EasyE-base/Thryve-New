@@ -19,21 +19,51 @@ import { toast } from 'sonner'
 
 export default function InstructorOnboarding() {
   const { user, role, loading: authLoading } = useAuth()
+  const { onboardingStatus, formData, updateFormData, completeStep, completeOnboarding } = useOnboarding()
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
-  const [formData, setFormData] = useState({
+  const [showWelcomeTour, setShowWelcomeTour] = useState(false)
+  const [stepData, setStepData] = useState({
+    // Step 1: Personal Information
     firstName: '',
     lastName: '',
     phone: '',
+    profilePhoto: '',
     bio: '',
+    
+    // Step 2: Certifications & Specialties
     certifications: [],
     specialties: [],
     experience: '',
-    availability: []
+    education: '',
+    languages: [],
+    
+    // Step 3: Availability & Teaching Preferences
+    availability: [],
+    teachingStyle: '',
+    maxClassSize: [10],
+    ratePerHour: [50],
+    
+    // Step 4: Verification & Professional Details
+    insurance: '',
+    backgroundCheck: false,
+    references: [],
+    socialMedia: {
+      instagram: '',
+      youtube: '',
+      website: ''
+    },
+    
+    // Step 5: Payment & Legal
+    taxId: '',
+    paymentDetails: '',
+    termsAccepted: false,
+    liabilityWaiver: false
   })
   
   const router = useRouter()
-  const totalSteps = 3
+  const totalSteps = 5
+  const stepLabels = ["Profile", "Credentials", "Teaching", "Verification", "Setup"]
 
   const certificationOptions = [
     'ACE Certified Personal Trainer',
