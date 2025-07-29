@@ -5,10 +5,12 @@ import { useAuth } from '@/components/auth-provider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { ArrowRight, Play, Calendar, Users, TrendingUp, Star, CheckCircle, MapPin, Clock, ChevronLeft, ChevronRight, Award, Zap, Shield, Bot, Infinity, X, Eye, EyeOff } from 'lucide-react'
+import { ArrowRight, Play, Calendar, Users, TrendingUp, Star, CheckCircle, MapPin, Clock, ChevronLeft, ChevronRight, Award, Zap, Shield, Bot, Infinity, X, Eye, EyeOff, MessageCircle, Bell } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import BookingModal from '@/components/BookingModal'
+import MessagingSystem from '@/components/MessagingSystem'
+import NotificationSystem from '@/components/NotificationSystem'
 
 // Premium fitness videos for hero section
 const HERO_VIDEOS = [
