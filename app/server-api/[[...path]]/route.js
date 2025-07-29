@@ -370,6 +370,11 @@ async function handleGET(request) {
 
     // Get User Notifications
     if (path === '/notifications') {
+      const user = await getFirebaseUser(request)
+      if (!user) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
       try {
         const notifications = await database.collection('notifications')
           .find({ userId: user.uid })
