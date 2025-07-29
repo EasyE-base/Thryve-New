@@ -17,7 +17,7 @@ import time
 from datetime import datetime
 
 # Get the base URL from environment
-BASE_URL = os.getenv('NEXT_PUBLIC_BASE_URL', 'https://b73e2584-2b4f-4f74-99b8-7dca9ad0bf29.preview.emergentagent.com')
+BASE_URL = os.getenv('NEXT_PUBLIC_BASE_URL', 'https://3fc0018d-7103-4d9d-bf5e-c269670ae862.preview.emergentagent.com')
 SERVER_API_BASE = f"{BASE_URL}/server-api"
 
 # Test authentication token (mock Firebase token)
