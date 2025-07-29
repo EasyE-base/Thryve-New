@@ -3180,6 +3180,293 @@ async function handleGET(request) {
       }
     }
 
+    // ========================================
+    // PHASE 2: SUBSCRIPTION MANAGEMENT SYSTEM - GET ENDPOINTS
+    // ========================================
+
+    // Get user's class packages
+    if (path === '/payments/class-packages') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const url = new URL(request.url)
+        const status = url.searchParams.get('status') // 'active', 'expired', 'depleted'
+        const studioId = url.searchParams.get('studioId')
+
+        let query = { userId: firebaseUser.uid }
+        if (status) query.status = status
+        if (studioId) query.studioId = studioId
+
+        const packages = await database.collection('class_packages')
+          .find(query)
+          .sort({ createdAt: -1 })
+          .toArray()
+
+        // Get studio information for each package
+        const studioIds = packages.map(pkg => pkg.studioId).filter(Boolean)
+        const studios = await database.collection('profiles')
+          .find({ 
+            userId: { $in: studioIds },
+            role: 'merchant'
+          })
+          .toArray()
+
+        const enrichedPackages = packages.map(pkg => {
+          const studio = studios.find(s => s.userId === pkg.studioId)
+          const isExpired = new Date() > new Date(pkg.expirationDate)
+          const isDepleted = pkg.remainingClasses <= 0
+          
+          return {
+            ...pkg,
+            studio: studio ? {
+              name: studio.businessName || studio.studioName,
+              address: studio.address,
+              city: studio.city,
+              state: studio.state
+            } : null,
+            isExpired,
+            isDepleted,
+            daysUntilExpiration: Math.ceil((new Date(pkg.expirationDate) - new Date()) / (1000 * 60 * 60 * 24)),
+            utilizationRate: pkg.totalClasses > 0 ? (pkg.usedClasses / pkg.totalClasses) * 100 : 0
+          }
+        })
+
+        return NextResponse.json({
+          success: true,
+          packages: enrichedPackages,
+          summary: {
+            totalPackages: packages.length,
+            activePackages: packages.filter(pkg => pkg.status === 'active').length,
+            expiredPackages: packages.filter(pkg => new Date() > new Date(pkg.expirationDate)).length,
+            depletedPackages: packages.filter(pkg => pkg.remainingClasses <= 0).length,
+            totalRemainingClasses: packages.reduce((sum, pkg) => sum + pkg.remainingClasses, 0)
+          }
+        })
+
+      } catch (error) {
+        console.error('Class packages error:', error)
+        return NextResponse.json({ error: 'Failed to retrieve class packages' }, { status: 500 })
+      }
+    }
+
+    // Get subscription analytics
+    if (path === '/payments/subscription-analytics') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        
+        if (userProfile?.role === 'merchant') {
+          // Studio analytics
+          const subscriptions = await database.collection('subscriptions')
+            .find({ studioId: firebaseUser.uid })
+            .toArray()
+
+          const activeSubscriptions = subscriptions.filter(sub => sub.status === 'active')
+          const canceledSubscriptions = subscriptions.filter(sub => sub.status === 'canceled')
+          const pausedSubscriptions = subscriptions.filter(sub => sub.status === 'paused')
+
+          // Calculate MRR (Monthly Recurring Revenue)
+          const monthlyRevenue = activeSubscriptions.reduce((sum, sub) => {
+            // Assuming subscription amount is monthly
+            return sum + (sub.amount || 0)
+          }, 0)
+
+          // Calculate churn rate
+          const totalSubscriptions = subscriptions.length
+          const churnRate = totalSubscriptions > 0 ? (canceledSubscriptions.length / totalSubscriptions) * 100 : 0
+
+          return NextResponse.json({
+            success: true,
+            analytics: {
+              totalSubscriptions: totalSubscriptions,
+              activeSubscriptions: activeSubscriptions.length,
+              canceledSubscriptions: canceledSubscriptions.length,
+              pausedSubscriptions: pausedSubscriptions.length,
+              monthlyRecurringRevenue: monthlyRevenue,
+              churnRate: Math.round(churnRate * 100) / 100,
+              averageLifetime: 0, // TODO: Calculate based on subscription history
+              conversionRate: 0, // TODO: Calculate based on trial to paid conversion
+              period: 'current'
+            }
+          })
+        } else {
+          // Customer analytics
+          const subscriptions = await database.collection('subscriptions')
+            .find({ userId: firebaseUser.uid })
+            .toArray()
+
+          const packages = await database.collection('class_packages')
+            .find({ userId: firebaseUser.uid })
+            .toArray()
+
+          const xpassCredits = await database.collection('xpass_credits')
+            .findOne({ userId: firebaseUser.uid })
+
+          const totalSpent = subscriptions.reduce((sum, sub) => sum + (sub.amount || 0), 0) +
+                           packages.reduce((sum, pkg) => sum + (pkg.amount || 0), 0)
+
+          return NextResponse.json({
+            success: true,
+            analytics: {
+              totalSubscriptions: subscriptions.length,
+              activeSubscriptions: subscriptions.filter(sub => sub.status === 'active').length,
+              totalClassPackages: packages.length,
+              activeClassPackages: packages.filter(pkg => pkg.status === 'active').length,
+              xpassCredits: xpassCredits?.availableCredits || 0,
+              totalSpent: totalSpent,
+              memberSince: subscriptions.length > 0 ? subscriptions[0].createdAt : null,
+              favoriteStudio: null // TODO: Calculate based on booking history
+            }
+          })
+        }
+
+      } catch (error) {
+        console.error('Subscription analytics error:', error)
+        return NextResponse.json({ error: 'Failed to retrieve subscription analytics' }, { status: 500 })
+      }
+    }
+
+    // Get X Pass redemption history
+    if (path === '/payments/xpass-redemptions') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const url = new URL(request.url)
+        const limit = parseInt(url.searchParams.get('limit')) || 20
+        const offset = parseInt(url.searchParams.get('offset')) || 0
+        const studioId = url.searchParams.get('studioId')
+
+        let query = { 
+          userId: firebaseUser.uid,
+          type: 'xpass_redemption'
+        }
+        if (studioId) query.studioId = studioId
+
+        const redemptions = await database.collection('xpass_transactions')
+          .find(query)
+          .sort({ createdAt: -1 })
+          .skip(offset)
+          .limit(limit)
+          .toArray()
+
+        // Get studio information
+        const studioIds = redemptions.map(r => r.studioId).filter(Boolean)
+        const studios = await database.collection('profiles')
+          .find({ 
+            userId: { $in: studioIds },
+            role: 'merchant'
+          })
+          .toArray()
+
+        const enrichedRedemptions = redemptions.map(redemption => {
+          const studio = studios.find(s => s.userId === redemption.studioId)
+          return {
+            ...redemption,
+            studio: studio ? {
+              name: studio.businessName || studio.studioName,
+              address: studio.address,
+              city: studio.city,
+              state: studio.state
+            } : null
+          }
+        })
+
+        const totalCount = await database.collection('xpass_transactions')
+          .countDocuments(query)
+
+        return NextResponse.json({
+          success: true,
+          redemptions: enrichedRedemptions,
+          pagination: {
+            total: totalCount,
+            limit: limit,
+            offset: offset,
+            hasMore: offset + limit < totalCount
+          }
+        })
+
+      } catch (error) {
+        console.error('X Pass redemptions error:', error)
+        return NextResponse.json({ error: 'Failed to retrieve X Pass redemptions' }, { status: 500 })
+      }
+    }
+
+    // Get class package usage history
+    if (path === '/payments/class-package-usage') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const url = new URL(request.url)
+        const packageId = url.searchParams.get('packageId')
+        const limit = parseInt(url.searchParams.get('limit')) || 20
+
+        let query = { userId: firebaseUser.uid }
+        if (packageId) query.packageId = packageId
+
+        const usage = await database.collection('class_package_usage')
+          .find(query)
+          .sort({ usedAt: -1 })
+          .limit(limit)
+          .toArray()
+
+        // Get class and studio information
+        const classIds = usage.map(u => u.classId).filter(Boolean)
+        const studioIds = usage.map(u => u.studioId).filter(Boolean)
+
+        const classes = await database.collection('class_schedules')
+          .find({ id: { $in: classIds } })
+          .toArray()
+
+        const studios = await database.collection('profiles')
+          .find({ 
+            userId: { $in: studioIds },
+            role: 'merchant'
+          })
+          .toArray()
+
+        const enrichedUsage = usage.map(use => {
+          const classInfo = classes.find(c => c.id === use.classId)
+          const studio = studios.find(s => s.userId === use.studioId)
+          
+          return {
+            ...use,
+            class: classInfo ? {
+              name: classInfo.name,
+              startTime: classInfo.startTime,
+              instructor: classInfo.instructor
+            } : null,
+            studio: studio ? {
+              name: studio.businessName || studio.studioName,
+              address: studio.address
+            } : null
+          }
+        })
+
+        return NextResponse.json({
+          success: true,
+          usage: enrichedUsage,
+          totalUsage: usage.length
+        })
+
+      } catch (error) {
+        console.error('Class package usage error:', error)
+        return NextResponse.json({ error: 'Failed to retrieve class package usage' }, { status: 500 })
+      }
+    }
+
     // Get studio's payment statistics (for merchants)
     if (path === '/payments/studio-stats') {
       const firebaseUser = await getFirebaseUser(request)
