@@ -133,7 +133,9 @@ def test_authentication_protection(results):
     
     for method, endpoint in endpoints:
         response = make_request(method, endpoint, {}, no_auth_headers)
+        print(f"DEBUG AUTH: {method} {endpoint} - response is None: {response is None}")
         if response:
+            print(f"DEBUG AUTH: {method} {endpoint} - status code: {response.status_code}")
             passed = response.status_code == 401
             results.add_result(
                 f"Auth protection {method} {endpoint}",
