@@ -102,6 +102,85 @@ async function getWaitlistPosition(classId) {
   }
 }
 
+// Helper function to generate trending reason
+function generateTrendingReason(classItem, bookingCount) {
+  const reasons = []
+  
+  if (bookingCount >= (classItem.capacity * 0.8)) {
+    reasons.push("High booking rate")
+  }
+  
+  if (classItem.rating >= 4.5) {
+    reasons.push("Highly rated")
+  }
+  
+  if (classItem.recentlyCreated) {
+    reasons.push("New and popular")
+  }
+  
+  if (bookingCount >= 10) {
+    reasons.push("Community favorite")
+  }
+  
+  return reasons.length > 0 ? reasons.join(" • ") : "Rising popularity"
+}
+
+// Helper function to get trending studios
+async function getTrendingStudios(startDate, endDate, limit, database) {
+  try {
+    // Get studios with high booking rates
+    const studioBookings = await database.collection('bookings')
+      .aggregate([
+        {
+          $match: {
+            createdAt: { $gte: startDate, $lte: endDate },
+            status: 'confirmed'
+          }
+        },
+        {
+          $group: {
+            _id: '$studioId',
+            bookingCount: { $sum: 1 },
+            uniqueCustomers: { $addToSet: '$userId' }
+          }
+        },
+        {
+          $sort: { bookingCount: -1 }
+        },
+        {
+          $limit: limit
+        }
+      ])
+      .toArray()
+
+    // Get studio details
+    const studioIds = studioBookings.map(sb => sb._id)
+    const studios = await database.collection('profiles')
+      .find({ 
+        userId: { $in: studioIds },
+        role: 'merchant'
+      })
+      .toArray()
+
+    return studioBookings.map(booking => {
+      const studio = studios.find(s => s.userId === booking._id)
+      return {
+        id: booking._id,
+        name: studio?.businessName || studio?.studioName || 'Unknown Studio',
+        bookingCount: booking.bookingCount,
+        uniqueCustomers: booking.uniqueCustomers.length,
+        trendScore: booking.bookingCount * (booking.uniqueCustomers.length / booking.bookingCount),
+        location: studio?.address,
+        type: 'studio'
+      }
+    })
+
+  } catch (error) {
+    console.error('Get trending studios error:', error)
+    return 1
+  }
+}
+
 // Helper function to promote from waitlist
 async function promoteFromWaitlist(classId) {
   try {
