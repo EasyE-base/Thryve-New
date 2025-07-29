@@ -377,11 +377,33 @@ export default function Home() {
 
             <div className="flex items-center space-x-4">
               {user ? (
-                <Link href="/dashboard">
-                  <Button className="btn-modern bg-white/20 hover:bg-white/30 text-white px-6 py-2 rounded-full border border-white/30">
-                    Dashboard
+                <>
+                  {/* Communication Icons */}
+                  <Button 
+                    variant="ghost"
+                    size="sm"
+                    className="text-white hover:bg-white/10 p-2 rounded-full"
+                    onClick={() => setShowMessaging(true)}
+                    title="Messages"
+                  >
+                    <MessageCircle className="h-5 w-5" />
                   </Button>
-                </Link>
+                  <Button 
+                    variant="ghost"
+                    size="sm"
+                    className="text-white hover:bg-white/10 p-2 rounded-full relative"
+                    onClick={() => setShowNotifications(true)}
+                    title="Notifications"
+                  >
+                    <Bell className="h-5 w-5" />
+                    {/* Notification badge could be added here */}
+                  </Button>
+                  <Link href="/dashboard">
+                    <Button className="btn-modern bg-white/20 hover:bg-white/30 text-white px-6 py-2 rounded-full border border-white/30">
+                      Dashboard
+                    </Button>
+                  </Link>
+                </>
               ) : (
                 <>
                   <Button 
