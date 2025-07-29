@@ -525,8 +525,8 @@ Advanced Vinyasa,Dynamic flowing yoga practice,75,10,35.00,yoga,advanced,Previou
             
             if response.status_code == 200:
                 data = response.json()
-                if "uploads" in data:
-                    uploads = data["uploads"]
+                if "history" in data:
+                    uploads = data["history"]
                     self.log_test("Migration History", True, 
                                 f"Successfully retrieved {len(uploads)} migration records", response_time)
                     
