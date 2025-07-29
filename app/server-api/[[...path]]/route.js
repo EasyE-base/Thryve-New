@@ -5996,7 +5996,6 @@ async function handleDELETE(request) {
         })
 
         // Apply AI recommendation scoring to actual classes
-        const { default: aiRecommendationEngine } = await import('../../../lib/ai-recommendation-engine.js')
         const preferences = await aiRecommendationEngine.extractUserPreferences(userProfile)
         const behaviorData = await aiRecommendationEngine.getUserBehaviorData(firebaseUser.uid)
         
