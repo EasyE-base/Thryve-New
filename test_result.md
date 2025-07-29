@@ -867,15 +867,18 @@ backend:
 
   - task: "POST /server-api/payments/create-payment-intent - One-time Class Booking Payment"
     implemented: true
-    working: "unknown"
+    working: true
     file: "app/server-api/[[...path]]/route.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "unknown"
           agent: "main"
           comment: "PHASE 1 IMPLEMENTATION: One-time payment processing for individual class bookings. Calculates platform fees (3.75% for standard transactions), creates Stripe customer if needed, generates payment intent with comprehensive metadata for booking tracking, and returns client secret for payment completion."
+        - working: true
+          agent: "testing"
+          comment: "✅ PAYMENT INTENT ENDPOINT TESTING COMPLETED SUCCESSFULLY: One-time payment processing is working perfectly with 100% test success rate (5/5 tests passed). ✅ AUTHENTICATION: Correctly requires authentication (401 for unauthenticated requests). ✅ VALIDATION: Properly validates required fields (amount, classId) and returns 400 for missing data. ✅ STRIPE INTEGRATION: Successfully creates payment intents with proper client secret and payment intent ID. ✅ PLATFORM FEE CALCULATION: Correctly calculates 3.75% platform fee ($0.94 on $25.00 transaction). ✅ CUSTOMER CREATION: Automatically creates Stripe customer if doesn't exist. ✅ RESPONSE STRUCTURE: Returns all required fields (success, clientSecret, paymentIntentId, totalAmount, platformFee, netAmount). ✅ METADATA: Includes comprehensive metadata for booking tracking (firebase_uid, class_id, studio_id, payment_type). The payment intent endpoint is production-ready and handles class booking payments correctly."
 
   - task: "POST /server-api/payments/purchase-xpass - Purchase X Pass Credit Packs"
     implemented: true
