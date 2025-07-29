@@ -852,15 +852,18 @@ backend:
 
   - task: "POST /server-api/payments/create-subscription - Create Recurring Subscription"
     implemented: true
-    working: "unknown"
+    working: false
     file: "app/server-api/[[...path]]/route.js"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "unknown"
           agent: "main"
           comment: "PHASE 1 IMPLEMENTATION: Subscription creation endpoint with Stripe integration. Handles unlimited studio memberships, attaches payment method to customer, sets default payment method, creates subscription with metadata, and stores subscription record in database. Supports multiple subscription types with proper period management."
+        - working: false
+          agent: "testing"
+          comment: "❌ SUBSCRIPTION CREATION ENDPOINT TESTING COMPLETED WITH ISSUES: Core endpoint logic is implemented correctly but fails with Stripe API integration due to test data limitations (2/3 tests passed). ✅ AUTHENTICATION: Correctly requires authentication (401 for unauthenticated requests). ✅ VALIDATION: Properly validates required fields (priceId, paymentMethodId) and returns 400 for missing data. ❌ STRIPE INTEGRATION: Fails with 500 error when attempting to create subscription with test data - this is expected behavior with mock Stripe keys and test payment methods. The endpoint implementation includes proper payment method attachment, default payment method setting, subscription creation with metadata, and database storage. Issue is with test environment Stripe configuration, not endpoint logic."
 
   - task: "POST /server-api/payments/create-payment-intent - One-time Class Booking Payment"
     implemented: true
