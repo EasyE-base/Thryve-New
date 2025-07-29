@@ -4671,6 +4671,555 @@ async function handlePOST(request) {
       }
     }
 
+    // ===== ADVANCED CLASS MANAGEMENT & SCHEDULING ENDPOINTS =====
+
+    // Create new class template
+    if (path === '/classes') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        // Check if user is a merchant/studio owner
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        if (!userProfile || userProfile.role !== 'merchant') {
+          return NextResponse.json({ error: 'Only studio owners can create classes' }, { status: 403 })
+        }
+
+        const body = await request.json()
+        const { 
+          name, description, duration, capacity, price, category, level, 
+          requirements, startTime, scheduleDays, recurrencePattern,
+          defaultInstructorId, tags, memberPlusOnly, xPassEligible 
+        } = body
+
+        if (!name || !duration || !capacity || !startTime) {
+          return NextResponse.json({ error: 'Name, duration, capacity, and start time are required' }, { status: 400 })
+        }
+
+        // Import scheduling engine
+        const { default: schedulingEngine } = await import('../../../lib/class-scheduling-engine.js')
+        
+        // Validate scheduling
+        const validation = schedulingEngine.validateScheduling(body)
+        if (!validation.isValid) {
+          return NextResponse.json({ 
+            error: 'Invalid class data', 
+            details: validation.errors 
+          }, { status: 400 })
+        }
+
+        const classTemplate = {
+          id: `class_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          name,
+          description: description || '',
+          duration: parseInt(duration),
+          capacity: parseInt(capacity),
+          price: parseFloat(price) || 0,
+          category: category || 'fitness',
+          level: level || 'all-levels',
+          requirements: requirements || '',
+          startTime, // Format: "HH:MM"
+          scheduleDays: scheduleDays || [], // ['monday', 'wednesday', 'friday']
+          recurrencePattern: recurrencePattern || 'weekly',
+          defaultInstructorId: defaultInstructorId || null,
+          tags: tags || [],
+          memberPlusOnly: memberPlusOnly || false,
+          xPassEligible: xPassEligible !== false,
+          studioId: firebaseUser.uid,
+          studioName: userProfile.studioName || userProfile.businessName || 'Studio',
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+
+        await database.collection('studio_classes').insertOne(classTemplate)
+
+        return NextResponse.json({
+          success: true,
+          class: classTemplate,
+          warnings: validation.warnings || [],
+          message: `Class "${name}" created successfully`
+        })
+
+      } catch (error) {
+        console.error('Class creation error:', error)
+        return NextResponse.json({ error: 'Failed to create class' }, { status: 500 })
+      }
+    }
+
+    // Generate class schedule instances
+    if (path === '/classes/schedule/generate') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { classId, startDate, endDate, recurrencePattern } = body
+
+        if (!classId || !startDate || !endDate) {
+          return NextResponse.json({ error: 'Class ID, start date, and end date are required' }, { status: 400 })
+        }
+
+        // Get class template
+        const classTemplate = await database.collection('studio_classes').findOne({
+          id: classId,
+          studioId: firebaseUser.uid
+        })
+
+        if (!classTemplate) {
+          return NextResponse.json({ error: 'Class not found' }, { status: 404 })
+        }
+
+        // Import scheduling engine
+        const { default: schedulingEngine } = await import('../../../lib/class-scheduling-engine.js')
+        
+        // Generate schedule instances
+        const instances = schedulingEngine.generateScheduleInstances(
+          classTemplate,
+          startDate,
+          endDate,
+          recurrencePattern || classTemplate.recurrencePattern
+        )
+
+        // Save instances to database
+        if (instances.length > 0) {
+          await database.collection('class_schedules').insertMany(instances)
+        }
+
+        return NextResponse.json({
+          success: true,
+          generated: instances.length,
+          instances: instances.slice(0, 10), // Return first 10 for preview
+          totalGenerated: instances.length,
+          message: `Generated ${instances.length} class instances`
+        })
+
+      } catch (error) {
+        console.error('Schedule generation error:', error)
+        return NextResponse.json({ error: 'Failed to generate schedule' }, { status: 500 })
+      }
+    }
+
+    // Book a class
+    if (path === '/booking/create') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { classInstanceId, paymentMethod, membershipType } = body
+
+        if (!classInstanceId) {
+          return NextResponse.json({ error: 'Class instance ID is required' }, { status: 400 })
+        }
+
+        // Get class instance
+        const classInstance = await database.collection('class_schedules').findOne({
+          id: classInstanceId
+        })
+
+        if (!classInstance) {
+          return NextResponse.json({ error: 'Class not found' }, { status: 404 })
+        }
+
+        // Check if user already booked this class
+        const existingBooking = await database.collection('bookings').findOne({
+          classInstanceId,
+          userId: firebaseUser.uid,
+          status: { $in: ['confirmed', 'pending'] }
+        })
+
+        if (existingBooking) {
+          return NextResponse.json({ error: 'You have already booked this class' }, { status: 400 })
+        }
+
+        // Get current bookings for availability check
+        const currentBookings = await database.collection('bookings')
+          .find({ 
+            classInstanceId, 
+            status: 'confirmed' 
+          })
+          .toArray()
+
+        // Get user membership
+        const userMembership = await database.collection('user_memberships').findOne({
+          userId: firebaseUser.uid,
+          status: 'active'
+        })
+
+        // Import scheduling engine
+        const { default: schedulingEngine } = await import('../../../lib/class-scheduling-engine.js')
+        
+        // Calculate current availability
+        const updatedInstance = schedulingEngine.calculateAvailability(
+          [classInstance], 
+          currentBookings, 
+          []
+        )[0]
+
+        // Process booking request
+        const bookingResult = schedulingEngine.processBookingRequest(
+          updatedInstance, 
+          firebaseUser.uid, 
+          userMembership
+        )
+
+        if (!bookingResult.success) {
+          if (bookingResult.code === 'CLASS_FULL' && bookingResult.suggestion === 'waitlist') {
+            return NextResponse.json({
+              error: bookingResult.error,
+              code: bookingResult.code,
+              suggestion: 'Would you like to join the waitlist instead?',
+              waitlistAvailable: true
+            }, { status: 409 })
+          }
+          
+          return NextResponse.json({ 
+            error: bookingResult.error,
+            code: bookingResult.code 
+          }, { status: 400 })
+        }
+
+        // Save booking to database
+        await database.collection('bookings').insertOne(bookingResult.booking)
+
+        // Update class instance booking count
+        await database.collection('class_schedules').updateOne(
+          { id: classInstanceId },
+          { 
+            $inc: { bookedCount: 1 },
+            $set: { 
+              availableSpots: Math.max(0, classInstance.capacity - (currentBookings.length + 1)),
+              updatedAt: new Date()
+            }
+          }
+        )
+
+        return NextResponse.json({
+          success: true,
+          booking: bookingResult.booking,
+          message: 'Class booked successfully!',
+          remainingSpots: Math.max(0, classInstance.capacity - (currentBookings.length + 1))
+        })
+
+      } catch (error) {
+        console.error('Booking error:', error)
+        return NextResponse.json({ error: 'Failed to create booking' }, { status: 500 })
+      }
+    }
+
+    // Join waitlist
+    if (path === '/booking/waitlist') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { classInstanceId, autoBook, notifications } = body
+
+        if (!classInstanceId) {
+          return NextResponse.json({ error: 'Class instance ID is required' }, { status: 400 })
+        }
+
+        // Get class instance
+        const classInstance = await database.collection('class_schedules').findOne({
+          id: classInstanceId
+        })
+
+        if (!classInstance) {
+          return NextResponse.json({ error: 'Class not found' }, { status: 404 })
+        }
+
+        // Check if user already on waitlist
+        const existingWaitlist = await database.collection('waitlists').findOne({
+          classInstanceId,
+          userId: firebaseUser.uid,
+          status: 'active'
+        })
+
+        if (existingWaitlist) {
+          return NextResponse.json({ error: 'You are already on the waitlist for this class' }, { status: 400 })
+        }
+
+        // Get current waitlist
+        const currentWaitlist = await database.collection('waitlists')
+          .find({ 
+            classInstanceId, 
+            status: 'active' 
+          })
+          .toArray()
+
+        // Import scheduling engine
+        const { default: schedulingEngine } = await import('../../../lib/class-scheduling-engine.js')
+        
+        // Add to waitlist
+        const waitlistEntry = schedulingEngine.addToWaitlist(
+          { ...classInstance, waitlistCount: currentWaitlist.length },
+          firebaseUser.uid,
+          { autoBook: autoBook || false, notifications: notifications || { email: true, sms: false } }
+        )
+
+        // Save to database
+        await database.collection('waitlists').insertOne(waitlistEntry)
+
+        // Update class instance waitlist count
+        await database.collection('class_schedules').updateOne(
+          { id: classInstanceId },
+          { 
+            $inc: { waitlistCount: 1 },
+            $set: { updatedAt: new Date() }
+          }
+        )
+
+        return NextResponse.json({
+          success: true,
+          waitlist: waitlistEntry,
+          position: waitlistEntry.position,
+          message: `Added to waitlist at position ${waitlistEntry.position}`
+        })
+
+      } catch (error) {
+        console.error('Waitlist error:', error)
+        return NextResponse.json({ error: 'Failed to join waitlist' }, { status: 500 })
+      }
+    }
+
+    // Cancel booking
+    if (path === '/booking/cancel') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { bookingId } = body
+
+        if (!bookingId) {
+          return NextResponse.json({ error: 'Booking ID is required' }, { status: 400 })
+        }
+
+        // Get booking
+        const booking = await database.collection('bookings').findOne({
+          id: bookingId,
+          userId: firebaseUser.uid
+        })
+
+        if (!booking) {
+          return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
+        }
+
+        // Check cancellation policy
+        const classStartTime = new Date(booking.startTime)
+        const now = new Date()
+        const hoursUntilClass = (classStartTime - now) / (1000 * 60 * 60)
+
+        // Get studio cancellation policy (default 24 hours)
+        const studio = await database.collection('profiles').findOne({
+          userId: booking.studioId || 'default'
+        })
+        const cancellationHours = studio?.cancellationPolicy || 24
+
+        let cancellationFee = 0
+        let refundAmount = booking.price || 0
+
+        if (hoursUntilClass < cancellationHours) {
+          cancellationFee = studio?.lateCancelFee || 10
+          refundAmount = Math.max(0, refundAmount - cancellationFee)
+        }
+
+        // Update booking status
+        await database.collection('bookings').updateOne(
+          { id: bookingId },
+          { 
+            $set: { 
+              status: 'cancelled',
+              cancelledAt: new Date(),
+              cancellationFee,
+              refundAmount,
+              cancelledBy: firebaseUser.uid
+            }
+          }
+        )
+
+        // Update class instance availability
+        await database.collection('class_schedules').updateOne(
+          { id: booking.classInstanceId },
+          { 
+            $inc: { 
+              bookedCount: -1,
+              availableSpots: 1
+            },
+            $set: { updatedAt: new Date() }
+          }
+        )
+
+        // Check for waitlist promotions
+        const waitlistEntries = await database.collection('waitlists')
+          .find({ 
+            classInstanceId: booking.classInstanceId, 
+            status: 'active' 
+          })
+          .sort({ createdAt: 1 })
+          .toArray()
+
+        if (waitlistEntries.length > 0) {
+          // Import scheduling engine
+          const { default: schedulingEngine } = await import('../../../lib/class-scheduling-engine.js')
+          
+          const promotions = schedulingEngine.promoteFromWaitlist(waitlistEntries, 1)
+          
+          if (promotions.length > 0) {
+            const promotion = promotions[0]
+            
+            // Update waitlist entry
+            await database.collection('waitlists').updateOne(
+              { id: promotion.waitlistId },
+              { 
+                $set: { 
+                  status: 'promoted',
+                  promotedAt: promotion.promotedAt
+                }
+              }
+            )
+
+            // Auto-book if enabled
+            if (promotion.autoBook && promotion.booking) {
+              await database.collection('bookings').insertOne(promotion.booking)
+              
+              // Update class counts
+              await database.collection('class_schedules').updateOne(
+                { id: booking.classInstanceId },
+                { 
+                  $inc: { 
+                    bookedCount: 1,
+                    availableSpots: -1,
+                    waitlistCount: -1
+                  }
+                }
+              )
+            }
+          }
+        }
+
+        return NextResponse.json({
+          success: true,
+          cancellation: {
+            bookingId,
+            cancellationFee,
+            refundAmount,
+            hoursUntilClass: Math.round(hoursUntilClass * 10) / 10
+          },
+          waitlistPromoted: waitlistEntries.length > 0,
+          message: cancellationFee > 0 
+            ? `Booking cancelled. Late cancellation fee: $${cancellationFee}` 
+            : 'Booking cancelled successfully'
+        })
+
+      } catch (error) {
+        console.error('Cancellation error:', error)
+        return NextResponse.json({ error: 'Failed to cancel booking' }, { status: 500 })
+      }
+    }
+
+    // Assign instructor to class
+    if (path === '/classes/assign-instructor') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { classInstanceId, instructorId } = body
+
+        if (!classInstanceId || !instructorId) {
+          return NextResponse.json({ error: 'Class instance ID and instructor ID are required' }, { status: 400 })
+        }
+
+        // Check if user owns the studio
+        const classInstance = await database.collection('class_schedules').findOne({
+          id: classInstanceId,
+          studioId: firebaseUser.uid
+        })
+
+        if (!classInstance) {
+          return NextResponse.json({ error: 'Class not found or access denied' }, { status: 404 })
+        }
+
+        // Get instructor's existing assignments for conflict checking
+        const startTime = new Date(classInstance.startTime)
+        const endTime = new Date(classInstance.endTime)
+        
+        const conflictingAssignments = await database.collection('class_schedules')
+          .find({
+            instructorId,
+            startTime: { $lt: endTime.toISOString() },
+            endTime: { $gt: startTime.toISOString() },
+            status: { $ne: 'cancelled' },
+            id: { $ne: classInstanceId }
+          })
+          .toArray()
+
+        if (conflictingAssignments.length > 0) {
+          return NextResponse.json({
+            error: 'Instructor has a scheduling conflict',
+            conflicts: conflictingAssignments.map(c => ({
+              classId: c.id,
+              className: c.className,
+              startTime: c.startTime,
+              endTime: c.endTime
+            }))
+          }, { status: 409 })
+        }
+
+        // Get instructor details
+        const instructor = await database.collection('profiles').findOne({
+          userId: instructorId,
+          role: 'instructor'
+        })
+
+        if (!instructor) {
+          return NextResponse.json({ error: 'Instructor not found' }, { status: 404 })
+        }
+
+        // Update class assignment
+        await database.collection('class_schedules').updateOne(
+          { id: classInstanceId },
+          { 
+            $set: { 
+              instructorId,
+              instructorName: `${instructor.firstName} ${instructor.lastName}`,
+              updatedAt: new Date()
+            }
+          }
+        )
+
+        return NextResponse.json({
+          success: true,
+          assignment: {
+            classInstanceId,
+            instructorId,
+            instructorName: `${instructor.firstName} ${instructor.lastName}`,
+            assignedAt: new Date()
+          },
+          message: 'Instructor assigned successfully'
+        })
+
+      } catch (error) {
+        console.error('Instructor assignment error:', error)
+        return NextResponse.json({ error: 'Failed to assign instructor' }, { status: 500 })
+      }
+    }
+
     return NextResponse.json({ error: 'Endpoint not found' }, { status: 404 })
   } catch (error) {
     console.error('POST Error:', error)
