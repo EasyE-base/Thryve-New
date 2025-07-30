@@ -8598,6 +8598,617 @@ async function handlePOST(request) {
       }
     }
 
+    // ========================================
+    // PHASE 4: BOOKING INTEGRATION & PAYMENT VALIDATION
+    // ========================================
+
+    // Validate payment before booking
+    if (path === '/bookings/validate-payment') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { classId, paymentMethod, packageId, subscriptionId } = body
+
+        if (!classId || !paymentMethod) {
+          return NextResponse.json({ error: 'Class ID and payment method are required' }, { status: 400 })
+        }
+
+        // Get class details
+        const classDetails = await database.collection('class_schedules').findOne({
+          id: classId
+        })
+
+        if (!classDetails) {
+          return NextResponse.json({ error: 'Class not found' }, { status: 404 })
+        }
+
+        // Check class availability
+        const bookings = await database.collection('bookings').countDocuments({
+          classInstanceId: classId,
+          status: 'confirmed'
+        })
+
+        const availableSpots = Math.max(0, (classDetails.capacity || 20) - bookings)
+        if (availableSpots <= 0) {
+          return NextResponse.json({
+            success: false,
+            error: 'Class is fully booked',
+            validationResult: {
+              isValid: false,
+              reason: 'class_full',
+              availableSpots: 0
+            }
+          })
+        }
+
+        let validationResult = {
+          isValid: false,
+          reason: '',
+          availableSpots: availableSpots,
+          classDetails: classDetails,
+          paymentDetails: {}
+        }
+
+        // Validate based on payment method
+        switch (paymentMethod) {
+          case 'class_package':
+            if (!packageId) {
+              return NextResponse.json({ error: 'Package ID required for class package payment' }, { status: 400 })
+            }
+
+            const classPackage = await database.collection('class_packages').findOne({
+              id: packageId,
+              userId: firebaseUser.uid,
+              status: 'active'
+            })
+
+            if (!classPackage) {
+              validationResult.reason = 'package_not_found'
+              break
+            }
+
+            if (classPackage.remainingClasses <= 0) {
+              validationResult.reason = 'package_depleted'
+              break
+            }
+
+            if (new Date() > new Date(classPackage.expirationDate)) {
+              validationResult.reason = 'package_expired'
+              break
+            }
+
+            if (classPackage.studioId !== classDetails.studioId) {
+              validationResult.reason = 'package_studio_mismatch'
+              break
+            }
+
+            validationResult.isValid = true
+            validationResult.paymentDetails = {
+              packageType: classPackage.packageType,
+              remainingClasses: classPackage.remainingClasses,
+              expirationDate: classPackage.expirationDate
+            }
+            break
+
+          case 'xpass':
+            const xpassCredits = await database.collection('xpass_credits').findOne({
+              userId: firebaseUser.uid
+            })
+
+            if (!xpassCredits || xpassCredits.availableCredits < 1) {
+              validationResult.reason = 'insufficient_xpass_credits'
+              break
+            }
+
+            // Check if studio accepts X Pass
+            const studioSettings = await database.collection('studio_xpass_settings').findOne({
+              studioId: classDetails.studioId
+            })
+
+            if (!studioSettings?.acceptsXPass) {
+              validationResult.reason = 'studio_no_xpass'
+              break
+            }
+
+            validationResult.isValid = true
+            validationResult.paymentDetails = {
+              availableCredits: xpassCredits.availableCredits,
+              platformFeeRate: studioSettings.platformFeeRate || 0.075
+            }
+            break
+
+          case 'subscription':
+            if (!subscriptionId) {
+              return NextResponse.json({ error: 'Subscription ID required for subscription payment' }, { status: 400 })
+            }
+
+            const subscription = await database.collection('subscriptions').findOne({
+              id: subscriptionId,
+              userId: firebaseUser.uid,
+              status: 'active'
+            })
+
+            if (!subscription) {
+              validationResult.reason = 'subscription_not_found'
+              break
+            }
+
+            if (subscription.studioId !== classDetails.studioId) {
+              validationResult.reason = 'subscription_studio_mismatch'
+              break
+            }
+
+            // Check if subscription is current
+            if (new Date() > new Date(subscription.currentPeriodEnd)) {
+              validationResult.reason = 'subscription_expired'
+              break
+            }
+
+            validationResult.isValid = true
+            validationResult.paymentDetails = {
+              subscriptionType: subscription.subscriptionType,
+              currentPeriodEnd: subscription.currentPeriodEnd
+            }
+            break
+
+          case 'one_time':
+            // One-time payment always valid if user has payment method
+            const userProfile = await database.collection('profiles').findOne({
+              userId: firebaseUser.uid
+            })
+
+            if (!userProfile?.stripeCustomerId) {
+              validationResult.reason = 'no_payment_method'
+              break
+            }
+
+            validationResult.isValid = true
+            validationResult.paymentDetails = {
+              amount: classDetails.price || 2000, // Default $20
+              platformFee: Math.round((classDetails.price || 2000) * 0.0375)
+            }
+            break
+
+          default:
+            validationResult.reason = 'invalid_payment_method'
+        }
+
+        return NextResponse.json({
+          success: true,
+          validationResult: validationResult
+        })
+
+      } catch (error) {
+        console.error('Payment validation error:', error)
+        return NextResponse.json({ error: 'Failed to validate payment' }, { status: 500 })
+      }
+    }
+
+    // Process booking with payment
+    if (path === '/bookings/create-with-payment') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { classId, paymentMethod, packageId, subscriptionId, paymentMethodId } = body
+
+        // First validate payment
+        const validationResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/server-api/bookings/validate-payment`, {
+          method: 'POST',
+          headers: {
+            'Authorization': request.headers.get('Authorization'),
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ classId, paymentMethod, packageId, subscriptionId })
+        })
+
+        const validation = await validationResponse.json()
+        
+        if (!validation.success || !validation.validationResult.isValid) {
+          return NextResponse.json({
+            success: false,
+            error: 'Payment validation failed',
+            reason: validation.validationResult?.reason
+          }, { status: 400 })
+        }
+
+        // Create booking record
+        const bookingId = `booking-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+        const classDetails = validation.validationResult.classDetails
+
+        const booking = {
+          id: bookingId,
+          userId: firebaseUser.uid,
+          classInstanceId: classId,
+          studioId: classDetails.studioId,
+          className: classDetails.name,
+          classStartTime: classDetails.startTime,
+          instructorId: classDetails.instructorId,
+          paymentMethod: paymentMethod,
+          packageId: packageId,
+          subscriptionId: subscriptionId,
+          status: 'pending_payment',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+
+        await database.collection('bookings').insertOne(booking)
+
+        // Process payment based on method
+        let paymentResult = {}
+
+        switch (paymentMethod) {
+          case 'class_package':
+            // Deduct from class package
+            await database.collection('class_packages').updateOne(
+              { id: packageId, userId: firebaseUser.uid },
+              {
+                $inc: { remainingClasses: -1, usedClasses: 1 },
+                $set: { 
+                  updatedAt: new Date(),
+                  status: validation.validationResult.paymentDetails.remainingClasses === 1 ? 'depleted' : 'active'
+                }
+              }
+            )
+
+            paymentResult = {
+              type: 'class_package',
+              remainingClasses: validation.validationResult.paymentDetails.remainingClasses - 1
+            }
+            break
+
+          case 'xpass':
+            // Deduct X Pass credit
+            await database.collection('xpass_credits').updateOne(
+              { userId: firebaseUser.uid },
+              {
+                $inc: { availableCredits: -1, totalSpent: 1 },
+                $set: { updatedAt: new Date() }
+              }
+            )
+
+            // Record X Pass transaction
+            const xpassTransaction = {
+              id: `xpass-booking-${Date.now()}`,
+              userId: firebaseUser.uid,
+              studioId: classDetails.studioId,
+              classId: classId,
+              bookingId: bookingId,
+              type: 'xpass_redemption',
+              creditsUsed: 1,
+              createdAt: new Date()
+            }
+            await database.collection('xpass_transactions').insertOne(xpassTransaction)
+
+            paymentResult = {
+              type: 'xpass',
+              remainingCredits: validation.validationResult.paymentDetails.availableCredits - 1
+            }
+            break
+
+          case 'subscription':
+            // No payment needed for subscription
+            paymentResult = {
+              type: 'subscription',
+              subscriptionType: validation.validationResult.paymentDetails.subscriptionType
+            }
+            break
+
+          case 'one_time':
+            // Create payment intent
+            const userProfile = await database.collection('profiles').findOne({
+              userId: firebaseUser.uid
+            })
+
+            const amount = validation.validationResult.paymentDetails.amount
+            const platformFee = validation.validationResult.paymentDetails.platformFee
+
+            const paymentIntent = await stripe.paymentIntents.create({
+              amount: amount + platformFee,
+              currency: 'usd',
+              customer: userProfile.stripeCustomerId,
+              payment_method: paymentMethodId,
+              confirm: paymentMethodId ? true : false,
+              metadata: {
+                firebase_uid: firebaseUser.uid,
+                booking_id: bookingId,
+                class_id: classId,
+                payment_type: 'class_booking',
+                platform_fee: platformFee.toString()
+              }
+            })
+
+            paymentResult = {
+              type: 'one_time',
+              paymentIntentId: paymentIntent.id,
+              clientSecret: paymentIntent.client_secret,
+              amount: amount + platformFee,
+              requiresAction: paymentIntent.status === 'requires_action'
+            }
+
+            // Update booking with payment intent
+            await database.collection('bookings').updateOne(
+              { id: bookingId },
+              {
+                $set: {
+                  paymentIntentId: paymentIntent.id,
+                  amount: amount,
+                  platformFee: platformFee,
+                  updatedAt: new Date()
+                }
+              }
+            )
+            break
+        }
+
+        // Update booking status if payment completed (non-one-time payments)
+        if (paymentMethod !== 'one_time') {
+          await database.collection('bookings').updateOne(
+            { id: bookingId },
+            {
+              $set: {
+                status: 'confirmed',
+                confirmedAt: new Date(),
+                updatedAt: new Date()
+              }
+            }
+          )
+
+          // Update class capacity
+          await database.collection('class_schedules').updateOne(
+            { id: classId },
+            {
+              $inc: { bookedCount: 1 },
+              $set: { updatedAt: new Date() }
+            }
+          )
+        }
+
+        return NextResponse.json({
+          success: true,
+          booking: {
+            id: bookingId,
+            classId: classId,
+            className: classDetails.name,
+            startTime: classDetails.startTime,
+            status: paymentMethod !== 'one_time' ? 'confirmed' : 'pending_payment'
+          },
+          payment: paymentResult
+        })
+
+      } catch (error) {
+        console.error('Booking creation error:', error)
+        return NextResponse.json({ error: 'Failed to create booking' }, { status: 500 })
+      }
+    }
+
+    // Confirm booking after payment
+    if (path === '/bookings/confirm-payment') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { bookingId, paymentIntentId } = body
+
+        if (!bookingId || !paymentIntentId) {
+          return NextResponse.json({ error: 'Booking ID and payment intent ID are required' }, { status: 400 })
+        }
+
+        // Get booking
+        const booking = await database.collection('bookings').findOne({
+          id: bookingId,
+          userId: firebaseUser.uid
+        })
+
+        if (!booking) {
+          return NextResponse.json({ error: 'Booking not found or unauthorized' }, { status: 404 })
+        }
+
+        // Verify payment intent status
+        const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId)
+        
+        if (paymentIntent.status !== 'succeeded') {
+          return NextResponse.json({
+            success: false,
+            error: 'Payment not completed',
+            paymentStatus: paymentIntent.status
+          }, { status: 400 })
+        }
+
+        // Update booking to confirmed
+        await database.collection('bookings').updateOne(
+          { id: bookingId },
+          {
+            $set: {
+              status: 'confirmed',
+              confirmedAt: new Date(),
+              paymentCompletedAt: new Date(),
+              updatedAt: new Date()
+            }
+          }
+        )
+
+        // Update class capacity
+        await database.collection('class_schedules').updateOne(
+          { id: booking.classInstanceId },
+          {
+            $inc: { bookedCount: 1 },
+            $set: { updatedAt: new Date() }
+          }
+        )
+
+        // Record transaction
+        const transaction = {
+          id: `booking-txn-${Date.now()}`,
+          userId: firebaseUser.uid,
+          bookingId: bookingId,
+          paymentIntentId: paymentIntentId,
+          type: 'booking_payment',
+          amount: paymentIntent.amount,
+          status: 'completed',
+          createdAt: new Date()
+        }
+        await database.collection('transactions').insertOne(transaction)
+
+        return NextResponse.json({
+          success: true,
+          message: 'Booking confirmed successfully',
+          booking: {
+            id: bookingId,
+            status: 'confirmed',
+            confirmedAt: new Date()
+          }
+        })
+
+      } catch (error) {
+        console.error('Booking confirmation error:', error)
+        return NextResponse.json({ error: 'Failed to confirm booking' }, { status: 500 })
+      }
+    }
+
+    // Multi-payment method selection
+    if (path === '/bookings/payment-methods') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { classId } = body
+
+        if (!classId) {
+          return NextResponse.json({ error: 'Class ID is required' }, { status: 400 })
+        }
+
+        // Get class details
+        const classDetails = await database.collection('class_schedules').findOne({
+          id: classId
+        })
+
+        if (!classDetails) {
+          return NextResponse.json({ error: 'Class not found' }, { status: 404 })
+        }
+
+        const availablePaymentMethods = []
+
+        // Check for valid class packages
+        const classPackages = await database.collection('class_packages').find({
+          userId: firebaseUser.uid,
+          studioId: classDetails.studioId,
+          status: 'active',
+          remainingClasses: { $gt: 0 },
+          expirationDate: { $gt: new Date() }
+        }).toArray()
+
+        if (classPackages.length > 0) {
+          availablePaymentMethods.push({
+            type: 'class_package',
+            name: 'Class Package',
+            options: classPackages.map(pkg => ({
+              id: pkg.id,
+              name: `${pkg.packageType} (${pkg.remainingClasses} classes left)`,
+              remainingClasses: pkg.remainingClasses,
+              expirationDate: pkg.expirationDate
+            }))
+          })
+        }
+
+        // Check for X Pass credits
+        const xpassCredits = await database.collection('xpass_credits').findOne({
+          userId: firebaseUser.uid
+        })
+
+        const studioXPassSettings = await database.collection('studio_xpass_settings').findOne({
+          studioId: classDetails.studioId
+        })
+
+        if (xpassCredits?.availableCredits > 0 && studioXPassSettings?.acceptsXPass) {
+          availablePaymentMethods.push({
+            type: 'xpass',
+            name: 'X Pass Credit',
+            availableCredits: xpassCredits.availableCredits,
+            platformFeeRate: studioXPassSettings.platformFeeRate || 0.075
+          })
+        }
+
+        // Check for valid subscriptions
+        const subscriptions = await database.collection('subscriptions').find({
+          userId: firebaseUser.uid,
+          studioId: classDetails.studioId,
+          status: 'active',
+          currentPeriodEnd: { $gt: new Date() }
+        }).toArray()
+
+        if (subscriptions.length > 0) {
+          availablePaymentMethods.push({
+            type: 'subscription',
+            name: 'Studio Membership',
+            options: subscriptions.map(sub => ({
+              id: sub.id,
+              name: sub.subscriptionType || 'Unlimited Membership',
+              periodEnd: sub.currentPeriodEnd
+            }))
+          })
+        }
+
+        // Check for saved payment methods
+        const userProfile = await database.collection('profiles').findOne({
+          userId: firebaseUser.uid
+        })
+
+        if (userProfile?.stripeCustomerId) {
+          const paymentMethods = await stripe.paymentMethods.list({
+            customer: userProfile.stripeCustomerId,
+            type: 'card'
+          })
+
+          if (paymentMethods.data.length > 0) {
+            availablePaymentMethods.push({
+              type: 'one_time',
+              name: 'Credit/Debit Card',
+              amount: classDetails.price || 2000,
+              platformFee: Math.round((classDetails.price || 2000) * 0.0375),
+              savedCards: paymentMethods.data.map(pm => ({
+                id: pm.id,
+                brand: pm.card.brand,
+                last4: pm.card.last4,
+                expMonth: pm.card.exp_month,
+                expYear: pm.card.exp_year
+              }))
+            })
+          }
+        }
+
+        return NextResponse.json({
+          success: true,
+          classDetails: {
+            id: classDetails.id,
+            name: classDetails.name,
+            price: classDetails.price || 2000,
+            startTime: classDetails.startTime,
+            instructor: classDetails.instructor
+          },
+          availablePaymentMethods: availablePaymentMethods,
+          recommendedMethod: availablePaymentMethods.length > 0 ? availablePaymentMethods[0].type : null
+        })
+
+      } catch (error) {
+        console.error('Payment methods error:', error)
+        return NextResponse.json({ error: 'Failed to get payment methods' }, { status: 500 })
+      }
+    }
+
     // Enhanced Stripe webhook handling
     if (path === '/payments/webhook') {
       const body = await request.text()
