@@ -178,13 +178,19 @@ export default function Home() {
 
       try {
         if (isSignUp) {
-          // Sign up logic
+          // Sign up logic - redirect to role selection
           toast.success('Account created successfully!')
+          setShowSignInModal(false)
+          // Redirect to role selection page
+          window.location.href = '/signup/role-selection'
         } else {
-          // Sign in logic  
+          // Sign in logic - check if user exists, redirect to appropriate dashboard
           toast.success('Signed in successfully!')
+          setShowSignInModal(false)
+          // For demo purposes, redirect to customer dashboard
+          // In real implementation, this would check user role and redirect accordingly
+          window.location.href = '/dashboard/customer'
         }
-        setShowSignInModal(false)
       } catch (error) {
         toast.error('Authentication failed. Please try again.')
       } finally {
