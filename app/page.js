@@ -1367,27 +1367,90 @@ export default function Home() {
         </div>
       </section>
 
-      {/* X Pass Banner */}
-      <section className="py-24 bg-gradient-to-r from-[#1E90FF] to-[#4A90E2]">
-        <div className="container mx-auto px-6">
-          <div className="text-center text-white">
-            <div className="flex justify-center mb-6">
-              <Infinity className="h-16 w-16" />
+      {/* X Pass Banner - Modern Design */}
+      <section className="py-32 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 relative overflow-hidden">
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0">
+          <div className="absolute top-20 left-20 w-64 h-64 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-20 right-20 w-96 h-96 bg-white/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-white/15 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '4s' }}></div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-6 text-center relative z-10">
+          {/* Icon */}
+          <div className="mb-8">
+            <div className="inline-flex items-center justify-center w-24 h-24 bg-white/20 backdrop-blur-sm rounded-3xl border border-white/30 shadow-2xl">
+              <Infinity className="h-12 w-12 text-white" />
             </div>
-            <h2 className="text-5xl font-bold mb-6">Thryve X Pass</h2>
-            <p className="text-2xl mb-8 max-w-3xl mx-auto opacity-90">
-              One membership. Thousands of classes. Unlimited discovery.
-            </p>
-            <p className="text-xl mb-12 max-w-2xl mx-auto opacity-75">
-              Access premium studios across your city with a single pass. More freedom for you, better revenue for studios.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-6 justify-center">
-              <Button size="lg" className="bg-white text-[#1E90FF] hover:bg-gray-100 px-8 py-4 rounded-full text-lg font-semibold">
-                Get X Pass
-              </Button>
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-[#1E90FF] px-8 py-4 rounded-full text-lg font-semibold">
-                Accept X Pass
-              </Button>
+          </div>
+
+          {/* Badge */}
+          <div className="inline-flex items-center px-6 py-3 bg-white/20 backdrop-blur-sm rounded-full border border-white/30 mb-8">
+            <span className="text-white text-sm font-bold">
+              ✨ One Pass, Unlimited Possibilities
+            </span>
+          </div>
+
+          {/* Main Heading */}
+          <h2 className="text-6xl md:text-8xl font-black text-white mb-6 leading-tight">
+            Thryve{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-orange-300">
+              X Pass
+            </span>
+          </h2>
+
+          {/* Subheadings */}
+          <p className="text-2xl md:text-3xl text-white/90 mb-8 max-w-4xl mx-auto font-medium leading-relaxed">
+            One membership. Thousands of classes. Unlimited discovery.
+          </p>
+
+          <p className="text-xl text-white/80 mb-16 max-w-3xl mx-auto leading-relaxed">
+            Access premium studios across your city with a single pass. More freedom for you, better revenue for studios.
+          </p>
+
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-16">
+            <Button 
+              size="lg" 
+              className="bg-white text-slate-900 hover:bg-white/90 px-10 py-4 rounded-2xl text-lg font-bold shadow-2xl hover:shadow-white/25 transition-all duration-300 hover:scale-105"
+            >
+              Get X Pass
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Button>
+            
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className="border-2 border-white/40 bg-white/10 backdrop-blur-sm text-white hover:bg-white hover:text-slate-900 px-10 py-4 rounded-2xl text-lg font-bold transition-all duration-300 hover:scale-105"
+            >
+              Accept X Pass
+            </Button>
+          </div>
+
+          {/* Value Propositions */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            <div className="text-center p-6 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20">
+              <div className="w-12 h-12 bg-yellow-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Infinity className="h-6 w-6 text-slate-900" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Unlimited Access</h3>
+              <p className="text-white/80">Visit any partner studio without restrictions</p>
+            </div>
+
+            <div className="text-center p-6 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20">
+              <div className="w-12 h-12 bg-green-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                <TrendingUp className="h-6 w-6 text-slate-900" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Better Revenue</h3>
+              <p className="text-white/80">Studios earn more through increased foot traffic</p>
+            </div>
+
+            <div className="text-center p-6 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20">
+              <div className="w-12 h-12 bg-pink-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Users className="h-6 w-6 text-slate-900" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Community Growth</h3>
+              <p className="text-white/80">Connect with a broader fitness community</p>
             </div>
           </div>
         </div>
