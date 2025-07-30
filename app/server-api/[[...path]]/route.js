@@ -70,7 +70,27 @@ async function getFirebaseUser(request) {
     }
     
     // In a real implementation, you would verify the Firebase JWT token here
-    // For now, we'll return a mock user to test the flow
+    // For testing, we'll return different mock users based on the request path
+    const url = new URL(request.url)
+    const path = url.pathname.replace('/server-api', '')
+    
+    // Return instructor user for instructor endpoints
+    if (path.includes('/instructor/')) {
+      return {
+        uid: 'test-instructor-user',
+        email: 'instructor@test.com'
+      }
+    }
+    
+    // Return merchant user for studio endpoints
+    if (path.includes('/studio/')) {
+      return {
+        uid: 'firebase-test-user',  // This user exists with merchant role
+        email: 'test@example.com'
+      }
+    }
+    
+    // Default merchant user for other endpoints
     return {
       uid: 'firebase-test-user',
       email: 'test@example.com'
