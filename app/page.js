@@ -833,8 +833,8 @@ export default function Home() {
               <div className="space-y-6">
                 <h3 className="font-semibold mb-6 text-2xl text-white">Platform</h3>
                 <ul className="space-y-4 text-white/80 text-lg">
-                  <li><Link href="/explore" className="hover:text-white smooth-transition hover:translate-x-2 block">Explore Classes</Link></li>
-                  <li><Link href="/xpass" className="hover:text-white smooth-transition hover:translate-x-2 block">X Pass</Link></li>
+                  <li><Link href="/marketplace" className="hover:text-white smooth-transition hover:translate-x-2 block">Explore Classes</Link></li>
+                  <li><Link href="/xpass-purchase" className="hover:text-white smooth-transition hover:translate-x-2 block">X Pass</Link></li>
                   <li><Link href="/marketplace" className="hover:text-white smooth-transition hover:translate-x-2 block">Find Instructors</Link></li>
                   <li><Link href="/pricing" className="hover:text-white smooth-transition hover:translate-x-2 block">Pricing</Link></li>
                 </ul>
