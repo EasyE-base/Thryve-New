@@ -69,6 +69,7 @@ class ThryveBackendTester:
             
         except requests.exceptions.RequestException as e:
             response_time = (time.time() - start_time) * 1000
+            print(f"Request exception for {method} {endpoint}: {str(e)}")
             return None, response_time
     
     def test_authentication_protection(self, endpoint: str, method: str = "GET", data: Optional[Dict] = None):
