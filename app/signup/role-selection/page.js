@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -12,12 +12,41 @@ import {
   CheckCircle,
   Star,
   Calendar,
-  DollarSign
+  DollarSign,
+  Loader2
 } from 'lucide-react'
 import Link from 'next/link'
+import { useAuth } from '@/components/auth-provider'
+import { updateUserRole } from '@/lib/firebase-auth'
+import { toast } from 'sonner'
 
 export default function RoleSelectionPage() {
   const [selectedRole, setSelectedRole] = useState(null)
+  const [loading, setLoading] = useState(false)
+  const [pendingUser, setPendingUser] = useState(null)
+  const { user, refreshRole } = useAuth()
+
+  // Check for pending role selection on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const pendingData = localStorage.getItem('pendingRoleSelection')
+      if (pendingData) {
+        try {
+          const parsedData = JSON.parse(pendingData)
+          // Check if data is recent (within 1 hour)
+          if (Date.now() - parsedData.timestamp < 3600000) {
+            setPendingUser(parsedData)
+          } else {
+            // Clear stale data
+            localStorage.removeItem('pendingRoleSelection')
+          }
+        } catch (e) {
+          console.error('Error parsing pending role selection data:', e)
+          localStorage.removeItem('pendingRoleSelection')
+        }
+      }
+    }
+  }, [])
 
   const roles = [
     {
@@ -69,11 +98,49 @@ export default function RoleSelectionPage() {
     setSelectedRole(role)
   }
 
-  const handleContinue = () => {
-    if (selectedRole) {
-      // In a real implementation, this would save the role to the user profile
-      // For now, redirect to the appropriate dashboard
-      window.location.href = selectedRole.dashboard
+  const handleContinue = async () => {
+    if (!selectedRole) {
+      toast.error('Please select a role to continue')
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      // Determine which user to use (authenticated user or pending signup)
+      const targetUser = user || pendingUser
+      
+      if (!targetUser) {
+        toast.error('No user found. Please sign in again.')
+        window.location.href = '/'
+        return
+      }
+
+      // Save role to backend
+      await updateUserRole(targetUser, selectedRole.id)
+      
+      // Clear pending data
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('pendingRoleSelection')
+      }
+      
+      // Refresh role in auth context if user is authenticated
+      if (user) {
+        await refreshRole()
+      }
+      
+      toast.success(`Welcome! You're now set up as a ${selectedRole.title}`)
+      
+      // Redirect to appropriate dashboard
+      setTimeout(() => {
+        window.location.href = selectedRole.dashboard
+      }, 1000)
+      
+    } catch (error) {
+      console.error('Role selection error:', error)
+      toast.error(error.message || 'Failed to set up your account. Please try again.')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -95,6 +162,15 @@ export default function RoleSelectionPage() {
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Select how you'll be using Thryve to get the best experience tailored for you
           </p>
+          
+          {/* Show user info if available */}
+          {(user || pendingUser) && (
+            <div className="mt-4 p-3 bg-blue-50 rounded-lg inline-block">
+              <p className="text-sm text-blue-800">
+                Setting up account for: <span className="font-semibold">{user?.email || pendingUser?.email}</span>
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Role Cards */}
@@ -159,11 +235,20 @@ export default function RoleSelectionPage() {
           <Button 
             size="lg"
             onClick={handleContinue}
-            disabled={!selectedRole}
+            disabled={!selectedRole || loading}
             className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Continue as {selectedRole?.title || 'Selected Role'}
-            <ArrowRight className="ml-2 h-5 w-5" />
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Setting up your account...
+              </>
+            ) : (
+              <>
+                Continue as {selectedRole?.title || 'Selected Role'}
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </>
+            )}
           </Button>
           
           <p className="text-gray-500 mt-4">
