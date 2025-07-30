@@ -297,41 +297,90 @@ export default function Home() {
         }
 
         if (isModalSignUp) {
-          // Sign up logic - redirect to role selection
+          // Sign up logic using the actual auth provider
           console.log('Processing sign up for:', { name: modalName, email: modalEmail })
-          toast.success('Account created successfully!')
-          setShowSignInModal(false)
           
-          // Reset modal state
-          setIsModalSignUp(false)
-          setModalEmail('')
-          setModalPassword('')
-          setModalName('')
+          const [firstName, ...lastNameParts] = modalName.split(' ')
+          const lastName = lastNameParts.join(' ')
           
-          // Use a small delay to ensure modal closes before redirect
-          setTimeout(() => {
-            window.location.href = '/signup/role-selection'
-          }, 500)
+          const result = await signUp(modalEmail, modalPassword)
+          
+          if (result.success) {
+            toast.success('Account created successfully! Please select your role.')
+            setShowSignInModal(false)
+            
+            // Reset modal state
+            setIsModalSignUp(false)
+            setModalEmail('')
+            setModalPassword('')
+            setModalName('')
+            
+            // Store user info temporarily for role selection
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('pendingRoleSelection', JSON.stringify({
+                uid: result.user.uid,
+                email: modalEmail,
+                name: modalName,
+                timestamp: Date.now()
+              }))
+            }
+            
+            // Redirect to role selection
+            setTimeout(() => {
+              window.location.href = '/signup/role-selection'
+            }, 500)
+          } else {
+            toast.error(result.error || 'Sign up failed. Please try again.')
+          }
         } else {
-          // Sign in logic - check if user exists, redirect to appropriate dashboard
+          // Sign in logic using the actual auth provider
           console.log('Processing sign in for:', { email: modalEmail })
-          toast.success('Signed in successfully!')
-          setShowSignInModal(false)
           
-          // Reset modal state
-          setIsModalSignUp(false)
-          setModalEmail('')
-          setModalPassword('')
-          setModalName('')
+          const result = await signIn(modalEmail, modalPassword)
           
-          // Use a small delay to ensure modal closes before redirect
-          setTimeout(() => {
-            window.location.href = '/dashboard/customer'
-          }, 500)
+          if (result.success) {
+            toast.success('Signed in successfully!')
+            setShowSignInModal(false)
+            
+            // Reset modal state
+            setIsModalSignUp(false)
+            setModalEmail('')
+            setModalPassword('')
+            setModalName('')
+            
+            // Wait a moment for auth state to update, then redirect based on role
+            setTimeout(async () => {
+              try {
+                // Get user role to determine redirect
+                const userData = await getUserRole(result.user.uid)
+                const userRole = userData?.role
+                
+                if (userRole) {
+                  // Redirect to appropriate dashboard
+                  const dashboardRoutes = {
+                    customer: '/dashboard/customer',
+                    instructor: '/dashboard/instructor',
+                    merchant: '/dashboard/merchant'
+                  }
+                  window.location.href = dashboardRoutes[userRole] || '/dashboard/customer'
+                } else {
+                  // No role set, redirect to role selection
+                  window.location.href = '/signup/role-selection'
+                }
+              } catch (error) {
+                console.error('Error getting user role:', error)
+                // Default redirect to customer dashboard
+                window.location.href = '/dashboard/customer'
+              }
+            }, 1000)
+          } else {
+            toast.error(result.error || 'Sign in failed. Please check your credentials.')
+          }
         }
       } catch (error) {
         console.error('Authentication error:', error)
         toast.error('Authentication failed. Please try again.')
+      } finally {
         setModalLoading(false)
       }
     }
