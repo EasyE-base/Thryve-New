@@ -676,96 +676,229 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Why Thryve - Feature Strip */}
-      <section className="py-24 bg-gradient-to-b from-white to-slate-50">
-        <div className="container mx-auto px-6">
+      {/* Features Section - Modern Design */}
+      <section className="py-32 bg-gradient-to-b from-slate-50 to-white relative overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute inset-0" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='0.4'%3E%3Ccircle cx='30' cy='30' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+            backgroundSize: '60px 60px'
+          }} />
+        </div>
+
+        <div className="max-w-7xl mx-auto px-6 relative">
+          {/* Section Header */}
           <div className="text-center mb-20">
-            <div className="inline-flex items-center px-4 py-2 bg-blue-50 rounded-full border border-blue-100 mb-6">
-              <span className="text-blue-600 text-sm font-semibold">Why choose Thryve?</span>
+            <div className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-full border border-blue-100/50 mb-8">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 text-sm font-bold">
+                ✨ Why choose Thryve?
+              </span>
             </div>
             
-            <h2 className="text-5xl md:text-6xl font-bold text-slate-900 mb-6 leading-tight">
+            <h2 className="text-6xl md:text-7xl font-black text-slate-900 mb-6 leading-tight">
               Built for{' '}
-              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Success
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600">
+                Champions
               </span>
             </h2>
             
             <p className="text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
-              The only platform that puts your business first. No hidden fees, no surprises — just results.
+              The only platform that puts your success first. Zero hidden fees, maximum results.
             </p>
           </div>
 
+          {/* Features Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="text-center group">
-              <div className="relative mb-6">
-                <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-3xl flex items-center justify-center mx-auto shadow-xl group-hover:shadow-2xl group-hover:scale-110 transition-all duration-300">
-                  <Zap className="h-10 w-10 text-white" />
+            {/* Feature 1 */}
+            <div className="group">
+              <div className="relative p-8 bg-white rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 border border-slate-100 hover:border-blue-100 hover:-translate-y-2">
+                <div className="absolute -top-4 left-8">
+                  <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-xl">
+                    <Zap className="h-8 w-8 text-white" />
+                  </div>
                 </div>
-                <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-400 rounded-full flex items-center justify-center">
-                  <CheckCircle className="h-4 w-4 text-white" />
+                
+                <div className="pt-8">
+                  <h3 className="text-2xl font-bold text-slate-900 mb-3">3.75% Fee</h3>
+                  <p className="text-slate-600 leading-relaxed">
+                    That's it. No hidden costs, no monthly fees, no surprises. Simple pricing that works.
+                  </p>
                 </div>
+                
+                <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-blue-600 rounded-b-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </div>
-              <h3 className="text-2xl font-bold text-slate-900 mb-3">Flat 3.75% Fee</h3>
-              <p className="text-slate-600 text-base leading-relaxed">
-                That's it. No hidden costs, no surprises. Simple, transparent pricing.
-              </p>
             </div>
 
-            <div className="text-center group">
-              <div className="relative mb-6">
-                <div className="w-20 h-20 bg-gradient-to-br from-green-500 to-emerald-600 rounded-3xl flex items-center justify-center mx-auto shadow-xl group-hover:shadow-2xl group-hover:scale-110 transition-all duration-300">
-                  <Shield className="h-10 w-10 text-white" />
+            {/* Feature 2 */}
+            <div className="group">
+              <div className="relative p-8 bg-white rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 border border-slate-100 hover:border-emerald-100 hover:-translate-y-2">
+                <div className="absolute -top-4 left-8">
+                  <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-xl">
+                    <Shield className="h-8 w-8 text-white" />
+                  </div>
                 </div>
-                <div className="absolute -top-2 -right-2 w-6 h-6 bg-blue-400 rounded-full flex items-center justify-center">
-                  <CheckCircle className="h-4 w-4 text-white" />
+                
+                <div className="pt-8">
+                  <h3 className="text-2xl font-bold text-slate-900 mb-3">Zero Monthly</h3>
+                  <p className="text-slate-600 leading-relaxed">
+                    Pay only when you earn. No subscriptions, no commitments. Pure performance pricing.
+                  </p>
                 </div>
+                
+                <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-b-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </div>
-              <h3 className="text-2xl font-bold text-slate-900 mb-3">No Monthly Costs</h3>
-              <p className="text-slate-600 text-base leading-relaxed">
-                Pay only when you earn. Zero subscription fees, zero commitments.
-              </p>
             </div>
 
-            <div className="text-center group">
-              <div className="relative mb-6">
-                <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-600 rounded-3xl flex items-center justify-center mx-auto shadow-xl group-hover:shadow-2xl group-hover:scale-110 transition-all duration-300">
-                  <Award className="h-10 w-10 text-white" />
+            {/* Feature 3 */}
+            <div className="group">
+              <div className="relative p-8 bg-white rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 border border-slate-100 hover:border-purple-100 hover:-translate-y-2">
+                <div className="absolute -top-4 left-8">
+                  <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl">
+                    <Award className="h-8 w-8 text-white" />
+                  </div>
                 </div>
-                <div className="absolute -top-2 -right-2 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center">
-                  <CheckCircle className="h-4 w-4 text-white" />
+                
+                <div className="pt-8">
+                  <h3 className="text-2xl font-bold text-slate-900 mb-3">Your Brand</h3>
+                  <p className="text-slate-600 leading-relaxed">
+                    Keep your customers, build your community, grow your brand. We amplify, never replace.
+                  </p>
                 </div>
+                
+                <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-purple-500 to-purple-600 rounded-b-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </div>
-              <h3 className="text-2xl font-bold text-slate-900 mb-3">Your Brand First</h3>
-              <p className="text-slate-600 text-base leading-relaxed">
-                Keep your customers, build your community, grow your brand.
-              </p>
             </div>
 
-            <div className="text-center group">
-              <div className="relative mb-6">
-                <div className="w-20 h-20 bg-gradient-to-br from-orange-500 to-red-600 rounded-3xl flex items-center justify-center mx-auto shadow-xl group-hover:shadow-2xl group-hover:scale-110 transition-all duration-300">
-                  <Bot className="h-10 w-10 text-white" />
+            {/* Feature 4 */}
+            <div className="group">
+              <div className="relative p-8 bg-white rounded-3xl shadow-xl hover:shadow-2xl transition-all duration-500 border border-slate-100 hover:border-orange-100 hover:-translate-y-2">
+                <div className="absolute -top-4 left-8">
+                  <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl flex items-center justify-center shadow-xl">
+                    <Bot className="h-8 w-8 text-white" />
+                  </div>
                 </div>
-                <div className="absolute -top-2 -right-2 w-6 h-6 bg-purple-400 rounded-full flex items-center justify-center">
-                  <CheckCircle className="h-4 w-4 text-white" />
+                
+                <div className="pt-8">
+                  <h3 className="text-2xl font-bold text-slate-900 mb-3">AI Setup</h3>
+                  <p className="text-slate-600 leading-relaxed">
+                    From zero to hero in minutes. AI-powered onboarding gets you live instantly.
+                  </p>
                 </div>
+                
+                <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 to-red-500 rounded-b-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </div>
-              <h3 className="text-2xl font-bold text-slate-900 mb-3">AI Onboarding</h3>
-              <p className="text-slate-600 text-base leading-relaxed">
-                From setup to live in minutes, not months. Powered by AI.
-              </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Live Discovery Feed */}
-      <section className="section-padding section-gradient-alt">
-        <div className="container-modern">
+      {/* Trending Classes - Modern Feed */}
+      <section className="py-32 bg-white relative">
+        <div className="max-w-7xl mx-auto px-6">
+          {/* Section Header */}
           <div className="text-center mb-20">
-            <h2 className="text-6xl font-bold text-[#1C1C1E] mb-8 fade-in-up">Trending Classes</h2>
-            <p className="text-2xl text-[#7A7A7A] fade-in-up">Join thousands discovering their next favorite workout</p>
+            <div className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-full border border-purple-100/50 mb-8">
+              <TrendingUp className="w-4 h-4 text-purple-600 mr-2" />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 text-sm font-bold">
+                Live Discovery Feed
+              </span>
+            </div>
+            
+            <h2 className="text-6xl md:text-7xl font-black text-slate-900 mb-6 leading-tight">
+              Trending{' '}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">
+                Classes
+              </span>
+            </h2>
+            
+            <p className="text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
+              Join thousands discovering their next favorite workout. Real-time, authentic, unstoppable.
+            </p>
+          </div>
+
+          {/* Classes Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {trendingClasses.slice(0, 6).map((classItem, index) => (
+              <div key={index} className="group cursor-pointer">
+                <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 to-slate-800 shadow-2xl hover:shadow-3xl transition-all duration-500 hover:-translate-y-1">
+                  {/* Class Image */}
+                  <div className="aspect-video overflow-hidden">
+                    <img 
+                      src={classItem.image} 
+                      alt={classItem.title}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                  </div>
+                  
+                  {/* Content Overlay */}
+                  <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+                    <div className="flex items-center justify-between mb-2">
+                      <Badge variant="secondary" className="bg-white/20 backdrop-blur text-white border-white/30">
+                        {classItem.type}
+                      </Badge>
+                      <div className="flex items-center gap-1">
+                        <Star className="w-4 h-4 text-yellow-400 fill-current" />
+                        <span className="text-sm font-medium">{classItem.rating}</span>
+                      </div>
+                    </div>
+                    
+                    <h3 className="text-xl font-bold mb-1">{classItem.title}</h3>
+                    <p className="text-white/80 text-sm mb-3">{classItem.studio}</p>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4 text-sm text-white/70">
+                        <div className="flex items-center gap-1">
+                          <Clock className="w-4 h-4" />
+                          <span>{classItem.time}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <MapPin className="w-4 h-4" />
+                          <span>{classItem.location}</span>
+                        </div>
+                      </div>
+                      
+                      <Button 
+                        size="sm" 
+                        className="bg-white text-slate-900 hover:bg-white/90 font-semibold"
+                        onClick={() => {
+                          setSelectedClass(classItem)
+                          setShowBookingModal(true)
+                        }}
+                      >
+                        Book Now
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  {/* Live Indicator */}
+                  {index < 3 && (
+                    <div className="absolute top-4 left-4">
+                      <div className="flex items-center gap-2 px-3 py-1 bg-red-500 rounded-full">
+                        <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                        <span className="text-white text-xs font-bold">LIVE</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+          
+          {/* View More Button */}
+          <div className="text-center mt-16">
+            <Link href="/marketplace">
+              <Button 
+                size="lg" 
+                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-10 py-4 rounded-2xl text-lg font-semibold shadow-xl hover:shadow-2xl transition-all duration-300"
+              >
+                Explore All Classes
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
           </div>
 
           <div className="relative">
