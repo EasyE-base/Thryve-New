@@ -10691,6 +10691,475 @@ async function handlePOST(request) {
       }
     }
 
+    // ========================================
+    // PHASE 6: INSTRUCTOR PAYOUT SYSTEM
+    // ========================================
+
+    // Setup instructor Stripe Connect account
+    if (path === '/instructor/setup-stripe-connect') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        
+        if (userProfile?.role !== 'instructor') {
+          return NextResponse.json({ error: 'Access denied. Instructor role required.' }, { status: 403 })
+        }
+
+        const body = await request.json()
+        const { returnUrl, refreshUrl } = body
+
+        // Create Stripe Connect account for instructor
+        const account = await stripe.accounts.create({
+          type: 'express',
+          country: 'US',
+          email: firebaseUser.email,
+          capabilities: {
+            card_payments: { requested: true },
+            transfers: { requested: true }
+          },
+          metadata: {
+            firebase_uid: firebaseUser.uid,
+            role: 'instructor',
+            platform: 'thryve'
+          }
+        })
+
+        // Create account link for onboarding
+        const accountLink = await stripe.accountLinks.create({
+          account: account.id,
+          refresh_url: refreshUrl || `${process.env.NEXT_PUBLIC_BASE_URL}/instructor/stripe-refresh`,
+          return_url: returnUrl || `${process.env.NEXT_PUBLIC_BASE_URL}/instructor/dashboard`,
+          type: 'account_onboarding'
+        })
+
+        // Update instructor profile with Stripe Connect account
+        await database.collection('profiles').updateOne(
+          { userId: firebaseUser.uid },
+          {
+            $set: {
+              stripeConnectAccountId: account.id,
+              stripeConnectStatus: 'pending',
+              stripeConnectSetupAt: new Date(),
+              updatedAt: new Date()
+            }
+          }
+        )
+
+        // Create instructor payout profile
+        const instructorPayout = {
+          id: `instructor-payout-${Date.now()}`,
+          instructorId: firebaseUser.uid,
+          stripeConnectAccountId: account.id,
+          commissionRate: 0.7, // 70% default
+          payoutSchedule: 'weekly',
+          minimumPayout: 2500, // $25 minimum
+          status: 'setup_pending',
+          totalEarnings: 0,
+          totalPayouts: 0,
+          pendingEarnings: 0,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+
+        await database.collection('instructor_payouts').insertOne(instructorPayout)
+
+        return NextResponse.json({
+          success: true,
+          message: 'Stripe Connect account created successfully',
+          accountId: account.id,
+          onboardingUrl: accountLink.url,
+          status: 'setup_pending'
+        })
+
+      } catch (error) {
+        console.error('Stripe Connect setup error:', error)
+        return NextResponse.json({ error: 'Failed to setup Stripe Connect account' }, { status: 500 })
+      }
+    }
+
+    // Configure instructor commission rates
+    if (path === '/instructor/configure-commission') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        
+        if (userProfile?.role !== 'merchant') {
+          return NextResponse.json({ error: 'Access denied. Merchant role required.' }, { status: 403 })
+        }
+
+        const body = await request.json()
+        const { instructorId, commissionRate, bonusStructure, payoutSchedule } = body
+
+        if (!instructorId || !commissionRate) {
+          return NextResponse.json({ error: 'Instructor ID and commission rate are required' }, { status: 400 })
+        }
+
+        // Validate commission rate (10-90%)
+        if (commissionRate < 0.1 || commissionRate > 0.9) {
+          return NextResponse.json({ error: 'Commission rate must be between 10% and 90%' }, { status: 400 })
+        }
+
+        // Verify instructor belongs to this studio
+        const instructor = await database.collection('studio_staff').findOne({
+          userId: instructorId,
+          studioId: firebaseUser.uid,
+          role: 'instructor'
+        })
+
+        if (!instructor) {
+          return NextResponse.json({ error: 'Instructor not found or not associated with this studio' }, { status: 404 })
+        }
+
+        const commissionConfig = {
+          instructorId: instructorId,
+          studioId: firebaseUser.uid,
+          commissionRate: commissionRate,
+          bonusStructure: bonusStructure || {
+            performanceBonus: 0,
+            classCountBonus: 0,
+            ratingBonus: 0
+          },
+          payoutSchedule: payoutSchedule || 'weekly',
+          minimumPayout: 2500, // $25
+          effectiveDate: new Date(),
+          updatedAt: new Date()
+        }
+
+        // Update instructor payout configuration
+        await database.collection('instructor_payouts').updateOne(
+          { instructorId: instructorId },
+          {
+            $set: commissionConfig
+          },
+          { upsert: true }
+        )
+
+        return NextResponse.json({
+          success: true,
+          message: 'Commission configuration updated successfully',
+          configuration: commissionConfig
+        })
+
+      } catch (error) {
+        console.error('Commission configuration error:', error)
+        return NextResponse.json({ error: 'Failed to configure commission' }, { status: 500 })
+      }
+    }
+
+    // Process instructor payout
+    if (path === '/instructor/process-payout') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { instructorId, amount, payoutType = 'scheduled' } = body
+
+        if (!instructorId || !amount) {
+          return NextResponse.json({ error: 'Instructor ID and amount are required' }, { status: 400 })
+        }
+
+        // Get instructor payout profile
+        const instructorPayout = await database.collection('instructor_payouts').findOne({
+          instructorId: instructorId
+        })
+
+        if (!instructorPayout) {
+          return NextResponse.json({ error: 'Instructor payout profile not found' }, { status: 404 })
+        }
+
+        // Verify instructor has completed Stripe Connect setup
+        if (instructorPayout.status !== 'active') {
+          return NextResponse.json({ error: 'Instructor Stripe Connect setup not complete' }, { status: 400 })
+        }
+
+        // Check minimum payout amount
+        if (amount < instructorPayout.minimumPayout) {
+          return NextResponse.json({ 
+            error: 'Amount below minimum payout threshold',
+            minimumPayout: instructorPayout.minimumPayout
+          }, { status: 400 })
+        }
+
+        // Create Stripe transfer
+        const transfer = await stripe.transfers.create({
+          amount: amount,
+          currency: 'usd',
+          destination: instructorPayout.stripeConnectAccountId,
+          metadata: {
+            instructor_id: instructorId,
+            payout_type: payoutType,
+            firebase_uid: firebaseUser.uid
+          }
+        })
+
+        // Record payout transaction
+        const payoutRecord = {
+          id: `payout-${Date.now()}`,
+          instructorId: instructorId,
+          amount: amount,
+          payoutType: payoutType,
+          stripeTransferId: transfer.id,
+          status: 'completed',
+          processedAt: new Date(),
+          processedBy: firebaseUser.uid,
+          createdAt: new Date()
+        }
+
+        await database.collection('instructor_payout_transactions').insertOne(payoutRecord)
+
+        // Update instructor payout totals
+        await database.collection('instructor_payouts').updateOne(
+          { instructorId: instructorId },
+          {
+            $inc: {
+              totalPayouts: amount,
+              pendingEarnings: -amount
+            },
+            $set: {
+              lastPayoutAt: new Date(),
+              updatedAt: new Date()
+            }
+          }
+        )
+
+        return NextResponse.json({
+          success: true,
+          message: 'Payout processed successfully',
+          payout: {
+            id: payoutRecord.id,
+            amount: amount,
+            transferId: transfer.id,
+            status: 'completed',
+            processedAt: new Date()
+          }
+        })
+
+      } catch (error) {
+        console.error('Payout processing error:', error)
+        return NextResponse.json({ error: 'Failed to process payout' }, { status: 500 })
+      }
+    }
+
+    // Calculate instructor earnings
+    if (path === '/instructor/calculate-earnings') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { instructorId, period = '30days' } = body
+
+        if (!instructorId) {
+          return NextResponse.json({ error: 'Instructor ID is required' }, { status: 400 })
+        }
+
+        // Get instructor payout configuration
+        const instructorPayout = await database.collection('instructor_payouts').findOne({
+          instructorId: instructorId
+        })
+
+        if (!instructorPayout) {
+          return NextResponse.json({ error: 'Instructor payout profile not found' }, { status: 404 })
+        }
+
+        // Calculate date range
+        let days
+        switch (period) {
+          case '7days': days = 7; break
+          case '30days': days = 30; break
+          case '90days': days = 90; break
+          default: days = 30
+        }
+
+        const endDate = new Date()
+        const startDate = new Date()
+        startDate.setDate(startDate.getDate() - days)
+
+        // Get classes taught by instructor
+        const classesBookings = await database.collection('bookings').find({
+          instructorId: instructorId,
+          status: 'confirmed',
+          createdAt: { $gte: startDate, $lte: endDate }
+        }).toArray()
+
+        // Calculate earnings
+        let totalRevenue = 0
+        let totalClasses = 0
+        let totalStudents = 0
+
+        const earningsBreakdown = classesBookings.map(booking => {
+          const classRevenue = booking.amount || 0
+          const instructorEarnings = classRevenue * instructorPayout.commissionRate
+          const platformFee = classRevenue * 0.0375 // 3.75% platform fee
+          const studioEarnings = classRevenue - instructorEarnings - platformFee
+
+          totalRevenue += classRevenue
+          totalClasses += 1
+          totalStudents += 1
+
+          return {
+            bookingId: booking.id,
+            className: booking.className,
+            classDate: booking.classStartTime,
+            classRevenue: classRevenue,
+            instructorEarnings: instructorEarnings,
+            platformFee: platformFee,
+            studioEarnings: studioEarnings,
+            commissionRate: instructorPayout.commissionRate
+          }
+        })
+
+        const totalInstructorEarnings = earningsBreakdown.reduce((sum, item) => sum + item.instructorEarnings, 0)
+        const averageEarningsPerClass = totalClasses > 0 ? totalInstructorEarnings / totalClasses : 0
+
+        // Calculate bonuses
+        const bonuses = {
+          performanceBonus: 0,
+          classCountBonus: 0,
+          ratingBonus: 0
+        }
+
+        if (instructorPayout.bonusStructure?.classCountBonus && totalClasses >= 20) {
+          bonuses.classCountBonus = instructorPayout.bonusStructure.classCountBonus
+        }
+
+        const totalBonuses = Object.values(bonuses).reduce((sum, bonus) => sum + bonus, 0)
+        const totalEarnings = totalInstructorEarnings + totalBonuses
+
+        return NextResponse.json({
+          success: true,
+          earnings: {
+            period: period,
+            dateRange: { startDate, endDate },
+            summary: {
+              totalRevenue: totalRevenue,
+              totalInstructorEarnings: totalInstructorEarnings,
+              totalBonuses: totalBonuses,
+              totalEarnings: totalEarnings,
+              totalClasses: totalClasses,
+              totalStudents: totalStudents,
+              averageEarningsPerClass: averageEarningsPerClass,
+              commissionRate: instructorPayout.commissionRate
+            },
+            breakdown: earningsBreakdown,
+            bonuses: bonuses,
+            payoutStatus: {
+              pendingEarnings: instructorPayout.pendingEarnings,
+              totalLifetimeEarnings: instructorPayout.totalEarnings,
+              totalPayouts: instructorPayout.totalPayouts,
+              lastPayoutAt: instructorPayout.lastPayoutAt
+            }
+          }
+        })
+
+      } catch (error) {
+        console.error('Earnings calculation error:', error)
+        return NextResponse.json({ error: 'Failed to calculate earnings' }, { status: 500 })
+      }
+    }
+
+    // Generate instructor 1099 tax document
+    if (path === '/instructor/generate-1099') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const body = await request.json()
+        const { instructorId, taxYear = new Date().getFullYear() } = body
+
+        if (!instructorId) {
+          return NextResponse.json({ error: 'Instructor ID is required' }, { status: 400 })
+        }
+
+        // Get instructor profile
+        const instructor = await database.collection('profiles').findOne({
+          userId: instructorId,
+          role: 'instructor'
+        })
+
+        if (!instructor) {
+          return NextResponse.json({ error: 'Instructor not found' }, { status: 404 })
+        }
+
+        // Calculate tax year earnings
+        const yearStart = new Date(taxYear, 0, 1)
+        const yearEnd = new Date(taxYear, 11, 31)
+
+        const yearlyPayouts = await database.collection('instructor_payout_transactions').find({
+          instructorId: instructorId,
+          processedAt: { $gte: yearStart, $lte: yearEnd },
+          status: 'completed'
+        }).toArray()
+
+        const totalEarnings = yearlyPayouts.reduce((sum, payout) => sum + payout.amount, 0)
+
+        // Generate 1099 document data
+        const form1099 = {
+          id: `1099-${instructorId}-${taxYear}`,
+          instructorId: instructorId,
+          taxYear: taxYear,
+          instructorInfo: {
+            name: `${instructor.firstName} ${instructor.lastName}`,
+            email: instructor.email,
+            address: instructor.address,
+            ssn: instructor.ssn || 'Not provided', // Would need to collect during onboarding
+            phone: instructor.phone
+          },
+          payerInfo: {
+            name: 'Thryve Fitness Platform',
+            address: '123 Fitness Street, San Francisco, CA 94101',
+            ein: '12-3456789' // Platform EIN
+          },
+          earnings: {
+            totalEarnings: totalEarnings,
+            federalTaxWithheld: 0, // Platform doesn't withhold taxes
+            stateIncomeTax: 0,
+            socialSecurityTax: 0,
+            medicareTax: 0
+          },
+          payoutBreakdown: yearlyPayouts.map(payout => ({
+            date: payout.processedAt,
+            amount: payout.amount,
+            type: payout.payoutType
+          })),
+          generatedAt: new Date(),
+          generatedBy: firebaseUser.uid
+        }
+
+        // Store 1099 record
+        await database.collection('instructor_1099_forms').updateOne(
+          { instructorId: instructorId, taxYear: taxYear },
+          { $set: form1099 },
+          { upsert: true }
+        )
+
+        return NextResponse.json({
+          success: true,
+          message: '1099 form generated successfully',
+          form1099: form1099
+        })
+
+      } catch (error) {
+        console.error('1099 generation error:', error)
+        return NextResponse.json({ error: 'Failed to generate 1099 form' }, { status: 500 })
+      }
+    }
+
     // Enhanced Stripe webhook handling
     if (path === '/payments/webhook') {
       const body = await request.text()
