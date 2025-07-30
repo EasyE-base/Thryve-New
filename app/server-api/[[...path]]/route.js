@@ -4960,6 +4960,596 @@ async function handleGET(request) {
       }
     }
 
+    // ========================================
+    // PHASE 6: INSTRUCTOR PAYOUT SYSTEM - GET ENDPOINTS
+    // ========================================
+
+    // Get instructor payout dashboard
+    if (path === '/instructor/payout-dashboard') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        
+        if (userProfile?.role !== 'instructor') {
+          return NextResponse.json({ error: 'Access denied. Instructor role required.' }, { status: 403 })
+        }
+
+        // Get instructor payout profile
+        const instructorPayout = await database.collection('instructor_payouts').findOne({
+          instructorId: firebaseUser.uid
+        })
+
+        if (!instructorPayout) {
+          return NextResponse.json({ error: 'Instructor payout profile not found' }, { status: 404 })
+        }
+
+        // Get recent payout transactions
+        const recentPayouts = await database.collection('instructor_payout_transactions').find({
+          instructorId: firebaseUser.uid
+        }).sort({ processedAt: -1 }).limit(10).toArray()
+
+        // Get current month earnings
+        const currentMonth = new Date()
+        const monthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1)
+        const monthEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0)
+
+        const monthlyBookings = await database.collection('bookings').find({
+          instructorId: firebaseUser.uid,
+          status: 'confirmed',
+          createdAt: { $gte: monthStart, $lte: monthEnd }
+        }).toArray()
+
+        const monthlyEarnings = monthlyBookings.reduce((sum, booking) => {
+          return sum + ((booking.amount || 0) * instructorPayout.commissionRate)
+        }, 0)
+
+        // Get upcoming classes
+        const upcomingClasses = await database.collection('class_schedules').find({
+          instructorId: firebaseUser.uid,
+          startTime: { $gte: new Date().toISOString() },
+          status: { $ne: 'cancelled' }
+        }).sort({ startTime: 1 }).limit(5).toArray()
+
+        // Calculate next payout date
+        const nextPayoutDate = new Date()
+        if (instructorPayout.payoutSchedule === 'weekly') {
+          nextPayoutDate.setDate(nextPayoutDate.getDate() + (7 - nextPayoutDate.getDay()))
+        } else if (instructorPayout.payoutSchedule === 'bi-weekly') {
+          nextPayoutDate.setDate(nextPayoutDate.getDate() + 14)
+        } else {
+          nextPayoutDate.setMonth(nextPayoutDate.getMonth() + 1, 1)
+        }
+
+        return NextResponse.json({
+          success: true,
+          dashboard: {
+            profile: {
+              instructorId: firebaseUser.uid,
+              name: `${userProfile.firstName} ${userProfile.lastName}`,
+              commissionRate: instructorPayout.commissionRate,
+              payoutSchedule: instructorPayout.payoutSchedule,
+              status: instructorPayout.status,
+              stripeConnectStatus: instructorPayout.stripeConnectStatus
+            },
+            earnings: {
+              totalLifetimeEarnings: instructorPayout.totalEarnings,
+              totalPayouts: instructorPayout.totalPayouts,
+              pendingEarnings: instructorPayout.pendingEarnings,
+              currentMonthEarnings: monthlyEarnings,
+              lastPayoutAt: instructorPayout.lastPayoutAt,
+              nextPayoutDate: nextPayoutDate
+            },
+            recentActivity: {
+              recentPayouts: recentPayouts.map(payout => ({
+                id: payout.id,
+                amount: payout.amount,
+                processedAt: payout.processedAt,
+                status: payout.status,
+                type: payout.payoutType
+              })),
+              upcomingClasses: upcomingClasses.map(cls => ({
+                id: cls.id,
+                name: cls.name,
+                startTime: cls.startTime,
+                expectedEarning: ((cls.price || 2000) * instructorPayout.commissionRate)
+              }))
+            },
+            monthlyStats: {
+              classesThisMonth: monthlyBookings.length,
+              studentsThisMonth: monthlyBookings.length, // Assuming 1 student per booking
+              averageEarningPerClass: monthlyBookings.length > 0 ? monthlyEarnings / monthlyBookings.length : 0
+            }
+          }
+        })
+
+      } catch (error) {
+        console.error('Instructor payout dashboard error:', error)
+        return NextResponse.json({ error: 'Failed to retrieve payout dashboard' }, { status: 500 })
+      }
+    }
+
+    // Get instructor earnings history
+    if (path === '/instructor/earnings-history') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        
+        if (userProfile?.role !== 'instructor') {
+          return NextResponse.json({ error: 'Access denied. Instructor role required.' }, { status: 403 })
+        }
+
+        const url = new URL(request.url)
+        const period = url.searchParams.get('period') || '30days'
+        const limit = parseInt(url.searchParams.get('limit')) || 50
+        const offset = parseInt(url.searchParams.get('offset')) || 0
+
+        // Calculate date range
+        let days
+        switch (period) {
+          case '7days': days = 7; break
+          case '30days': days = 30; break
+          case '90days': days = 90; break
+          case '1year': days = 365; break
+          default: days = 30
+        }
+
+        const endDate = new Date()
+        const startDate = new Date()
+        startDate.setDate(startDate.getDate() - days)
+
+        // Get instructor payout configuration
+        const instructorPayout = await database.collection('instructor_payouts').findOne({
+          instructorId: firebaseUser.uid
+        })
+
+        if (!instructorPayout) {
+          return NextResponse.json({ error: 'Instructor payout profile not found' }, { status: 404 })
+        }
+
+        // Get bookings for the period
+        const bookings = await database.collection('bookings').find({
+          instructorId: firebaseUser.uid,
+          status: 'confirmed',
+          createdAt: { $gte: startDate, $lte: endDate }
+        }).sort({ createdAt: -1 }).skip(offset).limit(limit).toArray()
+
+        // Calculate earnings for each booking
+        const earningsHistory = bookings.map(booking => {
+          const classRevenue = booking.amount || 0
+          const instructorEarnings = classRevenue * instructorPayout.commissionRate
+          
+          return {
+            id: booking.id,
+            classId: booking.classInstanceId,
+            className: booking.className,
+            classDate: booking.classStartTime,
+            studentName: booking.customerName || 'Student',
+            classRevenue: classRevenue,
+            instructorEarnings: instructorEarnings,
+            commissionRate: instructorPayout.commissionRate,
+            paymentMethod: booking.paymentMethod,
+            bookingDate: booking.createdAt,
+            status: booking.status
+          }
+        })
+
+        // Calculate summary statistics
+        const totalEarnings = earningsHistory.reduce((sum, item) => sum + item.instructorEarnings, 0)
+        const totalClasses = earningsHistory.length
+        const averageEarningsPerClass = totalClasses > 0 ? totalEarnings / totalClasses : 0
+
+        const totalCount = await database.collection('bookings').countDocuments({
+          instructorId: firebaseUser.uid,
+          status: 'confirmed',
+          createdAt: { $gte: startDate, $lte: endDate }
+        })
+
+        return NextResponse.json({
+          success: true,
+          earningsHistory: earningsHistory,
+          summary: {
+            period: period,
+            dateRange: { startDate, endDate },
+            totalEarnings: totalEarnings,
+            totalClasses: totalClasses,
+            averageEarningsPerClass: averageEarningsPerClass,
+            commissionRate: instructorPayout.commissionRate
+          },
+          pagination: {
+            total: totalCount,
+            limit: limit,
+            offset: offset,
+            hasMore: offset + limit < totalCount
+          }
+        })
+
+      } catch (error) {
+        console.error('Earnings history error:', error)
+        return NextResponse.json({ error: 'Failed to retrieve earnings history' }, { status: 500 })
+      }
+    }
+
+    // Get instructor payout transactions
+    if (path === '/instructor/payout-transactions') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        
+        if (userProfile?.role !== 'instructor') {
+          return NextResponse.json({ error: 'Access denied. Instructor role required.' }, { status: 403 })
+        }
+
+        const url = new URL(request.url)
+        const limit = parseInt(url.searchParams.get('limit')) || 20
+        const offset = parseInt(url.searchParams.get('offset')) || 0
+        const status = url.searchParams.get('status') // 'completed', 'pending', 'failed'
+
+        let query = { instructorId: firebaseUser.uid }
+        if (status) {
+          query.status = status
+        }
+
+        const transactions = await database.collection('instructor_payout_transactions').find(query)
+          .sort({ processedAt: -1 })
+          .skip(offset)
+          .limit(limit)
+          .toArray()
+
+        const totalCount = await database.collection('instructor_payout_transactions').countDocuments(query)
+
+        // Calculate summary statistics
+        const totalPaid = transactions.reduce((sum, txn) => sum + (txn.status === 'completed' ? txn.amount : 0), 0)
+        const totalPending = transactions.reduce((sum, txn) => sum + (txn.status === 'pending' ? txn.amount : 0), 0)
+
+        return NextResponse.json({
+          success: true,
+          transactions: transactions.map(txn => ({
+            id: txn.id,
+            amount: txn.amount,
+            payoutType: txn.payoutType,
+            status: txn.status,
+            processedAt: txn.processedAt,
+            stripeTransferId: txn.stripeTransferId,
+            createdAt: txn.createdAt
+          })),
+          summary: {
+            totalPaid: totalPaid,
+            totalPending: totalPending,
+            totalTransactions: transactions.length
+          },
+          pagination: {
+            total: totalCount,
+            limit: limit,
+            offset: offset,
+            hasMore: offset + limit < totalCount
+          }
+        })
+
+      } catch (error) {
+        console.error('Payout transactions error:', error)
+        return NextResponse.json({ error: 'Failed to retrieve payout transactions' }, { status: 500 })
+      }
+    }
+
+    // Get instructor performance analytics
+    if (path === '/instructor/performance-analytics') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        
+        if (userProfile?.role !== 'instructor') {
+          return NextResponse.json({ error: 'Access denied. Instructor role required.' }, { status: 403 })
+        }
+
+        const url = new URL(request.url)
+        const period = url.searchParams.get('period') || '90days'
+
+        // Calculate date range
+        let days
+        switch (period) {
+          case '30days': days = 30; break
+          case '90days': days = 90; break
+          case '1year': days = 365; break
+          default: days = 90
+        }
+
+        const endDate = new Date()
+        const startDate = new Date()
+        startDate.setDate(startDate.getDate() - days)
+
+        // Get all bookings for the period
+        const bookings = await database.collection('bookings').find({
+          instructorId: firebaseUser.uid,
+          status: 'confirmed',
+          createdAt: { $gte: startDate, $lte: endDate }
+        }).toArray()
+
+        // Get instructor payout configuration
+        const instructorPayout = await database.collection('instructor_payouts').findOne({
+          instructorId: firebaseUser.uid
+        })
+
+        // Calculate performance metrics
+        const totalClasses = bookings.length
+        const totalRevenue = bookings.reduce((sum, booking) => sum + (booking.amount || 0), 0)
+        const totalEarnings = totalRevenue * (instructorPayout?.commissionRate || 0.7)
+        const averageRevenuePerClass = totalClasses > 0 ? totalRevenue / totalClasses : 0
+        const averageEarningsPerClass = totalClasses > 0 ? totalEarnings / totalClasses : 0
+
+        // Class performance breakdown
+        const classPerformance = {}
+        bookings.forEach(booking => {
+          const className = booking.className
+          if (!classPerformance[className]) {
+            classPerformance[className] = {
+              classCount: 0,
+              totalRevenue: 0,
+              totalEarnings: 0,
+              students: []
+            }
+          }
+          
+          classPerformance[className].classCount++
+          classPerformance[className].totalRevenue += booking.amount || 0
+          classPerformance[className].totalEarnings += (booking.amount || 0) * (instructorPayout?.commissionRate || 0.7)
+          classPerformance[className].students.push(booking.userId)
+        })
+
+        // Top performing classes
+        const topClasses = Object.entries(classPerformance)
+          .map(([className, stats]) => ({
+            className,
+            classCount: stats.classCount,
+            totalRevenue: stats.totalRevenue,
+            totalEarnings: stats.totalEarnings,
+            averageEarningsPerClass: stats.totalEarnings / stats.classCount,
+            uniqueStudents: [...new Set(stats.students)].length
+          }))
+          .sort((a, b) => b.totalEarnings - a.totalEarnings)
+          .slice(0, 5)
+
+        // Monthly trend analysis
+        const monthlyTrends = {}
+        bookings.forEach(booking => {
+          const month = new Date(booking.createdAt).toISOString().substr(0, 7)
+          if (!monthlyTrends[month]) {
+            monthlyTrends[month] = {
+              classes: 0,
+              revenue: 0,
+              earnings: 0
+            }
+          }
+          
+          monthlyTrends[month].classes++
+          monthlyTrends[month].revenue += booking.amount || 0
+          monthlyTrends[month].earnings += (booking.amount || 0) * (instructorPayout?.commissionRate || 0.7)
+        })
+
+        const monthlyData = Object.entries(monthlyTrends)
+          .map(([month, stats]) => ({
+            month,
+            classes: stats.classes,
+            revenue: stats.revenue,
+            earnings: stats.earnings
+          }))
+          .sort((a, b) => a.month.localeCompare(b.month))
+
+        // Performance goals and recommendations
+        const recommendations = []
+        
+        if (averageEarningsPerClass < 50) {
+          recommendations.push({
+            type: 'earnings',
+            title: 'Increase Average Earnings',
+            description: `Current average: $${averageEarningsPerClass.toFixed(2)}`,
+            action: 'Focus on premium classes or increase class size'
+          })
+        }
+
+        if (totalClasses < 20) {
+          recommendations.push({
+            type: 'activity',
+            title: 'Increase Class Frequency',
+            description: `${totalClasses} classes in ${days} days`,
+            action: 'Consider teaching more classes per week'
+          })
+        }
+
+        return NextResponse.json({
+          success: true,
+          performance: {
+            period: period,
+            dateRange: { startDate, endDate },
+            overview: {
+              totalClasses,
+              totalRevenue,
+              totalEarnings,
+              averageRevenuePerClass,
+              averageEarningsPerClass,
+              commissionRate: instructorPayout?.commissionRate || 0.7
+            },
+            topPerformingClasses: topClasses,
+            monthlyTrends: monthlyData,
+            recommendations: recommendations
+          }
+        })
+
+      } catch (error) {
+        console.error('Performance analytics error:', error)
+        return NextResponse.json({ error: 'Failed to retrieve performance analytics' }, { status: 500 })
+      }
+    }
+
+    // Get instructor tax documents
+    if (path === '/instructor/tax-documents') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        
+        if (userProfile?.role !== 'instructor') {
+          return NextResponse.json({ error: 'Access denied. Instructor role required.' }, { status: 403 })
+        }
+
+        const url = new URL(request.url)
+        const taxYear = parseInt(url.searchParams.get('taxYear')) || new Date().getFullYear()
+
+        // Get 1099 forms for the instructor
+        const taxDocuments = await database.collection('instructor_1099_forms').find({
+          instructorId: firebaseUser.uid,
+          taxYear: taxYear
+        }).toArray()
+
+        // Get payout summary for the tax year
+        const yearStart = new Date(taxYear, 0, 1)
+        const yearEnd = new Date(taxYear, 11, 31)
+
+        const yearlyPayouts = await database.collection('instructor_payout_transactions').find({
+          instructorId: firebaseUser.uid,
+          processedAt: { $gte: yearStart, $lte: yearEnd },
+          status: 'completed'
+        }).toArray()
+
+        const yearlyEarnings = yearlyPayouts.reduce((sum, payout) => sum + payout.amount, 0)
+        const quarterlyBreakdown = {
+          Q1: yearlyPayouts.filter(p => p.processedAt.getMonth() < 3).reduce((sum, p) => sum + p.amount, 0),
+          Q2: yearlyPayouts.filter(p => p.processedAt.getMonth() >= 3 && p.processedAt.getMonth() < 6).reduce((sum, p) => sum + p.amount, 0),
+          Q3: yearlyPayouts.filter(p => p.processedAt.getMonth() >= 6 && p.processedAt.getMonth() < 9).reduce((sum, p) => sum + p.amount, 0),
+          Q4: yearlyPayouts.filter(p => p.processedAt.getMonth() >= 9).reduce((sum, p) => sum + p.amount, 0)
+        }
+
+        return NextResponse.json({
+          success: true,
+          taxDocuments: {
+            taxYear: taxYear,
+            totalEarnings: yearlyEarnings,
+            quarterlyBreakdown: quarterlyBreakdown,
+            totalPayouts: yearlyPayouts.length,
+            forms: taxDocuments.map(doc => ({
+              id: doc.id,
+              taxYear: doc.taxYear,
+              totalEarnings: doc.earnings.totalEarnings,
+              generatedAt: doc.generatedAt,
+              status: yearlyEarnings >= 600 ? 'required' : 'not_required' // 1099 threshold
+            })),
+            taxSummary: {
+              form1099Required: yearlyEarnings >= 600,
+              estimatedTaxRate: 0.25, // 25% estimated tax rate
+              estimatedTaxOwed: yearlyEarnings * 0.25,
+              quarterlyEstimate: (yearlyEarnings * 0.25) / 4
+            }
+          }
+        })
+
+      } catch (error) {
+        console.error('Tax documents error:', error)
+        return NextResponse.json({ error: 'Failed to retrieve tax documents' }, { status: 500 })
+      }
+    }
+
+    // Get studio instructor payout management (for merchants)
+    if (path === '/studio/instructor-payouts') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        
+        if (userProfile?.role !== 'merchant') {
+          return NextResponse.json({ error: 'Access denied. Merchant role required.' }, { status: 403 })
+        }
+
+        // Get all instructors for this studio
+        const studioInstructors = await database.collection('studio_staff').find({
+          studioId: firebaseUser.uid,
+          role: 'instructor',
+          status: { $ne: 'removed' }
+        }).toArray()
+
+        const instructorIds = studioInstructors.map(instructor => instructor.userId)
+
+        // Get payout configurations for each instructor
+        const instructorPayouts = await database.collection('instructor_payouts').find({
+          instructorId: { $in: instructorIds }
+        }).toArray()
+
+        // Get recent payout transactions
+        const recentPayouts = await database.collection('instructor_payout_transactions').find({
+          instructorId: { $in: instructorIds }
+        }).sort({ processedAt: -1 }).limit(20).toArray()
+
+        // Calculate studio payout summary
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+        const monthlyPayouts = recentPayouts.filter(payout => payout.processedAt >= thirtyDaysAgo)
+        const totalMonthlyPayouts = monthlyPayouts.reduce((sum, payout) => sum + payout.amount, 0)
+
+        // Enrich instructor data
+        const enrichedInstructors = studioInstructors.map(instructor => {
+          const payoutConfig = instructorPayouts.find(p => p.instructorId === instructor.userId)
+          const instructorPayoutHistory = recentPayouts.filter(p => p.instructorId === instructor.userId)
+          
+          return {
+            ...instructor,
+            payoutConfig: payoutConfig || {
+              commissionRate: 0.7,
+              payoutSchedule: 'weekly',
+              status: 'not_configured'
+            },
+            recentPayouts: instructorPayoutHistory.slice(0, 5),
+            monthlyEarnings: instructorPayoutHistory
+              .filter(p => p.processedAt >= thirtyDaysAgo)
+              .reduce((sum, p) => sum + p.amount, 0)
+          }
+        })
+
+        return NextResponse.json({
+          success: true,
+          instructorPayouts: {
+            instructors: enrichedInstructors,
+            summary: {
+              totalInstructors: studioInstructors.length,
+              activePayouts: instructorPayouts.filter(p => p.status === 'active').length,
+              totalMonthlyPayouts: totalMonthlyPayouts,
+              averageCommissionRate: instructorPayouts.length > 0 ? 
+                instructorPayouts.reduce((sum, p) => sum + p.commissionRate, 0) / instructorPayouts.length : 0.7
+            },
+            recentActivity: recentPayouts.slice(0, 10).map(payout => ({
+              id: payout.id,
+              instructorId: payout.instructorId,
+              amount: payout.amount,
+              processedAt: payout.processedAt,
+              status: payout.status
+            }))
+          }
+        })
+
+      } catch (error) {
+        console.error('Studio instructor payouts error:', error)
+        return NextResponse.json({ error: 'Failed to retrieve instructor payouts' }, { status: 500 })
+      }
+    }
+
     // Get studio's payment statistics (for merchants)
     if (path === '/payments/studio-stats') {
       const firebaseUser = await getFirebaseUser(request)
