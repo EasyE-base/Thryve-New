@@ -30,6 +30,51 @@
   }
 }
 
+/* Aggressive mobile keyboard retention fixes */
+.modal-container {
+  position: fixed !important;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.modal-container input {
+  -webkit-user-select: text !important;
+  user-select: text !important;
+  -webkit-touch-callout: default !important;
+  touch-callout: default !important;
+}
+
+/* Prevent iOS Safari from losing focus */
+@media screen and (max-width: 768px) {
+  input:focus {
+    position: relative;
+    z-index: 999999;
+    -webkit-user-select: text !important;
+    user-select: text !important;
+  }
+  
+  /* Prevent modal backdrop from interfering */
+  .modal-backdrop {
+    pointer-events: none;
+  }
+  
+  .modal-content {
+    pointer-events: auto;
+  }
+}
+
+/* Force hardware acceleration on mobile inputs */
+input[type="email"],
+input[type="text"], 
+input[type="password"] {
+  -webkit-transform: translate3d(0,0,0);
+  transform: translate3d(0,0,0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-perspective: 1000;
+  perspective: 1000;
+}
+
 /* Modern Gradient Background */
 .gradient-bg {
   background: linear-gradient(135deg, var(--turquoise) 0%, var(--amber) 100%);
