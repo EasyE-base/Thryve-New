@@ -2,8 +2,8 @@
 
 import React from 'react'
 import { useAuthState } from 'react-firebase-hooks/auth'
-import { auth } from '../../../lib/firebase'
-import StudioInstructorPayouts from '../../../components/studio/StudioInstructorPayouts'
+import { auth } from '../../lib/firebase'
+import StudioInstructorPayouts from '../../components/studio/StudioInstructorPayouts'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
