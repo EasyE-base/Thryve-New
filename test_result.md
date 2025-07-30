@@ -1573,6 +1573,138 @@ backend:
           agent: "main"
           comment: "PHASE 5 IMPLEMENTATION: Advanced business intelligence and analytics system. Provides customer retention analysis, peak hours optimization, popular class analysis, revenue trends, customer lifetime value, and actionable business recommendations. Includes comprehensive insights for strategic decision-making and business growth optimization."
 
+  - task: "POST /server-api/instructor/setup-stripe-connect - Setup Instructor Stripe Connect Account"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 6 IMPLEMENTATION: Enhanced Stripe Connect integration for instructor payout processing. Creates Stripe Connect express accounts, generates onboarding links, updates instructor profiles with account details, and creates instructor payout profiles with default commission rates (70%) and payout schedules. Provides foundation for automated instructor payouts."
+
+  - task: "POST /server-api/instructor/configure-commission - Configure Instructor Commission Rates"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 6 IMPLEMENTATION: Commission rate configuration system for studio merchants. Allows studios to set instructor commission rates (10-90% range), configure bonus structures (performance, class count, rating bonuses), set payout schedules, and manage minimum payout thresholds. Provides comprehensive commission management for revenue optimization."
+
+  - task: "POST /server-api/instructor/process-payout - Process Instructor Payout"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 6 IMPLEMENTATION: Automated instructor payout processing with Stripe Connect integration. Creates Stripe transfers, validates minimum payout amounts, records payout transactions, updates instructor earnings totals, and maintains comprehensive audit trails. Supports both scheduled and instant payout types with proper status tracking."
+
+  - task: "POST /server-api/instructor/calculate-earnings - Calculate Instructor Earnings"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 6 IMPLEMENTATION: Comprehensive earnings calculation engine for instructors. Calculates earnings based on class bookings, commission rates, and bonus structures. Provides detailed breakdowns by class, revenue analysis, bonus calculations, and payout status tracking. Supports multiple time periods and includes comprehensive earnings analytics."
+
+  - task: "POST /server-api/instructor/generate-1099 - Generate Instructor 1099 Tax Documents"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 6 IMPLEMENTATION: Automated 1099 tax document generation for instructor compliance. Calculates yearly earnings, generates comprehensive 1099 forms with instructor and payer information, tracks quarterly breakdowns, and maintains tax document history. Provides essential tax compliance functionality for instructor financial management."
+
+  - task: "GET /server-api/instructor/payout-dashboard - Instructor Payout Dashboard"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 6 IMPLEMENTATION: Comprehensive instructor payout dashboard with earnings overview. Provides instructor profile information, lifetime earnings tracking, current month earnings, recent payout history, upcoming class schedules, next payout dates, and monthly statistics. Essential for instructor financial transparency and payout management."
+
+  - task: "GET /server-api/instructor/earnings-history - Instructor Earnings History"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 6 IMPLEMENTATION: Detailed instructor earnings history with comprehensive analytics. Provides class-by-class earnings breakdown, commission calculations, payment method tracking, and period-based analysis. Supports pagination, multiple time periods, and includes summary statistics for earnings optimization and financial planning."
+
+  - task: "GET /server-api/instructor/payout-transactions - Instructor Payout Transaction History"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 6 IMPLEMENTATION: Comprehensive payout transaction history for instructors. Provides detailed transaction records, status tracking, Stripe transfer IDs, payout type classification, and transaction summaries. Supports status filtering, pagination, and includes comprehensive financial tracking for instructor transparency."
+
+  - task: "GET /server-api/instructor/performance-analytics - Instructor Performance Analytics"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 6 IMPLEMENTATION: Advanced instructor performance analytics and business intelligence. Provides class performance breakdown, top-performing class analysis, monthly trend analysis, revenue optimization insights, and actionable recommendations. Includes comprehensive KPIs for instructor growth and earnings optimization."
+
+  - task: "GET /server-api/instructor/tax-documents - Instructor Tax Documents"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 6 IMPLEMENTATION: Comprehensive tax document management for instructors. Provides 1099 forms, yearly earnings summaries, quarterly breakdowns, tax requirement analysis, and estimated tax calculations. Includes tax compliance tracking and document generation for instructor financial reporting."
+
+  - task: "GET /server-api/studio/instructor-payouts - Studio Instructor Payout Management"
+    implemented: true
+    working: "unknown"
+    file: "app/server-api/[[...path]]/route.js"
+    stuck_count: 0
+    priority: "critical"
+    needs_retesting: true
+    status_history:
+        - working: "unknown"
+          agent: "main"
+          comment: "PHASE 6 IMPLEMENTATION: Comprehensive studio instructor payout management for merchants. Provides instructor roster with payout configurations, commission rate management, recent payout activity, monthly earnings summaries, and studio payout analytics. Essential for studio workforce financial management and instructor relationship optimization."
+
   - task: "GET /server-api/discover/reviews - Class Ratings and Reviews Discovery"
     implemented: true
     working: true
