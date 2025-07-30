@@ -611,36 +611,66 @@ export default function Home() {
         </div>
 
         {/* Hero Content */}
-        <div className="relative z-30 text-center text-white px-6 max-w-5xl mx-auto">
-          <h1 className="text-6xl md:text-8xl font-bold mb-6 leading-tight">
-            Train. Book. <span className="text-[#1E90FF]">Thrive.</span>
+        <div className="relative z-30 text-center text-white px-6 max-w-6xl mx-auto">
+          <div className="mb-8">
+            <div className="inline-flex items-center px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/20 mb-6">
+              <span className="text-white/90 text-sm font-medium">✨ Join 50,000+ fitness enthusiasts</span>
+            </div>
+          </div>
+          
+          <h1 className="text-5xl md:text-7xl lg:text-8xl font-black mb-6 leading-tight tracking-tight">
+            Train. Book.{' '}
+            <span className="bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 bg-clip-text text-transparent">
+              Thrive.
+            </span>
           </h1>
-          <p className="text-xl md:text-2xl mb-12 text-gray-200 max-w-3xl mx-auto leading-relaxed">
-            The future of wellness booking & management starts here.
+          
+          <p className="text-xl md:text-2xl mb-10 text-white/90 max-w-4xl mx-auto leading-relaxed font-medium">
+            The future of fitness is here. Book classes, manage your studio, and connect with your community — all in one stunning platform.
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-6 justify-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
             <Link href="/marketplace">
-              <Button size="lg" className="bg-[#1E90FF] hover:bg-[#1976D2] text-white px-8 py-4 rounded-full text-lg font-semibold">
+              <Button 
+                size="lg" 
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-10 py-4 rounded-2xl text-lg font-semibold shadow-2xl hover:shadow-blue-500/25 transition-all duration-300 hover:scale-105"
+              >
                 Book a Class
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
+            
             <Button 
               size="lg" 
               variant="outline" 
-              className="border-white text-white hover:bg-white hover:text-[#1C1C1E] px-8 py-4 rounded-full text-lg font-semibold"
+              className="border-2 border-white/30 bg-white/10 backdrop-blur-sm text-white hover:bg-white hover:text-slate-900 px-10 py-4 rounded-2xl text-lg font-semibold transition-all duration-300 hover:scale-105"
               onClick={() => setShowSignInModal(true)}
             >
-              Studio? Get Started
-              <ArrowRight className="ml-2 h-5 w-5" />
+              <Play className="mr-2 h-5 w-5" />
+              Watch Demo
             </Button>
+          </div>
+
+          {/* Trust indicators */}
+          <div className="flex flex-wrap items-center justify-center gap-8 text-white/70 text-sm">
+            <div className="flex items-center gap-2">
+              <Star className="h-4 w-4 text-yellow-400 fill-current" />
+              <span>4.9/5 rating</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Shield className="h-4 w-4 text-green-400" />
+              <span>Secure payments</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Users className="h-4 w-4 text-blue-400" />
+              <span>50k+ members</span>
+            </div>
           </div>
 
           {/* Scroll Indicator */}
           <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
-            <div className="w-6 h-10 border-2 border-white rounded-full flex justify-center">
-              <div className="w-1 h-3 bg-white rounded-full mt-2"></div>
+            <div className="w-6 h-10 border-2 border-white/50 rounded-full flex justify-center">
+              <div className="w-1 h-3 bg-white/70 rounded-full mt-2"></div>
             </div>
           </div>
         </div>
