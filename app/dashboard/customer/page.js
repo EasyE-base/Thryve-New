@@ -35,8 +35,31 @@ export default function CustomerDashboard() {
   })
   const router = useRouter()
 
-  // Fetch dashboard data from API
-  const fetchDashboardData = async () => {
+  // Authentication check and redirect
+  useEffect(() => {
+    if (!authLoading) {
+      if (!user) {
+        toast.error('Please sign in to access your dashboard')
+        router.push('/')
+        return
+      }
+      
+      if (role && role !== 'customer') {
+        toast.error('Access denied. This dashboard is for customers only.')
+        const dashboardRoutes = {
+          instructor: '/dashboard/instructor',
+          merchant: '/dashboard/merchant'
+        }
+        router.push(dashboardRoutes[role] || '/dashboard/customer')
+        return
+      }
+      
+      if (user && (role === 'customer' || role === null)) {
+        fetchDashboardData()
+        setLoading(false)
+      }
+    }
+  }, [user, role, authLoading, router])
     if (!user) return
 
     try {
