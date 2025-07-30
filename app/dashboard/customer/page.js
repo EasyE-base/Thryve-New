@@ -60,6 +60,9 @@ export default function CustomerDashboard() {
       }
     }
   }, [user, role, authLoading, router])
+
+  // Fetch dashboard data from API
+  const fetchDashboardData = async () => {
     if (!user) return
 
     try {
