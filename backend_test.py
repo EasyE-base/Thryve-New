@@ -22,7 +22,7 @@ from datetime import datetime, timedelta
 
 # Configuration
 BASE_URL = os.getenv('NEXT_PUBLIC_BASE_URL', 'https://e78daffd-6e74-489a-b028-31f9276233bb.preview.emergentagent.com')
-API_BASE = f"{BASE_URL}/server-api"
+API_BASE = f"{BASE_URL}/api"
 
 # Test authentication token (mock Firebase token)
 AUTH_TOKEN = "Bearer firebase-test-token"
