@@ -233,7 +233,15 @@ export default function Home() {
     if (!showSignInModal) return null
 
     return (
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div 
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+        onTouchStart={(e) => {
+          // Prevent backdrop from interfering with input focus
+          if (e.target === e.currentTarget) {
+            e.preventDefault()
+          }
+        }}
+      >
         <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto relative">
           <div className="p-6 md:p-8">
             {/* Header */}
@@ -278,8 +286,23 @@ export default function Home() {
                     autoComplete="name"
                     inputMode="text"
                     onFocus={(e) => {
-                      // Prevent modal from shifting on iOS
-                      e.target.scrollIntoView({ block: 'center', behavior: 'smooth' })
+                      // Aggressive mobile focus retention
+                      setTimeout(() => {
+                        e.target.focus()
+                        e.target.click()
+                      }, 100)
+                    }}
+                    onBlur={(e) => {
+                      // Prevent unwanted blur on mobile
+                      if (document.activeElement !== e.target) {
+                        setTimeout(() => {
+                          e.target.focus()
+                        }, 10)
+                      }
+                    }}
+                    onTouchStart={(e) => {
+                      e.stopPropagation()
+                      e.target.focus()
                     }}
                   />
                 </div>
@@ -299,12 +322,27 @@ export default function Home() {
                   autoComplete="email"
                   inputMode="email"
                   onFocus={(e) => {
-                    // Prevent modal from shifting on iOS
-                    e.target.scrollIntoView({ block: 'center', behavior: 'smooth' })
+                    // Aggressive mobile focus retention for email
+                    setTimeout(() => {
+                      e.target.focus()
+                      e.target.click()
+                    }, 100)
+                  }}
+                  onBlur={(e) => {
+                    // Prevent unwanted blur on mobile for email
+                    if (document.activeElement !== e.target && e.relatedTarget?.tagName !== 'BUTTON') {
+                      setTimeout(() => {
+                        e.target.focus()
+                      }, 10)
+                    }
                   }}
                   onTouchStart={(e) => {
-                    // Prevent event bubbling that might close keyboard
                     e.stopPropagation()
+                    e.target.focus()
+                  }}
+                  onTouchEnd={(e) => {
+                    e.preventDefault()
+                    e.target.focus()
                   }}
                 />
               </div>
@@ -324,12 +362,27 @@ export default function Home() {
                     autoComplete={isModalSignUp ? "new-password" : "current-password"}
                     inputMode="text"
                     onFocus={(e) => {
-                      // Prevent modal from shifting on iOS
-                      e.target.scrollIntoView({ block: 'center', behavior: 'smooth' })
+                      // Aggressive mobile focus retention for password
+                      setTimeout(() => {
+                        e.target.focus()
+                        e.target.click()
+                      }, 100)
+                    }}
+                    onBlur={(e) => {
+                      // Prevent unwanted blur on mobile for password
+                      if (document.activeElement !== e.target && e.relatedTarget?.tagName !== 'BUTTON') {
+                        setTimeout(() => {
+                          e.target.focus()
+                        }, 10)
+                      }
                     }}
                     onTouchStart={(e) => {
-                      // Prevent event bubbling that might close keyboard
                       e.stopPropagation()
+                      e.target.focus()
+                    }}
+                    onTouchEnd={(e) => {
+                      e.preventDefault()
+                      e.target.focus()
                     }}
                   />
                   <button
