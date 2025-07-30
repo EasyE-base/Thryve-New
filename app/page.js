@@ -1006,66 +1006,175 @@ export default function Home() {
         </div>
       </section>
 
-      {/* How It Works */}
-      <section className="py-24 bg-white">
-        <div className="container mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-5xl font-bold text-[#1C1C1E] mb-6">How It Works</h2>
-            <p className="text-xl text-[#7A7A7A]">Simple for studios, seamless for users</p>
+      {/* How It Works - Modern Design */}
+      <section className="py-32 bg-gradient-to-b from-white to-slate-50 relative overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute inset-0" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='0.3'%3E%3Cpath d='M0 40h80v1H0zM40 0v80h1V0z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+            backgroundSize: '80px 80px'
+          }} />
+        </div>
+
+        <div className="max-w-7xl mx-auto px-6 relative">
+          {/* Section Header */}
+          <div className="text-center mb-20">
+            <div className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-emerald-50 to-blue-50 rounded-full border border-emerald-100/50 mb-8">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-blue-600 text-sm font-bold">
+                ⚡ Simple Process
+              </span>
+            </div>
+            
+            <h2 className="text-6xl md:text-7xl font-black text-slate-900 mb-6 leading-tight">
+              How It{' '}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-blue-600 to-purple-600">
+                Works
+              </span>
+            </h2>
+            
+            <p className="text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
+              Two paths, one destination: success. Whether you're a studio owner or a fitness enthusiast.
+            </p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
             {/* For Studios */}
-            <div>
-              <h3 className="text-3xl font-bold text-[#1C1C1E] mb-8 text-center">For Studios</h3>
+            <div className="relative">
+              <div className="text-center mb-12">
+                <div className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-100 to-pink-100 rounded-2xl border border-purple-200/50 mb-4">
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600 text-lg font-bold">
+                    For Studios
+                  </span>
+                </div>
+                <p className="text-slate-600">Monetize your passion effortlessly</p>
+              </div>
+              
               <div className="space-y-8">
-                <div className="flex items-start space-x-4">
-                  <div className="bg-[#1E90FF] text-white w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg">1</div>
-                  <div>
-                    <h4 className="font-bold text-xl text-[#1C1C1E] mb-2">Create Your Profile</h4>
-                    <p className="text-[#7A7A7A]">Upload your studio details, photos, and amenities in minutes</p>
+                <div className="group flex items-start space-x-6 p-6 bg-white rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300 border border-slate-100">
+                  <div className="relative flex-shrink-0">
+                    <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center font-black text-white text-2xl shadow-xl">
+                      1
+                    </div>
+                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-xs">✨</span>
+                    </div>
+                  </div>
+                  <div className="flex-1 pt-2">
+                    <h4 className="font-black text-2xl text-slate-900 mb-3 group-hover:text-purple-600 transition-colors">
+                      Create Your Profile
+                    </h4>
+                    <p className="text-slate-600 leading-relaxed text-lg">
+                      Upload your studio details, photos, and amenities in minutes with our AI assistant
+                    </p>
                   </div>
                 </div>
-                <div className="flex items-start space-x-4">
-                  <div className="bg-[#1E90FF] text-white w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg">2</div>
-                  <div>
-                    <h4 className="font-bold text-xl text-[#1C1C1E] mb-2">Upload Classes</h4>
-                    <p className="text-[#7A7A7A]">Add your class schedule with our AI-powered import tool</p>
+
+                <div className="group flex items-start space-x-6 p-6 bg-white rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300 border border-slate-100">
+                  <div className="relative flex-shrink-0">
+                    <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center font-black text-white text-2xl shadow-xl">
+                      2
+                    </div>
+                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-xs">🚀</span>
+                    </div>
+                  </div>
+                  <div className="flex-1 pt-2">
+                    <h4 className="font-black text-2xl text-slate-900 mb-3 group-hover:text-blue-600 transition-colors">
+                      Upload Classes
+                    </h4>
+                    <p className="text-slate-600 leading-relaxed text-lg">
+                      Add your class schedule instantly with our AI-powered import tool
+                    </p>
                   </div>
                 </div>
-                <div className="flex items-start space-x-4">
-                  <div className="bg-[#1E90FF] text-white w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg">3</div>
-                  <div>
-                    <h4 className="font-bold text-xl text-[#1C1C1E] mb-2">Get Bookings</h4>
-                    <p className="text-[#7A7A7A]">Start receiving bookings immediately with instant payouts</p>
+
+                <div className="group flex items-start space-x-6 p-6 bg-white rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300 border border-slate-100">
+                  <div className="relative flex-shrink-0">
+                    <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl flex items-center justify-center font-black text-white text-2xl shadow-xl">
+                      3
+                    </div>
+                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-br from-pink-400 to-red-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-xs">💰</span>
+                    </div>
+                  </div>
+                  <div className="flex-1 pt-2">
+                    <h4 className="font-black text-2xl text-slate-900 mb-3 group-hover:text-emerald-600 transition-colors">
+                      Get Bookings
+                    </h4>
+                    <p className="text-slate-600 leading-relaxed text-lg">
+                      Start receiving bookings immediately with instant payouts at just 3.75%
+                    </p>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* For Users */}
-            <div>
-              <h3 className="text-3xl font-bold text-[#1C1C1E] mb-8 text-center">For Users</h3>
+            <div className="relative">
+              <div className="text-center mb-12">
+                <div className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-100 to-purple-100 rounded-2xl border border-blue-200/50 mb-4">
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 text-lg font-bold">
+                    For Users
+                  </span>
+                </div>
+                <p className="text-slate-600">Your fitness journey simplified</p>
+              </div>
+              
               <div className="space-y-8">
-                <div className="flex items-start space-x-4">
-                  <div className="bg-[#1E90FF] text-white w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg">1</div>
-                  <div>
-                    <h4 className="font-bold text-xl text-[#1C1C1E] mb-2">Browse Classes</h4>
-                    <p className="text-[#7A7A7A]">Discover amazing classes near you or try something new</p>
+                <div className="group flex items-start space-x-6 p-6 bg-white rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300 border border-slate-100">
+                  <div className="relative flex-shrink-0">
+                    <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl flex items-center justify-center font-black text-white text-2xl shadow-xl">
+                      1
+                    </div>
+                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-xs">🔍</span>
+                    </div>
+                  </div>
+                  <div className="flex-1 pt-2">
+                    <h4 className="font-black text-2xl text-slate-900 mb-3 group-hover:text-orange-600 transition-colors">
+                      Browse Classes
+                    </h4>
+                    <p className="text-slate-600 leading-relaxed text-lg">
+                      Discover amazing classes near you with personalized recommendations
+                    </p>
                   </div>
                 </div>
-                <div className="flex items-start space-x-4">
-                  <div className="bg-[#1E90FF] text-white w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg">2</div>
-                  <div>
-                    <h4 className="font-bold text-xl text-[#1C1C1E] mb-2">Book Instantly</h4>
-                    <p className="text-[#7A7A7A]">Secure your spot with one click, no hassle required</p>
+
+                <div className="group flex items-start space-x-6 p-6 bg-white rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300 border border-slate-100">
+                  <div className="relative flex-shrink-0">
+                    <div className="w-16 h-16 bg-gradient-to-br from-pink-500 to-rose-500 rounded-2xl flex items-center justify-center font-black text-white text-2xl shadow-xl">
+                      2
+                    </div>
+                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-xs">⚡</span>
+                    </div>
+                  </div>
+                  <div className="flex-1 pt-2">
+                    <h4 className="font-black text-2xl text-slate-900 mb-3 group-hover:text-pink-600 transition-colors">
+                      Book Instantly
+                    </h4>
+                    <p className="text-slate-600 leading-relaxed text-lg">
+                      Secure your spot with one click, complete with secure payment processing
+                    </p>
                   </div>
                 </div>
-                <div className="flex items-start space-x-4">
-                  <div className="bg-[#1E90FF] text-white w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg">3</div>
-                  <div>
-                    <h4 className="font-bold text-xl text-[#1C1C1E] mb-2">Show Up & Sweat</h4>
-                    <p className="text-[#7A7A7A]">Focus on your workout, we'll handle the rest</p>
+
+                <div className="group flex items-start space-x-6 p-6 bg-white rounded-3xl shadow-lg hover:shadow-xl transition-all duration-300 border border-slate-100">
+                  <div className="relative flex-shrink-0">
+                    <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center font-black text-white text-2xl shadow-xl">
+                      3
+                    </div>
+                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-xs">💪</span>
+                    </div>
+                  </div>
+                  <div className="flex-1 pt-2">
+                    <h4 className="font-black text-2xl text-slate-900 mb-3 group-hover:text-indigo-600 transition-colors">
+                      Show Up & Thrive
+                    </h4>
+                    <p className="text-slate-600 leading-relaxed text-lg">
+                      Focus on your workout while we handle the rest of your fitness journey
+                    </p>
                   </div>
                 </div>
               </div>
