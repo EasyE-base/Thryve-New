@@ -64,6 +64,112 @@ export default function Home() {
     return () => clearInterval(interval)
   }, [])
 
+  // Mock data for trending classes
+  const trendingClasses = [
+    {
+      id: 1,
+      title: "Power Vinyasa Flow",
+      instructor: "Maya Chen",
+      studio: "Zen Flow Studio",
+      time: "7:00 AM",
+      date: "Today",
+      price: "$28",
+      image: LIFESTYLE_IMAGES[0],
+      type: "Yoga",
+      capacity: 20,
+      booked: 15,
+      duration: 60,
+      location: "Downtown",
+      description: "An energizing flow class that builds strength and flexibility",
+      rating: "4.9"
+    },
+    {
+      id: 2,
+      title: "HIIT Bootcamp",
+      instructor: "Marcus Williams",
+      studio: "Strength Labs",
+      time: "6:30 PM",
+      date: "Today",
+      price: "$35",
+      image: LIFESTYLE_IMAGES[1],
+      type: "HIIT",
+      capacity: 18,
+      booked: 18,
+      duration: 45,
+      location: "Midtown",
+      description: "High-intensity interval training for maximum calorie burn",
+      rating: "4.8"
+    },
+    {
+      id: 3,
+      title: "Pilates Reformer",
+      instructor: "Sarah Johnson",
+      studio: "Core Studio",
+      time: "12:00 PM",
+      date: "Tomorrow",
+      price: "$42",
+      image: LIFESTYLE_IMAGES[1],
+      type: "Pilates",
+      capacity: 15,
+      booked: 8,
+      duration: 60,
+      location: "Uptown",
+      description: "Precision movement on the reformer for core strength",
+      rating: "4.9"
+    },
+    {
+      id: 4,
+      title: "Boxing Fundamentals",
+      instructor: "Diego Rivera",
+      studio: "Fight Club NYC",
+      time: "8:00 PM",
+      date: "Tomorrow",
+      price: "$30",
+      image: LIFESTYLE_IMAGES[0],
+      type: "Boxing",
+      capacity: 16,
+      booked: 10,
+      duration: 50,
+      location: "Brooklyn",
+      description: "Learn proper boxing technique in a supportive environment",
+      rating: "4.7"
+    },
+    {
+      id: 5,
+      title: "Aerial Yoga",
+      instructor: "Luna Rodriguez",
+      studio: "Sky Studio",
+      time: "10:00 AM",
+      date: "Tomorrow",
+      price: "$38",
+      image: LIFESTYLE_IMAGES[0],
+      type: "Aerial",
+      capacity: 12,
+      booked: 6,
+      duration: 75,
+      location: "SoHo",
+      description: "Experience weightless yoga with silk hammocks",
+      rating: "4.8"
+    },
+    {
+      id: 6,
+      title: "Spin & Strength",
+      instructor: "Carlos Martinez",
+      studio: "Cycle Elite",
+      time: "7:30 AM",
+      date: "Tomorrow",
+      price: "$32",
+      image: LIFESTYLE_IMAGES[1],
+      type: "Spin",
+      capacity: 25,
+      booked: 22,
+      duration: 50,
+      location: "Financial District",
+      description: "High-energy cycling combined with strength training",
+      rating: "4.9"
+    }
+  ]
+
   // Mock data for live classes with enhanced booking properties
   const liveClasses = [
     {
