@@ -321,29 +321,49 @@ export default function Home() {
                   required
                   autoComplete="email"
                   inputMode="email"
-                  onFocus={(e) => {
-                    // Aggressive mobile focus retention for email
-                    setTimeout(() => {
-                      e.target.focus()
-                      e.target.click()
-                    }, 100)
-                  }}
-                  onBlur={(e) => {
-                    // Prevent unwanted blur on mobile for email
-                    if (document.activeElement !== e.target && e.relatedTarget?.tagName !== 'BUTTON') {
-                      setTimeout(() => {
-                        e.target.focus()
-                      }, 10)
-                    }
-                  }}
+                  // Mobile-specific attributes
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck="false"
+                  // Aggressive focus handlers
                   onTouchStart={(e) => {
                     e.stopPropagation()
+                    // Force focus immediately
                     e.target.focus()
+                    e.target.setAttribute('readonly', false)
                   }}
                   onTouchEnd={(e) => {
                     e.preventDefault()
-                    e.target.focus()
+                    e.stopPropagation()
+                    // Double-ensure focus
+                    setTimeout(() => {
+                      e.target.focus()
+                      e.target.click()
+                    }, 0)
                   }}
+                  onFocus={(e) => {
+                    // Remove readonly on focus
+                    e.target.removeAttribute('readonly')
+                    // Prevent modal shifting
+                    e.target.scrollIntoView({ 
+                      block: 'center', 
+                      behavior: 'smooth',
+                      inline: 'nearest'
+                    })
+                  }}
+                  onBlur={(e) => {
+                    // Only allow blur if user is tapping submit or another input
+                    const relatedTarget = e.relatedTarget
+                    if (!relatedTarget || (relatedTarget.tagName !== 'BUTTON' && relatedTarget.tagName !== 'INPUT')) {
+                      setTimeout(() => {
+                        if (document.activeElement !== e.target) {
+                          e.target.focus()
+                        }
+                      }, 50)
+                    }
+                  }}
+                  // Add readonly initially to prevent iOS keyboard issues, remove on touch
+                  readOnly={false}
                 />
               </div>
 
