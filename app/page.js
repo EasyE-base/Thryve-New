@@ -234,7 +234,7 @@ export default function Home() {
 
     return (
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto relative">
           <div className="p-6 md:p-8">
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
@@ -272,11 +272,15 @@ export default function Home() {
                     type="text"
                     value={modalName}
                     onChange={(e) => setModalName(e.target.value)}
-                    className="w-full px-4 py-3 text-base border border-[#EADBC8] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1E90FF]/20 focus:border-[#1E90FF] transition-colors"
+                    className="w-full px-4 py-3 text-base bg-white border border-[#EADBC8] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1E90FF]/20 focus:border-[#1E90FF] transition-colors"
                     placeholder="Enter your full name"
                     required={isModalSignUp}
                     autoComplete="name"
                     inputMode="text"
+                    onFocus={(e) => {
+                      // Prevent modal from shifting on iOS
+                      e.target.scrollIntoView({ block: 'center', behavior: 'smooth' })
+                    }}
                   />
                 </div>
               )}
@@ -289,11 +293,19 @@ export default function Home() {
                   type="email"
                   value={modalEmail}
                   onChange={(e) => setModalEmail(e.target.value)}
-                  className="w-full px-4 py-3 text-base border border-[#EADBC8] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1E90FF]/20 focus:border-[#1E90FF] transition-colors"
+                  className="w-full px-4 py-3 text-base bg-white border border-[#EADBC8] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1E90FF]/20 focus:border-[#1E90FF] transition-colors"
                   placeholder="Enter your email"
                   required
                   autoComplete="email"
                   inputMode="email"
+                  onFocus={(e) => {
+                    // Prevent modal from shifting on iOS
+                    e.target.scrollIntoView({ block: 'center', behavior: 'smooth' })
+                  }}
+                  onTouchStart={(e) => {
+                    // Prevent event bubbling that might close keyboard
+                    e.stopPropagation()
+                  }}
                 />
               </div>
 
@@ -306,15 +318,26 @@ export default function Home() {
                     type={modalShowPassword ? 'text' : 'password'}
                     value={modalPassword}
                     onChange={(e) => setModalPassword(e.target.value)}
-                    className="w-full px-4 py-3 text-base border border-[#EADBC8] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1E90FF]/20 focus:border-[#1E90FF] transition-colors pr-12"
+                    className="w-full px-4 py-3 text-base bg-white border border-[#EADBC8] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1E90FF]/20 focus:border-[#1E90FF] transition-colors pr-12"
                     placeholder="Enter your password"
                     required
                     autoComplete={isModalSignUp ? "new-password" : "current-password"}
                     inputMode="text"
+                    onFocus={(e) => {
+                      // Prevent modal from shifting on iOS
+                      e.target.scrollIntoView({ block: 'center', behavior: 'smooth' })
+                    }}
+                    onTouchStart={(e) => {
+                      // Prevent event bubbling that might close keyboard
+                      e.stopPropagation()
+                    }}
                   />
                   <button
                     type="button"
                     onClick={() => setModalShowPassword(!modalShowPassword)}
+                    onTouchStart={(e) => {
+                      e.stopPropagation()
+                    }}
                     className="absolute right-4 top-1/2 transform -translate-y-1/2 text-[#7A7A7A] hover:text-[#1C1C1E] transition-colors"
                   >
                     {modalShowPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
@@ -337,7 +360,7 @@ export default function Home() {
               <Button
                 type="submit"
                 disabled={modalLoading}
-                className="w-full bg-[#1E90FF] hover:bg-[#1976D2] text-white py-3 rounded-xl font-semibold text-lg"
+                className="w-full bg-[#1E90FF] hover:bg-[#1976D2] text-white py-3 rounded-xl font-semibold text-lg touch-manipulation"
               >
                 {modalLoading ? (
                   <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -354,7 +377,7 @@ export default function Home() {
                 <button
                   type="button"
                   onClick={() => setIsModalSignUp(!isModalSignUp)}
-                  className="text-[#1E90FF] hover:underline font-medium"
+                  className="text-[#1E90FF] hover:underline font-medium touch-manipulation"
                 >
                   {isModalSignUp ? 'Sign In' : 'Sign Up'}
                 </button>
@@ -373,14 +396,14 @@ export default function Home() {
               <Button
                 type="button"
                 variant="outline"
-                className="w-full border-[#EADBC8] text-[#1C1C1E] hover:bg-[#EADBC8]/10 py-3 rounded-xl font-medium"
+                className="w-full border-[#EADBC8] text-[#1C1C1E] hover:bg-[#EADBC8]/10 py-3 rounded-xl font-medium touch-manipulation"
               >
                 Continue with Google
               </Button>
               <Button
                 type="button"
                 variant="outline"
-                className="w-full border-[#EADBC8] text-[#1C1C1E] hover:bg-[#EADBC8]/10 py-3 rounded-xl font-medium"
+                className="w-full border-[#EADBC8] text-[#1C1C1E] hover:bg-[#EADBC8]/10 py-3 rounded-xl font-medium touch-manipulation"
               >
                 Continue with Apple
               </Button>
