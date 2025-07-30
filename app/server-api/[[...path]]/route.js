@@ -9691,6 +9691,381 @@ async function handlePOST(request) {
       }
     }
 
+    // ========================================
+    // PHASE 5: STUDIO MANAGEMENT DASHBOARD
+    // ========================================
+
+    // Configure studio cancellation policy
+    if (path === '/studio/configure-cancellation-policy') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        
+        if (userProfile?.role !== 'merchant') {
+          return NextResponse.json({ error: 'Access denied. Merchant role required.' }, { status: 403 })
+        }
+
+        const body = await request.json()
+        const {
+          cancellationWindow = 24,
+          lateCancelFee = 1500,
+          noShowFee = 2000,
+          refundPolicy = 'full_refund_within_window',
+          freeTrialCancellations = 1,
+          gracePeriod = 15,
+          autoMarkNoShow = true,
+          weekendPolicy = 'same_as_weekday',
+          holidayPolicy = 'extended_window'
+        } = body
+
+        const policyData = {
+          studioId: firebaseUser.uid,
+          cancellationWindow,
+          lateCancelFee,
+          noShowFee,
+          refundPolicy,
+          freeTrialCancellations,
+          gracePeriod,
+          autoMarkNoShow,
+          weekendPolicy,
+          holidayPolicy,
+          updatedAt: new Date(),
+          createdAt: new Date()
+        }
+
+        // Upsert studio policy
+        await database.collection('studio_policies').updateOne(
+          { studioId: firebaseUser.uid },
+          { $set: policyData },
+          { upsert: true }
+        )
+
+        return NextResponse.json({
+          success: true,
+          message: 'Cancellation policy updated successfully',
+          policy: policyData
+        })
+
+      } catch (error) {
+        console.error('Configure cancellation policy error:', error)
+        return NextResponse.json({ error: 'Failed to configure cancellation policy' }, { status: 500 })
+      }
+    }
+
+    // Configure X Pass participation settings
+    if (path === '/studio/configure-xpass-settings') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        
+        if (userProfile?.role !== 'merchant') {
+          return NextResponse.json({ error: 'Access denied. Merchant role required.' }, { status: 403 })
+        }
+
+        const body = await request.json()
+        const {
+          acceptsXPass = true,
+          platformFeeRate = 0.075,
+          acceptedClassTypes = ['all'],
+          minimumAdvanceBooking = 0,
+          maximumXPassBookingsPerDay = null,
+          blackoutDates = []
+        } = body
+
+        const xpassSettings = {
+          studioId: firebaseUser.uid,
+          acceptsXPass,
+          platformFeeRate: Math.min(Math.max(platformFeeRate, 0.05), 0.15), // 5-15% range
+          acceptedClassTypes,
+          minimumAdvanceBooking,
+          maximumXPassBookingsPerDay,
+          blackoutDates: blackoutDates.map(date => new Date(date)),
+          updatedAt: new Date(),
+          createdAt: new Date()
+        }
+
+        // Upsert X Pass settings
+        await database.collection('studio_xpass_settings').updateOne(
+          { studioId: firebaseUser.uid },
+          { $set: xpassSettings },
+          { upsert: true }
+        )
+
+        return NextResponse.json({
+          success: true,
+          message: 'X Pass settings updated successfully',
+          settings: xpassSettings
+        })
+
+      } catch (error) {
+        console.error('Configure X Pass settings error:', error)
+        return NextResponse.json({ error: 'Failed to configure X Pass settings' }, { status: 500 })
+      }
+    }
+
+    // Configure studio pricing and products
+    if (path === '/studio/configure-pricing') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        
+        if (userProfile?.role !== 'merchant') {
+          return NextResponse.json({ error: 'Access denied. Merchant role required.' }, { status: 403 })
+        }
+
+        const body = await request.json()
+        const {
+          dropInPrice = 2000,
+          memberPrice = 1500,
+          classPackages = [],
+          subscriptionPlans = [],
+          dynamicPricing = false,
+          peakHourMultiplier = 1.2,
+          studentDiscount = 0.1,
+          seniorDiscount = 0.1
+        } = body
+
+        const pricingData = {
+          studioId: firebaseUser.uid,
+          dropInPrice,
+          memberPrice,
+          classPackages: classPackages.map(pkg => ({
+            name: pkg.name,
+            classes: pkg.classes,
+            price: pkg.price,
+            validityDays: pkg.validityDays || 90,
+            description: pkg.description,
+            isActive: pkg.isActive !== false
+          })),
+          subscriptionPlans: subscriptionPlans.map(plan => ({
+            name: plan.name,
+            monthlyPrice: plan.monthlyPrice,
+            billingCycle: plan.billingCycle || 'monthly',
+            classLimit: plan.classLimit || 'unlimited',
+            description: plan.description,
+            isActive: plan.isActive !== false
+          })),
+          dynamicPricing,
+          peakHourMultiplier,
+          studentDiscount,
+          seniorDiscount,
+          updatedAt: new Date(),
+          createdAt: new Date()
+        }
+
+        // Upsert pricing configuration
+        await database.collection('studio_pricing').updateOne(
+          { studioId: firebaseUser.uid },
+          { $set: pricingData },
+          { upsert: true }
+        )
+
+        return NextResponse.json({
+          success: true,
+          message: 'Pricing configuration updated successfully',
+          pricing: pricingData
+        })
+
+      } catch (error) {
+        console.error('Configure pricing error:', error)
+        return NextResponse.json({ error: 'Failed to configure pricing' }, { status: 500 })
+      }
+    }
+
+    // Manage studio staff
+    if (path === '/studio/manage-staff') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        
+        if (userProfile?.role !== 'merchant') {
+          return NextResponse.json({ error: 'Access denied. Merchant role required.' }, { status: 403 })
+        }
+
+        const body = await request.json()
+        const { action, staffData } = body
+
+        if (!action || !staffData) {
+          return NextResponse.json({ error: 'Action and staff data are required' }, { status: 400 })
+        }
+
+        let result = {}
+
+        switch (action) {
+          case 'add':
+            const newStaff = {
+              id: `staff-${Date.now()}`,
+              studioId: firebaseUser.uid,
+              email: staffData.email,
+              firstName: staffData.firstName,
+              lastName: staffData.lastName,
+              role: staffData.role || 'staff', // 'instructor', 'staff', 'manager'
+              permissions: staffData.permissions || ['view_bookings'],
+              specialties: staffData.specialties || [],
+              bio: staffData.bio || '',
+              certifications: staffData.certifications || [],
+              hourlyRate: staffData.hourlyRate || 0,
+              status: 'pending_invite',
+              invitedAt: new Date(),
+              createdAt: new Date()
+            }
+
+            await database.collection('studio_staff').insertOne(newStaff)
+            result = { action: 'added', staff: newStaff }
+            break
+
+          case 'update':
+            if (!staffData.id) {
+              return NextResponse.json({ error: 'Staff ID is required for update' }, { status: 400 })
+            }
+
+            const updateData = {
+              ...staffData,
+              updatedAt: new Date()
+            }
+            delete updateData.id
+
+            await database.collection('studio_staff').updateOne(
+              { id: staffData.id, studioId: firebaseUser.uid },
+              { $set: updateData }
+            )
+
+            result = { action: 'updated', staffId: staffData.id }
+            break
+
+          case 'remove':
+            if (!staffData.id) {
+              return NextResponse.json({ error: 'Staff ID is required for removal' }, { status: 400 })
+            }
+
+            await database.collection('studio_staff').updateOne(
+              { id: staffData.id, studioId: firebaseUser.uid },
+              { 
+                $set: { 
+                  status: 'removed',
+                  removedAt: new Date(),
+                  updatedAt: new Date()
+                }
+              }
+            )
+
+            result = { action: 'removed', staffId: staffData.id }
+            break
+
+          default:
+            return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
+        }
+
+        return NextResponse.json({
+          success: true,
+          message: `Staff ${action} completed successfully`,
+          result: result
+        })
+
+      } catch (error) {
+        console.error('Manage staff error:', error)
+        return NextResponse.json({ error: 'Failed to manage staff' }, { status: 500 })
+      }
+    }
+
+    // Configure studio business settings
+    if (path === '/studio/configure-business-settings') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        
+        if (userProfile?.role !== 'merchant') {
+          return NextResponse.json({ error: 'Access denied. Merchant role required.' }, { status: 403 })
+        }
+
+        const body = await request.json()
+        const {
+          businessHours = {},
+          bookingWindow = 30, // days in advance
+          minBookingNotice = 2, // hours before class
+          maxBookingsPerUser = null,
+          waitlistEnabled = true,
+          autoConfirmBookings = true,
+          reminderSettings = {},
+          socialMediaLinks = {},
+          amenities = [],
+          studioPhotos = []
+        } = body
+
+        const businessSettings = {
+          studioId: firebaseUser.uid,
+          businessHours: {
+            monday: businessHours.monday || { open: '06:00', close: '22:00', closed: false },
+            tuesday: businessHours.tuesday || { open: '06:00', close: '22:00', closed: false },
+            wednesday: businessHours.wednesday || { open: '06:00', close: '22:00', closed: false },
+            thursday: businessHours.thursday || { open: '06:00', close: '22:00', closed: false },
+            friday: businessHours.friday || { open: '06:00', close: '22:00', closed: false },
+            saturday: businessHours.saturday || { open: '08:00', close: '20:00', closed: false },
+            sunday: businessHours.sunday || { open: '08:00', close: '18:00', closed: false }
+          },
+          bookingWindow,
+          minBookingNotice,
+          maxBookingsPerUser,
+          waitlistEnabled,
+          autoConfirmBookings,
+          reminderSettings: {
+            enableEmailReminders: reminderSettings.enableEmailReminders !== false,
+            enableSMSReminders: reminderSettings.enableSMSReminders || false,
+            reminderTimes: reminderSettings.reminderTimes || [24, 2], // hours before class
+            cancellationReminders: reminderSettings.cancellationReminders !== false
+          },
+          socialMediaLinks: {
+            website: socialMediaLinks.website || '',
+            instagram: socialMediaLinks.instagram || '',
+            facebook: socialMediaLinks.facebook || '',
+            twitter: socialMediaLinks.twitter || '',
+            youtube: socialMediaLinks.youtube || ''
+          },
+          amenities: amenities,
+          studioPhotos: studioPhotos,
+          updatedAt: new Date(),
+          createdAt: new Date()
+        }
+
+        // Upsert business settings
+        await database.collection('studio_business_settings').updateOne(
+          { studioId: firebaseUser.uid },
+          { $set: businessSettings },
+          { upsert: true }
+        )
+
+        return NextResponse.json({
+          success: true,
+          message: 'Business settings updated successfully',
+          settings: businessSettings
+        })
+
+      } catch (error) {
+        console.error('Configure business settings error:', error)
+        return NextResponse.json({ error: 'Failed to configure business settings' }, { status: 500 })
+      }
+    }
+
     // Enhanced Stripe webhook handling
     if (path === '/payments/webhook') {
       const body = await request.text()
