@@ -17,6 +17,19 @@
   --amber: #FFBF00;
 }
 
+/* Mobile Input Fix - Prevent iOS zoom and keyboard issues */
+@supports (-webkit-touch-callout: none) {
+  input[type="email"],
+  input[type="text"],
+  input[type="password"],
+  textarea {
+    font-size: 16px !important;
+    transform: translateZ(0);
+    -webkit-user-select: text;
+    user-select: text;
+  }
+}
+
 /* Modern Gradient Background */
 .gradient-bg {
   background: linear-gradient(135deg, var(--turquoise) 0%, var(--amber) 100%);
