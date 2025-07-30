@@ -25,6 +25,65 @@ async function connectDB() {
   return db
 }
 
+// Helper function to ensure test profiles exist
+async function ensureTestProfiles(database) {
+  try {
+    // Check if test instructor profile exists
+    const testInstructor = await database.collection('profiles').findOne({ userId: 'test-instructor-user' })
+    if (!testInstructor) {
+      await database.collection('profiles').insertOne({
+        userId: 'test-instructor-user',
+        email: 'instructor@test.com',
+        name: 'Test Instructor',
+        role: 'instructor',
+        onboarding_complete: true,
+        stripeAccountId: 'acct_test_instructor',
+        stripeAccountStatus: 'enabled',
+        commissionRate: 0.70, // 70% instructor, 30% platform
+        createdAt: new Date(),
+        isTestProfile: true
+      })
+      
+      // Create instructor payout profile
+      await database.collection('instructor_payouts').insertOne({
+        instructorId: 'test-instructor-user',
+        stripeAccountId: 'acct_test_instructor',
+        commissionRate: 0.70,
+        payoutSchedule: 'weekly',
+        minimumPayoutAmount: 25.00,
+        totalEarnings: 0,
+        totalPayouts: 0,
+        createdAt: new Date(),
+        isTestProfile: true
+      })
+    }
+    
+    // Ensure test merchant exists with proper role
+    const testMerchant = await database.collection('profiles').findOne({ userId: 'firebase-test-user' })
+    if (!testMerchant) {
+      await database.collection('profiles').insertOne({
+        userId: 'firebase-test-user',
+        email: 'test@example.com',
+        name: 'Test Studio',
+        role: 'merchant',
+        studioName: 'Test Studio',
+        businessName: 'Test Studio',
+        onboarding_complete: true,
+        createdAt: new Date(),
+        isTestProfile: true
+      })
+    } else if (testMerchant.role !== 'merchant') {
+      // Update role if exists but incorrect
+      await database.collection('profiles').updateOne(
+        { userId: 'firebase-test-user' },
+        { $set: { role: 'merchant' } }
+      )
+    }
+  } catch (error) {
+    console.error('Error ensuring test profiles:', error)
+  }
+}
+
 function handleCORS(response) {
   response.headers.set('Access-Control-Allow-Origin', '*')
   response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
