@@ -677,46 +677,84 @@ export default function Home() {
       </section>
 
       {/* Why Thryve - Feature Strip */}
-      <section className="section-padding section-gradient">
-        <div className="container-modern">
+      <section className="py-24 bg-gradient-to-b from-white to-slate-50">
+        <div className="container mx-auto px-6">
           <div className="text-center mb-20">
-            <h2 className="text-6xl font-bold text-[#1C1C1E] mb-8 fade-in-up">Why Thryve?</h2>
-            <p className="text-2xl text-[#7A7A7A] max-w-4xl mx-auto leading-relaxed fade-in-up">
-              Built for studios, loved by customers. The only platform that truly puts your business first.
+            <div className="inline-flex items-center px-4 py-2 bg-blue-50 rounded-full border border-blue-100 mb-6">
+              <span className="text-blue-600 text-sm font-semibold">Why choose Thryve?</span>
+            </div>
+            
+            <h2 className="text-5xl md:text-6xl font-bold text-slate-900 mb-6 leading-tight">
+              Built for{' '}
+              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Success
+              </span>
+            </h2>
+            
+            <p className="text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
+              The only platform that puts your business first. No hidden fees, no surprises — just results.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
-            <div className="text-center group hover-lift card-hover">
-              <div className="glass-morphism w-24 h-24 rounded-2xl flex items-center justify-center mx-auto mb-8 group-hover:scale-110 smooth-transition">
-                <Zap className="h-12 w-12 text-[#1E90FF]" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="text-center group">
+              <div className="relative mb-6">
+                <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-3xl flex items-center justify-center mx-auto shadow-xl group-hover:shadow-2xl group-hover:scale-110 transition-all duration-300">
+                  <Zap className="h-10 w-10 text-white" />
+                </div>
+                <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-400 rounded-full flex items-center justify-center">
+                  <CheckCircle className="h-4 w-4 text-white" />
+                </div>
               </div>
-              <h3 className="text-2xl font-bold text-[#1C1C1E] mb-4">Flat 3.75% fee</h3>
-              <p className="text-[#7A7A7A] text-lg leading-relaxed">That's it. No hidden costs, no surprises.</p>
+              <h3 className="text-2xl font-bold text-slate-900 mb-3">Flat 3.75% Fee</h3>
+              <p className="text-slate-600 text-base leading-relaxed">
+                That's it. No hidden costs, no surprises. Simple, transparent pricing.
+              </p>
             </div>
 
-            <div className="text-center group hover-lift card-hover">
-              <div className="glass-morphism w-24 h-24 rounded-2xl flex items-center justify-center mx-auto mb-8 group-hover:scale-110 smooth-transition">
-                <Shield className="h-12 w-12 text-[#1E90FF]" />
+            <div className="text-center group">
+              <div className="relative mb-6">
+                <div className="w-20 h-20 bg-gradient-to-br from-green-500 to-emerald-600 rounded-3xl flex items-center justify-center mx-auto shadow-xl group-hover:shadow-2xl group-hover:scale-110 transition-all duration-300">
+                  <Shield className="h-10 w-10 text-white" />
+                </div>
+                <div className="absolute -top-2 -right-2 w-6 h-6 bg-blue-400 rounded-full flex items-center justify-center">
+                  <CheckCircle className="h-4 w-4 text-white" />
+                </div>
               </div>
-              <h3 className="text-2xl font-bold text-[#1C1C1E] mb-4">No Monthly Costs</h3>
-              <p className="text-[#7A7A7A] text-lg leading-relaxed">Pay only when you earn. Zero subscription fees.</p>
+              <h3 className="text-2xl font-bold text-slate-900 mb-3">No Monthly Costs</h3>
+              <p className="text-slate-600 text-base leading-relaxed">
+                Pay only when you earn. Zero subscription fees, zero commitments.
+              </p>
             </div>
 
-            <div className="text-center group hover-lift card-hover">
-              <div className="glass-morphism w-24 h-24 rounded-2xl flex items-center justify-center mx-auto mb-8 group-hover:scale-110 smooth-transition">
-                <Award className="h-12 w-12 text-[#1E90FF]" />
+            <div className="text-center group">
+              <div className="relative mb-6">
+                <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-pink-600 rounded-3xl flex items-center justify-center mx-auto shadow-xl group-hover:shadow-2xl group-hover:scale-110 transition-all duration-300">
+                  <Award className="h-10 w-10 text-white" />
+                </div>
+                <div className="absolute -top-2 -right-2 w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center">
+                  <CheckCircle className="h-4 w-4 text-white" />
+                </div>
               </div>
-              <h3 className="text-2xl font-bold text-[#1C1C1E] mb-4">Your Brand First</h3>
-              <p className="text-[#7A7A7A] text-lg leading-relaxed">Keep your customers. Build your community.</p>
+              <h3 className="text-2xl font-bold text-slate-900 mb-3">Your Brand First</h3>
+              <p className="text-slate-600 text-base leading-relaxed">
+                Keep your customers, build your community, grow your brand.
+              </p>
             </div>
 
-            <div className="text-center group hover-lift card-hover">
-              <div className="glass-morphism w-24 h-24 rounded-2xl flex items-center justify-center mx-auto mb-8 group-hover:scale-110 smooth-transition">
-                <Bot className="h-12 w-12 text-[#1E90FF]" />
+            <div className="text-center group">
+              <div className="relative mb-6">
+                <div className="w-20 h-20 bg-gradient-to-br from-orange-500 to-red-600 rounded-3xl flex items-center justify-center mx-auto shadow-xl group-hover:shadow-2xl group-hover:scale-110 transition-all duration-300">
+                  <Bot className="h-10 w-10 text-white" />
+                </div>
+                <div className="absolute -top-2 -right-2 w-6 h-6 bg-purple-400 rounded-full flex items-center justify-center">
+                  <CheckCircle className="h-4 w-4 text-white" />
+                </div>
               </div>
-              <h3 className="text-2xl font-bold text-[#1C1C1E] mb-4">AI Onboarding</h3>
-              <p className="text-[#7A7A7A] text-lg leading-relaxed">From Mindbody to live in minutes, not months.</p>
+              <h3 className="text-2xl font-bold text-slate-900 mb-3">AI Onboarding</h3>
+              <p className="text-slate-600 text-base leading-relaxed">
+                From setup to live in minutes, not months. Powered by AI.
+              </p>
             </div>
           </div>
         </div>
