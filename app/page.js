@@ -234,7 +234,7 @@ export default function Home() {
 
     return (
       <div 
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 modal-backdrop"
         onTouchStart={(e) => {
           // Prevent backdrop from interfering with input focus
           if (e.target === e.currentTarget) {
@@ -242,7 +242,7 @@ export default function Home() {
           }
         }}
       >
-        <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto relative">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto relative modal-container modal-content">
           <div className="p-6 md:p-8">
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
