@@ -1005,53 +1005,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-          </div>
-
-          <div className="relative">
-            <div className="flex overflow-x-auto space-x-8 pb-6 scrollbar-hide">
-              {liveClasses.map((classItem) => (
-                <div key={classItem.id} className="flex-shrink-0 w-96 group">
-                  <Card className="border-0 shadow-2xl hover:shadow-3xl card-hover glass-morphism overflow-hidden">
-                    <div className="relative">
-                      <img 
-                        src={classItem.image} 
-                        alt={classItem.title}
-                        className="w-full h-56 object-cover group-hover:scale-105 smooth-transition"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-                      <div className="absolute top-4 left-4">
-                        <Badge className="bg-[#1E90FF]/90 text-white backdrop-blur-sm border border-white/20">
-                          {classItem.type}
-                        </Badge>
-                      </div>
-                      <div className="absolute top-4 right-4 glass-morphism px-4 py-2 rounded-full border border-white/20">
-                        <span className="text-white font-bold text-lg">{classItem.price}</span>
-                      </div>
-                    </div>
-                    <CardContent className="p-8">
-                      <h3 className="font-bold text-2xl text-[#1C1C1E] mb-3">{classItem.title}</h3>
-                      <p className="text-[#7A7A7A] mb-2 text-lg">with {classItem.instructor}</p>
-                      <p className="text-[#7A7A7A] mb-4 text-lg">{classItem.studio}</p>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center text-[#7A7A7A]">
-                          <Clock className="h-5 w-5 mr-2" />
-                          <span className="text-lg">{classItem.time}</span>
-                        </div>
-                        <Button 
-                          className="btn-modern bg-[#1E90FF] hover:bg-[#1976D2] text-white px-6 py-3 rounded-xl"
-                          onClick={() => handleBookClass(classItem)}
-                        >
-                          {classItem.booked >= classItem.capacity ? 'Join Waitlist' : 'Book Now'}
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* How It Works */}
       <section className="py-24 bg-white">
