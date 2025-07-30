@@ -9,7 +9,7 @@ import json
 import os
 
 # Configuration
-BASE_URL = os.getenv('NEXT_PUBLIC_BASE_URL', 'https://e78daffd-6e74-489a-b028-31f9276233bb.preview.emergentagent.com')
+BASE_URL = os.getenv('NEXT_PUBLIC_BASE_URL', 'https://2a46661a-96e4-460d-88d6-00dbfcbebea3.preview.emergentagent.com')
 API_BASE = f"{BASE_URL}/server-api"
 
 # Test authentication token (mock Firebase token)

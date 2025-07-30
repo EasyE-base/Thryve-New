@@ -10,7 +10,7 @@ import time
 from datetime import datetime, timedelta
 
 # Configuration
-BASE_URL = "https://e78daffd-6e74-489a-b028-31f9276233bb.preview.emergentagent.com"
+BASE_URL = "https://2a46661a-96e4-460d-88d6-00dbfcbebea3.preview.emergentagent.com"
 SERVER_API_URL = f"{BASE_URL}/server-api"
 
 # Test authentication headers (mock Firebase tokens)
