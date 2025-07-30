@@ -490,7 +490,7 @@ export default function Home() {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-6 justify-center">
-            <Link href="/explore">
+            <Link href="/marketplace">
               <Button size="lg" className="bg-[#1E90FF] hover:bg-[#1976D2] text-white px-8 py-4 rounded-full text-lg font-semibold">
                 Book a Class
                 <ArrowRight className="ml-2 h-5 w-5" />
