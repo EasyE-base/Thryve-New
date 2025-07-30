@@ -1,20 +1,17 @@
 #!/usr/bin/env python3
 
 """
-PHASE 5 STUDIO MANAGEMENT DASHBOARD - Backend API Testing
-Testing comprehensive studio management dashboard endpoints for merchant role users.
+PHASE 6 INSTRUCTOR PAYOUT SYSTEM - Backend API Testing
+Testing comprehensive instructor payout and financial management system endpoints.
 
 Test Coverage:
-- POST /server-api/studio/configure-cancellation-policy
-- POST /server-api/studio/configure-xpass-settings  
-- POST /server-api/studio/configure-pricing
-- POST /server-api/studio/manage-staff
-- POST /server-api/studio/configure-business-settings
-- GET /server-api/studio/dashboard-overview
-- GET /server-api/studio/revenue-analytics
-- GET /server-api/studio/configuration
-- GET /server-api/studio/staff-overview
-- GET /server-api/studio/business-insights
+- POST /server-api/instructor/process-payout - Automated instructor payout processing
+- GET /server-api/instructor/payout-dashboard - Comprehensive instructor earnings dashboard
+- GET /server-api/instructor/earnings-history - Detailed instructor earnings history
+- GET /server-api/instructor/payout-transactions - Complete payout transaction history
+- GET /server-api/instructor/performance-analytics - Advanced instructor performance analytics
+- GET /server-api/instructor/tax-documents - 1099 tax document generation
+- GET /server-api/studio/instructor-payouts - Studio instructor payout management
 """
 
 import requests
