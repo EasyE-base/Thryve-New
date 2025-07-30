@@ -4335,6 +4335,631 @@ async function handleGET(request) {
       }
     }
 
+    // ========================================
+    // PHASE 5: STUDIO MANAGEMENT DASHBOARD - GET ENDPOINTS
+    // ========================================
+
+    // Get comprehensive studio dashboard data
+    if (path === '/studio/dashboard-overview') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        
+        if (userProfile?.role !== 'merchant') {
+          return NextResponse.json({ error: 'Access denied. Merchant role required.' }, { status: 403 })
+        }
+
+        // Get date range for analytics
+        const endDate = new Date()
+        const startDate = new Date()
+        startDate.setDate(startDate.getDate() - 30) // Last 30 days
+
+        // Get booking analytics
+        const totalBookings = await database.collection('bookings').countDocuments({
+          studioId: firebaseUser.uid,
+          createdAt: { $gte: startDate, $lte: endDate }
+        })
+
+        const confirmedBookings = await database.collection('bookings').countDocuments({
+          studioId: firebaseUser.uid,
+          status: 'confirmed',
+          createdAt: { $gte: startDate, $lte: endDate }
+        })
+
+        // Get revenue analytics
+        const revenueAgg = await database.collection('bookings').aggregate([
+          {
+            $match: {
+              studioId: firebaseUser.uid,
+              status: 'confirmed',
+              createdAt: { $gte: startDate, $lte: endDate }
+            }
+          },
+          {
+            $group: {
+              _id: null,
+              totalRevenue: { $sum: '$amount' },
+              platformFees: { $sum: '$platformFee' }
+            }
+          }
+        ]).toArray()
+
+        const revenue = revenueAgg[0] || { totalRevenue: 0, platformFees: 0 }
+        const netRevenue = revenue.totalRevenue - revenue.platformFees
+
+        // Get active subscriptions
+        const activeSubscriptions = await database.collection('subscriptions').countDocuments({
+          studioId: firebaseUser.uid,
+          status: 'active'
+        })
+
+        // Get staff count
+        const activeStaff = await database.collection('studio_staff').countDocuments({
+          studioId: firebaseUser.uid,
+          status: { $ne: 'removed' }
+        })
+
+        // Get upcoming classes
+        const upcomingClasses = await database.collection('class_schedules').find({
+          studioId: firebaseUser.uid,
+          startTime: { $gte: new Date().toISOString() },
+          status: { $ne: 'cancelled' }
+        }).sort({ startTime: 1 }).limit(5).toArray()
+
+        // Get recent reviews
+        const recentReviews = await database.collection('reviews').find({
+          studioId: firebaseUser.uid
+        }).sort({ createdAt: -1 }).limit(5).toArray()
+
+        const averageRating = recentReviews.length > 0 
+          ? recentReviews.reduce((sum, review) => sum + review.rating, 0) / recentReviews.length
+          : 0
+
+        // Get top performing classes
+        const topClasses = await database.collection('bookings').aggregate([
+          {
+            $match: {
+              studioId: firebaseUser.uid,
+              status: 'confirmed',
+              createdAt: { $gte: startDate, $lte: endDate }
+            }
+          },
+          {
+            $group: {
+              _id: '$className',
+              bookings: { $sum: 1 },
+              revenue: { $sum: '$amount' }
+            }
+          },
+          { $sort: { bookings: -1 } },
+          { $limit: 5 }
+        ]).toArray()
+
+        return NextResponse.json({
+          success: true,
+          dashboard: {
+            overview: {
+              totalBookings,
+              confirmedBookings,
+              bookingRate: totalBookings > 0 ? Math.round((confirmedBookings / totalBookings) * 100) : 0,
+              totalRevenue: revenue.totalRevenue,
+              netRevenue,
+              platformFees: revenue.platformFees,
+              activeSubscriptions,
+              activeStaff,
+              averageRating: Math.round(averageRating * 10) / 10
+            },
+            upcomingClasses: upcomingClasses.map(cls => ({
+              id: cls.id,
+              name: cls.name,
+              startTime: cls.startTime,
+              instructor: cls.instructor,
+              capacity: cls.capacity,
+              bookedCount: cls.bookedCount || 0
+            })),
+            recentReviews: recentReviews.map(review => ({
+              id: review.id,
+              rating: review.rating,
+              comment: review.comment,
+              customerName: review.customerName,
+              createdAt: review.createdAt
+            })),
+            topPerformingClasses: topClasses,
+            dateRange: {
+              startDate,
+              endDate,
+              periodDays: 30
+            }
+          }
+        })
+
+      } catch (error) {
+        console.error('Studio dashboard error:', error)
+        return NextResponse.json({ error: 'Failed to retrieve dashboard data' }, { status: 500 })
+      }
+    }
+
+    // Get studio revenue analytics
+    if (path === '/studio/revenue-analytics') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        
+        if (userProfile?.role !== 'merchant') {
+          return NextResponse.json({ error: 'Access denied. Merchant role required.' }, { status: 403 })
+        }
+
+        const url = new URL(request.url)
+        const period = url.searchParams.get('period') || '30days'
+        const compareEnabled = url.searchParams.get('compare') === 'true'
+
+        let days
+        switch (period) {
+          case '7days': days = 7; break
+          case '30days': days = 30; break
+          case '90days': days = 90; break
+          case '1year': days = 365; break
+          default: days = 30
+        }
+
+        const endDate = new Date()
+        const startDate = new Date()
+        startDate.setDate(startDate.getDate() - days)
+
+        // Current period revenue
+        const currentRevenue = await database.collection('bookings').aggregate([
+          {
+            $match: {
+              studioId: firebaseUser.uid,
+              status: 'confirmed',
+              createdAt: { $gte: startDate, $lte: endDate }
+            }
+          },
+          {
+            $group: {
+              _id: {
+                $dateToString: { format: '%Y-%m-%d', date: '$createdAt' }
+              },
+              dailyRevenue: { $sum: '$amount' },
+              dailyBookings: { $sum: 1 },
+              platformFees: { $sum: '$platformFee' }
+            }
+          },
+          { $sort: { '_id': 1 } }
+        ]).toArray()
+
+        // Payment method breakdown
+        const paymentMethodBreakdown = await database.collection('bookings').aggregate([
+          {
+            $match: {
+              studioId: firebaseUser.uid,
+              status: 'confirmed',
+              createdAt: { $gte: startDate, $lte: endDate }
+            }
+          },
+          {
+            $group: {
+              _id: '$paymentMethod',
+              count: { $sum: 1 },
+              revenue: { $sum: '$amount' },
+              fees: { $sum: '$platformFee' }
+            }
+          }
+        ]).toArray()
+
+        let comparison = null
+        if (compareEnabled) {
+          const compareEndDate = new Date(startDate)
+          const compareStartDate = new Date(startDate)
+          compareStartDate.setDate(compareStartDate.getDate() - days)
+
+          const compareRevenue = await database.collection('bookings').aggregate([
+            {
+              $match: {
+                studioId: firebaseUser.uid,
+                status: 'confirmed',
+                createdAt: { $gte: compareStartDate, $lte: compareEndDate }
+              }
+            },
+            {
+              $group: {
+                _id: null,
+                totalRevenue: { $sum: '$amount' },
+                totalBookings: { $sum: 1 },
+                platformFees: { $sum: '$platformFee' }
+              }
+            }
+          ]).toArray()
+
+          comparison = compareRevenue[0] || { totalRevenue: 0, totalBookings: 0, platformFees: 0 }
+        }
+
+        // Calculate totals
+        const totals = {
+          totalRevenue: currentRevenue.reduce((sum, day) => sum + day.dailyRevenue, 0),
+          totalBookings: currentRevenue.reduce((sum, day) => sum + day.dailyBookings, 0),
+          totalPlatformFees: currentRevenue.reduce((sum, day) => sum + day.platformFees, 0)
+        }
+        totals.netRevenue = totals.totalRevenue - totals.totalPlatformFees
+        totals.averageBookingValue = totals.totalBookings > 0 ? totals.totalRevenue / totals.totalBookings : 0
+
+        return NextResponse.json({
+          success: true,
+          analytics: {
+            period: period,
+            dateRange: { startDate, endDate },
+            totals,
+            dailyRevenue: currentRevenue,
+            paymentMethodBreakdown,
+            comparison,
+            performanceMetrics: {
+              revenueGrowth: comparison ? 
+                ((totals.totalRevenue - comparison.totalRevenue) / comparison.totalRevenue) * 100 : 0,
+              bookingGrowth: comparison ?
+                ((totals.totalBookings - comparison.totalBookings) / comparison.totalBookings) * 100 : 0
+            }
+          }
+        })
+
+      } catch (error) {
+        console.error('Revenue analytics error:', error)
+        return NextResponse.json({ error: 'Failed to retrieve revenue analytics' }, { status: 500 })
+      }
+    }
+
+    // Get studio configuration settings
+    if (path === '/studio/configuration') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        
+        if (userProfile?.role !== 'merchant') {
+          return NextResponse.json({ error: 'Access denied. Merchant role required.' }, { status: 403 })
+        }
+
+        // Get all studio configuration settings
+        const [
+          cancellationPolicy,
+          xpassSettings,
+          pricing,
+          businessSettings
+        ] = await Promise.all([
+          database.collection('studio_policies').findOne({ studioId: firebaseUser.uid }),
+          database.collection('studio_xpass_settings').findOne({ studioId: firebaseUser.uid }),
+          database.collection('studio_pricing').findOne({ studioId: firebaseUser.uid }),
+          database.collection('studio_business_settings').findOne({ studioId: firebaseUser.uid })
+        ])
+
+        // Provide defaults if not configured
+        const configuration = {
+          cancellationPolicy: cancellationPolicy || {
+            cancellationWindow: 24,
+            lateCancelFee: 1500,
+            noShowFee: 2000,
+            refundPolicy: 'full_refund_within_window',
+            freeTrialCancellations: 1,
+            gracePeriod: 15,
+            autoMarkNoShow: true
+          },
+          xpassSettings: xpassSettings || {
+            acceptsXPass: true,
+            platformFeeRate: 0.075,
+            acceptedClassTypes: ['all'],
+            minimumAdvanceBooking: 0,
+            maximumXPassBookingsPerDay: null,
+            blackoutDates: []
+          },
+          pricing: pricing || {
+            dropInPrice: 2000,
+            memberPrice: 1500,
+            classPackages: [],
+            subscriptionPlans: [],
+            dynamicPricing: false,
+            peakHourMultiplier: 1.2,
+            studentDiscount: 0.1,
+            seniorDiscount: 0.1
+          },
+          businessSettings: businessSettings || {
+            businessHours: {
+              monday: { open: '06:00', close: '22:00', closed: false },
+              tuesday: { open: '06:00', close: '22:00', closed: false },
+              wednesday: { open: '06:00', close: '22:00', closed: false },
+              thursday: { open: '06:00', close: '22:00', closed: false },
+              friday: { open: '06:00', close: '22:00', closed: false },
+              saturday: { open: '08:00', close: '20:00', closed: false },
+              sunday: { open: '08:00', close: '18:00', closed: false }
+            },
+            bookingWindow: 30,
+            minBookingNotice: 2,
+            maxBookingsPerUser: null,
+            waitlistEnabled: true,
+            autoConfirmBookings: true,
+            reminderSettings: {
+              enableEmailReminders: true,
+              enableSMSReminders: false,
+              reminderTimes: [24, 2],
+              cancellationReminders: true
+            },
+            socialMediaLinks: {},
+            amenities: [],
+            studioPhotos: []
+          }
+        }
+
+        return NextResponse.json({
+          success: true,
+          configuration: configuration,
+          lastUpdated: new Date()
+        })
+
+      } catch (error) {
+        console.error('Studio configuration error:', error)
+        return NextResponse.json({ error: 'Failed to retrieve studio configuration' }, { status: 500 })
+      }
+    }
+
+    // Get studio staff management
+    if (path === '/studio/staff-overview') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        
+        if (userProfile?.role !== 'merchant') {
+          return NextResponse.json({ error: 'Access denied. Merchant role required.' }, { status: 403 })
+        }
+
+        // Get all studio staff
+        const staff = await database.collection('studio_staff').find({
+          studioId: firebaseUser.uid,
+          status: { $ne: 'removed' }
+        }).toArray()
+
+        // Get class assignments for each instructor
+        const instructorIds = staff.filter(s => s.role === 'instructor').map(s => s.id)
+        const classAssignments = await database.collection('class_schedules').find({
+          instructorId: { $in: instructorIds },
+          startTime: { $gte: new Date().toISOString() }
+        }).toArray()
+
+        // Get performance metrics for instructors
+        const instructorPerformance = await database.collection('bookings').aggregate([
+          {
+            $match: {
+              studioId: firebaseUser.uid,
+              instructorId: { $in: instructorIds },
+              status: 'confirmed',
+              createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
+            }
+          },
+          {
+            $group: {
+              _id: '$instructorId',
+              totalClasses: { $sum: 1 },
+              totalRevenue: { $sum: '$amount' },
+              averageRating: { $avg: '$rating' }
+            }
+          }
+        ]).toArray()
+
+        // Enrich staff data
+        const enrichedStaff = staff.map(member => {
+          const assignments = classAssignments.filter(cls => cls.instructorId === member.id)
+          const performance = instructorPerformance.find(perf => perf._id === member.id)
+          
+          return {
+            ...member,
+            upcomingClasses: assignments.length,
+            nextClass: assignments.length > 0 ? assignments[0].startTime : null,
+            performance: performance ? {
+              totalClasses: performance.totalClasses,
+              totalRevenue: performance.totalRevenue,
+              averageRating: Math.round(performance.averageRating * 10) / 10
+            } : null
+          }
+        })
+
+        return NextResponse.json({
+          success: true,
+          staff: {
+            total: staff.length,
+            instructors: enrichedStaff.filter(s => s.role === 'instructor'),
+            managers: enrichedStaff.filter(s => s.role === 'manager'),
+            support: enrichedStaff.filter(s => s.role === 'staff'),
+            pendingInvites: enrichedStaff.filter(s => s.status === 'pending_invite').length
+          }
+        })
+
+      } catch (error) {
+        console.error('Staff overview error:', error)
+        return NextResponse.json({ error: 'Failed to retrieve staff overview' }, { status: 500 })
+      }
+    }
+
+    // Get studio business insights
+    if (path === '/studio/business-insights') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        
+        if (userProfile?.role !== 'merchant') {
+          return NextResponse.json({ error: 'Access denied. Merchant role required.' }, { status: 403 })
+        }
+
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+
+        // Customer retention analysis
+        const customerRetention = await database.collection('bookings').aggregate([
+          {
+            $match: {
+              studioId: firebaseUser.uid,
+              status: 'confirmed'
+            }
+          },
+          {
+            $group: {
+              _id: '$userId',
+              totalBookings: { $sum: 1 },
+              firstBooking: { $min: '$createdAt' },
+              lastBooking: { $max: '$createdAt' },
+              totalSpent: { $sum: '$amount' }
+            }
+          },
+          {
+            $project: {
+              isRecurring: { $gt: ['$totalBookings', 1] },
+              customerLifetime: {
+                $divide: [
+                  { $subtract: ['$lastBooking', '$firstBooking'] },
+                  1000 * 60 * 60 * 24
+                ]
+              },
+              totalBookings: 1,
+              totalSpent: 1
+            }
+          }
+        ]).toArray()
+
+        const recurringCustomers = customerRetention.filter(c => c.isRecurring).length
+        const totalCustomers = customerRetention.length
+        const retentionRate = totalCustomers > 0 ? (recurringCustomers / totalCustomers) * 100 : 0
+
+        // Peak hours analysis
+        const peakHours = await database.collection('bookings').aggregate([
+          {
+            $match: {
+              studioId: firebaseUser.uid,
+              status: 'confirmed',
+              createdAt: { $gte: thirtyDaysAgo }
+            }
+          },
+          {
+            $group: {
+              _id: {
+                $hour: { $dateFromString: { dateString: '$classStartTime' } }
+              },
+              bookings: { $sum: 1 }
+            }
+          },
+          { $sort: { bookings: -1 } }
+        ]).toArray()
+
+        // Popular class types
+        const popularClasses = await database.collection('bookings').aggregate([
+          {
+            $match: {
+              studioId: firebaseUser.uid,
+              status: 'confirmed',
+              createdAt: { $gte: thirtyDaysAgo }
+            }
+          },
+          {
+            $group: {
+              _id: '$className',
+              bookings: { $sum: 1 },
+              revenue: { $sum: '$amount' },
+              uniqueCustomers: { $addToSet: '$userId' }
+            }
+          },
+          {
+            $project: {
+              className: '$_id',
+              bookings: 1,
+              revenue: 1,
+              uniqueCustomers: { $size: '$uniqueCustomers' }
+            }
+          },
+          { $sort: { bookings: -1 } },
+          { $limit: 10 }
+        ]).toArray()
+
+        // Revenue trends
+        const revenueTrends = await database.collection('bookings').aggregate([
+          {
+            $match: {
+              studioId: firebaseUser.uid,
+              status: 'confirmed',
+              createdAt: { $gte: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000) }
+            }
+          },
+          {
+            $group: {
+              _id: {
+                week: { $week: '$createdAt' },
+                year: { $year: '$createdAt' }
+              },
+              weeklyRevenue: { $sum: '$amount' },
+              weeklyBookings: { $sum: 1 }
+            }
+          },
+          { $sort: { '_id.year': 1, '_id.week': 1 } }
+        ]).toArray()
+
+        return NextResponse.json({
+          success: true,
+          insights: {
+            customerAnalytics: {
+              totalCustomers,
+              recurringCustomers,
+              retentionRate: Math.round(retentionRate * 10) / 10,
+              averageCustomerLifetime: customerRetention.length > 0 ?
+                customerRetention.reduce((sum, c) => sum + c.customerLifetime, 0) / customerRetention.length : 0,
+              averageCustomerValue: customerRetention.length > 0 ?
+                customerRetention.reduce((sum, c) => sum + c.totalSpent, 0) / customerRetention.length : 0
+            },
+            operationalInsights: {
+              peakHours: peakHours.slice(0, 5),
+              popularClasses,
+              revenueTrends: revenueTrends.slice(-12) // Last 12 weeks
+            },
+            recommendations: [
+              {
+                type: 'retention',
+                title: 'Customer Retention',
+                description: `${retentionRate.toFixed(1)}% customer retention rate`,
+                action: retentionRate < 50 ? 'Consider loyalty programs or membership incentives' : 'Maintain current customer experience'
+              },
+              {
+                type: 'scheduling',
+                title: 'Peak Hours Optimization',
+                description: `Most popular time: ${peakHours[0] ? peakHours[0]._id : 'N/A'}:00`,
+                action: 'Consider adding more classes during peak hours'
+              },
+              {
+                type: 'revenue',
+                title: 'Revenue Growth',
+                description: 'Based on recent trends',
+                action: 'Focus on top-performing class types'
+              }
+            ]
+          }
+        })
+
+      } catch (error) {
+        console.error('Business insights error:', error)
+        return NextResponse.json({ error: 'Failed to retrieve business insights' }, { status: 500 })
+      }
+    }
+
     // Get studio's payment statistics (for merchants)
     if (path === '/payments/studio-stats') {
       const firebaseUser = await getFirebaseUser(request)
