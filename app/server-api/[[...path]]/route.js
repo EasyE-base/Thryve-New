@@ -5717,6 +5717,9 @@ async function handlePOST(request) {
 
     console.log('SERVER-API POST Request:', path)
 
+    // Ensure test profiles exist for testing
+    await ensureTestProfiles(database)
+
     // Get authenticated user for communication endpoints
     const user = await getFirebaseUser(request)
     if (!user && (path.startsWith('/messages') || path.startsWith('/notifications') || path.startsWith('/communication'))) {
