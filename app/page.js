@@ -235,7 +235,7 @@ export default function Home() {
     return (
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-          <div className="p-8">
+          <div className="p-6 md:p-8">
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -262,7 +262,7 @@ export default function Home() {
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
               {isModalSignUp && (
                 <div>
                   <label className="block text-sm font-medium text-[#1C1C1E] mb-2">
@@ -272,9 +272,11 @@ export default function Home() {
                     type="text"
                     value={modalName}
                     onChange={(e) => setModalName(e.target.value)}
-                    className="w-full px-4 py-3 border border-[#EADBC8] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1E90FF]/20 focus:border-[#1E90FF] transition-colors"
+                    className="w-full px-4 py-3 text-base border border-[#EADBC8] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1E90FF]/20 focus:border-[#1E90FF] transition-colors"
                     placeholder="Enter your full name"
                     required={isModalSignUp}
+                    autoComplete="name"
+                    inputMode="text"
                   />
                 </div>
               )}
@@ -287,9 +289,11 @@ export default function Home() {
                   type="email"
                   value={modalEmail}
                   onChange={(e) => setModalEmail(e.target.value)}
-                  className="w-full px-4 py-3 border border-[#EADBC8] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1E90FF]/20 focus:border-[#1E90FF] transition-colors"
+                  className="w-full px-4 py-3 text-base border border-[#EADBC8] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1E90FF]/20 focus:border-[#1E90FF] transition-colors"
                   placeholder="Enter your email"
                   required
+                  autoComplete="email"
+                  inputMode="email"
                 />
               </div>
 
@@ -302,9 +306,11 @@ export default function Home() {
                     type={modalShowPassword ? 'text' : 'password'}
                     value={modalPassword}
                     onChange={(e) => setModalPassword(e.target.value)}
-                    className="w-full px-4 py-3 border border-[#EADBC8] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1E90FF]/20 focus:border-[#1E90FF] transition-colors pr-12"
+                    className="w-full px-4 py-3 text-base border border-[#EADBC8] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#1E90FF]/20 focus:border-[#1E90FF] transition-colors pr-12"
                     placeholder="Enter your password"
                     required
+                    autoComplete={isModalSignUp ? "new-password" : "current-password"}
+                    inputMode="text"
                   />
                   <button
                     type="button"
@@ -342,7 +348,7 @@ export default function Home() {
             </form>
 
             {/* Toggle */}
-            <div className="mt-6 text-center">
+            <div className="mt-4 md:mt-6 text-center">
               <p className="text-[#7A7A7A]">
                 {isModalSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
                 <button
@@ -356,14 +362,14 @@ export default function Home() {
             </div>
 
             {/* Divider */}
-            <div className="mt-6 flex items-center">
+            <div className="mt-4 md:mt-6 flex items-center">
               <div className="flex-1 border-t border-[#EADBC8]"></div>
               <span className="px-4 text-sm text-[#7A7A7A]">or</span>
               <div className="flex-1 border-t border-[#EADBC8]"></div>
             </div>
 
             {/* Social Login Buttons */}
-            <div className="mt-6 space-y-3">
+            <div className="mt-4 md:mt-6 space-y-3">
               <Button
                 type="button"
                 variant="outline"
