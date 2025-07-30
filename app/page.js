@@ -550,12 +550,11 @@ export default function Home() {
                   >
                     Sign In
                   </Button>
-                  <Button 
-                    className="btn-modern bg-white text-black hover:bg-white/90 px-6 py-2 rounded-full font-semibold"
-                    onClick={() => setShowSignInModal(true)}
-                  >
-                    Get Started
-                  </Button>
+                  <Link href="/signup">
+                    <Button className="btn-modern bg-white text-black hover:bg-white/90 px-6 py-2 rounded-full font-semibold">
+                      Get Started
+                    </Button>
+                  </Link>
                 </>
               )}
             </div>
