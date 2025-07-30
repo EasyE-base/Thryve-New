@@ -2512,19 +2512,16 @@ metadata:
 
 test_plan:
   current_focus:
-    - "POST /server-api/studio/configure-cancellation-policy - Configure Studio Cancellation Policy"
-    - "POST /server-api/studio/configure-xpass-settings - Configure X Pass Participation Settings"
-    - "POST /server-api/studio/configure-pricing - Configure Studio Pricing & Products"
-    - "POST /server-api/studio/manage-staff - Studio Staff Management System"
-    - "POST /server-api/studio/configure-business-settings - Configure Studio Business Settings"
-    - "GET /server-api/studio/dashboard-overview - Comprehensive Studio Dashboard"
-    - "GET /server-api/studio/revenue-analytics - Advanced Studio Revenue Analytics"
-    - "GET /server-api/studio/configuration - Studio Configuration Settings"
-    - "GET /server-api/studio/staff-overview - Studio Staff Management Overview"
-    - "GET /server-api/studio/business-insights - Advanced Studio Business Intelligence"
+    - "POST /server-api/instructor/process-payout - Process Instructor Payout"
+    - "GET /server-api/instructor/payout-dashboard - Instructor Payout Dashboard"
+    - "GET /server-api/instructor/earnings-history - Instructor Earnings History"
+    - "GET /server-api/instructor/payout-transactions - Instructor Payout Transaction History"
+    - "GET /server-api/instructor/performance-analytics - Instructor Performance Analytics"
+    - "GET /server-api/instructor/tax-documents - Instructor Tax Documents"
+    - "GET /server-api/studio/instructor-payouts - Studio Instructor Payout Management"
   stuck_tasks: []
   test_all: false
-  test_priority: "critical_first"
+  test_priority: "high_first"
 
 agent_communication:
     - agent: "main"
