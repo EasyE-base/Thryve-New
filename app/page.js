@@ -1264,52 +1264,105 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="py-24 bg-[#FAF9F6]">
-        <div className="container mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-5xl font-bold text-[#1C1C1E] mb-6">What Studios Say</h2>
-            <p className="text-xl text-[#7A7A7A]">Real stories from real studio owners</p>
+      {/* Testimonials - Modern Design */}
+      <section className="py-32 bg-gradient-to-b from-slate-50 to-white relative overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute inset-0" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='120' height='120' viewBox='0 0 120 120' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000000' fill-opacity='0.2'%3E%3Ccircle cx='60' cy='60' r='2'/%3E%3Ccircle cx='20' cy='20' r='1'/%3E%3Ccircle cx='100' cy='100' r='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+            backgroundSize: '120px 120px'
+          }} />
+        </div>
+
+        <div className="max-w-7xl mx-auto px-6 relative">
+          {/* Section Header */}
+          <div className="text-center mb-20">
+            <div className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-orange-50 to-pink-50 rounded-full border border-orange-100/50 mb-8">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-600 to-pink-600 text-sm font-bold">
+                💬 Studio Success Stories
+              </span>
+            </div>
+            
+            <h2 className="text-6xl md:text-7xl font-black text-slate-900 mb-6 leading-tight">
+              What Studios{' '}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-600 via-pink-600 to-rose-600">
+                Say
+              </span>
+            </h2>
+            
+            <p className="text-xl text-slate-600 max-w-3xl mx-auto leading-relaxed">
+              Real stories from real studio owners who've transformed their business with Thryve
+            </p>
           </div>
 
-          <div className="relative max-w-4xl mx-auto">
-            <Card className="border-0 shadow-xl bg-white">
-              <CardContent className="p-12">
+          <div className="relative max-w-5xl mx-auto">
+            {/* Main Testimonial Card */}
+            <div className="relative group">
+              <div className="absolute -inset-1 bg-gradient-to-r from-orange-600 via-pink-600 to-rose-600 rounded-3xl blur opacity-25 group-hover:opacity-40 transition-opacity duration-300"></div>
+              
+              <div className="relative p-12 md:p-16 bg-white rounded-3xl shadow-2xl border border-slate-100">
                 <div className="text-center">
+                  {/* Quote Icon */}
                   <div className="mb-8">
-                    <img 
-                      src={testimonials[currentTestimonial].image} 
-                      alt={testimonials[currentTestimonial].name}
-                      className="w-20 h-20 rounded-full mx-auto object-cover"
-                    />
+                    <div className="w-16 h-16 mx-auto bg-gradient-to-br from-orange-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-xl">
+                      <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h4v10h-10z"/>
+                      </svg>
+                    </div>
                   </div>
-                  <blockquote className="text-2xl text-[#1C1C1E] mb-8 leading-relaxed">
+
+                  {/* Avatar */}
+                  <div className="mb-8">
+                    <div className="relative inline-block">
+                      <img 
+                        src={testimonials[currentTestimonial].image} 
+                        alt={testimonials[currentTestimonial].name}
+                        className="w-24 h-24 rounded-full mx-auto object-cover ring-4 ring-gradient-to-r from-orange-200 to-pink-200"
+                      />
+                      <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center">
+                        <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Quote */}
+                  <blockquote className="text-3xl md:text-4xl text-slate-800 mb-8 leading-relaxed font-medium">
                     "{testimonials[currentTestimonial].quote}"
                   </blockquote>
+
+                  {/* Attribution */}
                   <div className="text-center">
-                    <div className="font-bold text-xl text-[#1C1C1E]">
+                    <div className="font-black text-2xl text-slate-900 mb-2">
                       {testimonials[currentTestimonial].name}
                     </div>
-                    <div className="text-[#7A7A7A]">
+                    <div className="text-lg text-slate-600 font-medium">
                       {testimonials[currentTestimonial].title}
                     </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
-            {/* Testimonial indicators */}
-            <div className="flex justify-center space-x-2 mt-8">
+            {/* Navigation Dots */}
+            <div className="flex justify-center space-x-4 mt-12">
               {testimonials.map((_, index) => (
                 <button
                   key={index}
                   onClick={() => setCurrentTestimonial(index)}
-                  className={`w-3 h-3 rounded-full transition-colors ${
-                    index === currentTestimonial ? 'bg-[#1E90FF]' : 'bg-[#EADBC8]'
+                  className={`w-4 h-4 rounded-full transition-all duration-300 ${
+                    index === currentTestimonial 
+                      ? 'bg-gradient-to-r from-orange-500 to-pink-500 w-12' 
+                      : 'bg-slate-300 hover:bg-slate-400'
                   }`}
                 />
               ))}
             </div>
+
+            {/* Background Cards for Depth */}
+            <div className="absolute -z-10 -top-8 -left-8 w-72 h-48 bg-gradient-to-br from-orange-100 to-pink-100 rounded-3xl opacity-50 rotate-3"></div>
+            <div className="absolute -z-10 -bottom-8 -right-8 w-72 h-48 bg-gradient-to-br from-pink-100 to-rose-100 rounded-3xl opacity-50 -rotate-3"></div>
           </div>
         </div>
       </section>
