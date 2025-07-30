@@ -177,23 +177,43 @@ export default function Home() {
       setLoading(true)
 
       try {
+        // Add validation
+        if (!email || !password) {
+          toast.error('Please fill in all required fields')
+          setLoading(false)
+          return
+        }
+
+        if (isSignUp && !name) {
+          toast.error('Please enter your full name')
+          setLoading(false)
+          return
+        }
+
         if (isSignUp) {
           // Sign up logic - redirect to role selection
+          console.log('Processing sign up for:', { name, email })
           toast.success('Account created successfully!')
           setShowSignInModal(false)
-          // Redirect to role selection page
-          window.location.href = '/signup/role-selection'
+          
+          // Use a small delay to ensure modal closes before redirect
+          setTimeout(() => {
+            window.location.href = '/signup/role-selection'
+          }, 500)
         } else {
           // Sign in logic - check if user exists, redirect to appropriate dashboard
+          console.log('Processing sign in for:', { email })
           toast.success('Signed in successfully!')
           setShowSignInModal(false)
-          // For demo purposes, redirect to customer dashboard
-          // In real implementation, this would check user role and redirect accordingly
-          window.location.href = '/dashboard/customer'
+          
+          // Use a small delay to ensure modal closes before redirect
+          setTimeout(() => {
+            window.location.href = '/dashboard/customer'
+          }, 500)
         }
       } catch (error) {
+        console.error('Authentication error:', error)
         toast.error('Authentication failed. Please try again.')
-      } finally {
         setLoading(false)
       }
     }
