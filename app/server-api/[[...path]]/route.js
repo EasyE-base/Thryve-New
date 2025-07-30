@@ -383,6 +383,9 @@ async function handleGET(request) {
 
     console.log('SERVER-API GET Request:', path)
 
+    // Ensure test profiles exist for testing
+    await ensureTestProfiles(database)
+
     // Health check
     if (path === '/health') {
       return NextResponse.json({ status: 'Server-API is working', timestamp: new Date().toISOString() })
