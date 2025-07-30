@@ -11,7 +11,7 @@ import sys
 from datetime import datetime
 
 # Configuration
-BASE_URL = "https://c965f60f-b3cc-49e1-9021-e1c5bd50d222.preview.emergentagent.com"
+BASE_URL = "https://e78daffd-6e74-489a-b028-31f9276233bb.preview.emergentagent.com"
 SERVER_API_URL = f"{BASE_URL}/server-api"
 
 def test_class_creation_with_proper_data():
