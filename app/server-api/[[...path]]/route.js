@@ -3853,6 +3853,488 @@ async function handleGET(request) {
       }
     }
 
+    // ========================================
+    // PHASE 4: BOOKING INTEGRATION & PAYMENT VALIDATION - GET ENDPOINTS
+    // ========================================
+
+    // Get user's booking-payment status
+    if (path === '/bookings/payment-status') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const url = new URL(request.url)
+        const bookingId = url.searchParams.get('bookingId')
+
+        if (!bookingId) {
+          return NextResponse.json({ error: 'Booking ID is required' }, { status: 400 })
+        }
+
+        const booking = await database.collection('bookings').findOne({
+          id: bookingId,
+          userId: firebaseUser.uid
+        })
+
+        if (!booking) {
+          return NextResponse.json({ error: 'Booking not found or unauthorized' }, { status: 404 })
+        }
+
+        let paymentStatus = {
+          bookingId: booking.id,
+          status: booking.status,
+          paymentMethod: booking.paymentMethod,
+          createdAt: booking.createdAt,
+          confirmedAt: booking.confirmedAt,
+          paymentCompletedAt: booking.paymentCompletedAt
+        }
+
+        // Add payment-specific details
+        if (booking.paymentIntentId) {
+          try {
+            const paymentIntent = await stripe.paymentIntents.retrieve(booking.paymentIntentId)
+            paymentStatus.stripePayment = {
+              id: paymentIntent.id,
+              status: paymentIntent.status,
+              amount: paymentIntent.amount,
+              requiresAction: paymentIntent.status === 'requires_action',
+              clientSecret: paymentIntent.client_secret
+            }
+          } catch (stripeError) {
+            console.error('Stripe payment intent retrieval error:', stripeError)
+          }
+        }
+
+        if (booking.paymentMethod === 'class_package' && booking.packageId) {
+          const packageInfo = await database.collection('class_packages').findOne({
+            id: booking.packageId
+          })
+          if (packageInfo) {
+            paymentStatus.packageInfo = {
+              type: packageInfo.packageType,
+              remainingClasses: packageInfo.remainingClasses,
+              expirationDate: packageInfo.expirationDate
+            }
+          }
+        }
+
+        if (booking.paymentMethod === 'xpass') {
+          const xpassCredits = await database.collection('xpass_credits').findOne({
+            userId: firebaseUser.uid
+          })
+          if (xpassCredits) {
+            paymentStatus.xpassInfo = {
+              remainingCredits: xpassCredits.availableCredits
+            }
+          }
+        }
+
+        return NextResponse.json({
+          success: true,
+          paymentStatus: paymentStatus
+        })
+
+      } catch (error) {
+        console.error('Booking payment status error:', error)
+        return NextResponse.json({ error: 'Failed to retrieve booking payment status' }, { status: 500 })
+      }
+    }
+
+    // Get available payment options for booking
+    if (path === '/bookings/available-payments') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const url = new URL(request.url)
+        const studioId = url.searchParams.get('studioId')
+
+        if (!studioId) {
+          return NextResponse.json({ error: 'Studio ID is required' }, { status: 400 })
+        }
+
+        const availableOptions = {}
+
+        // Check active class packages for this studio
+        const activePackages = await database.collection('class_packages').find({
+          userId: firebaseUser.uid,
+          studioId: studioId,
+          status: 'active',
+          remainingClasses: { $gt: 0 },
+          expirationDate: { $gt: new Date() }
+        }).toArray()
+
+        if (activePackages.length > 0) {
+          availableOptions.classPackages = activePackages.map(pkg => ({
+            id: pkg.id,
+            packageType: pkg.packageType,
+            remainingClasses: pkg.remainingClasses,
+            expirationDate: pkg.expirationDate,
+            daysUntilExpiration: Math.ceil((new Date(pkg.expirationDate) - new Date()) / (1000 * 60 * 60 * 24))
+          }))
+        }
+
+        // Check active subscriptions for this studio
+        const activeSubscriptions = await database.collection('subscriptions').find({
+          userId: firebaseUser.uid,
+          studioId: studioId,
+          status: 'active',
+          currentPeriodEnd: { $gt: new Date() }
+        }).toArray()
+
+        if (activeSubscriptions.length > 0) {
+          availableOptions.subscriptions = activeSubscriptions.map(sub => ({
+            id: sub.id,
+            subscriptionType: sub.subscriptionType,
+            currentPeriodEnd: sub.currentPeriodEnd,
+            daysRemaining: Math.ceil((new Date(sub.currentPeriodEnd) - new Date()) / (1000 * 60 * 60 * 24))
+          }))
+        }
+
+        // Check X Pass credits and studio acceptance
+        const xpassCredits = await database.collection('xpass_credits').findOne({
+          userId: firebaseUser.uid
+        })
+
+        const studioXPassSettings = await database.collection('studio_xpass_settings').findOne({
+          studioId: studioId
+        })
+
+        if (xpassCredits?.availableCredits > 0 && studioXPassSettings?.acceptsXPass) {
+          availableOptions.xpass = {
+            availableCredits: xpassCredits.availableCredits,
+            platformFeeRate: studioXPassSettings.platformFeeRate || 0.075,
+            accepted: true
+          }
+        } else if (xpassCredits?.availableCredits > 0) {
+          availableOptions.xpass = {
+            availableCredits: xpassCredits.availableCredits,
+            accepted: false,
+            reason: 'Studio does not accept X Pass'
+          }
+        }
+
+        // Check saved payment methods
+        const userProfile = await database.collection('profiles').findOne({
+          userId: firebaseUser.uid
+        })
+
+        if (userProfile?.stripeCustomerId) {
+          const paymentMethods = await stripe.paymentMethods.list({
+            customer: userProfile.stripeCustomerId,
+            type: 'card'
+          })
+
+          if (paymentMethods.data.length > 0) {
+            availableOptions.savedCards = paymentMethods.data.map(pm => ({
+              id: pm.id,
+              brand: pm.card.brand,
+              last4: pm.card.last4,
+              expMonth: pm.card.exp_month,
+              expYear: pm.card.exp_year
+            }))
+          }
+        }
+
+        return NextResponse.json({
+          success: true,
+          studioId: studioId,
+          availableOptions: availableOptions,
+          totalOptions: Object.keys(availableOptions).length
+        })
+
+      } catch (error) {
+        console.error('Available payments error:', error)
+        return NextResponse.json({ error: 'Failed to retrieve available payment options' }, { status: 500 })
+      }
+    }
+
+    // Get booking validation history
+    if (path === '/bookings/validation-history') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const url = new URL(request.url)
+        const limit = parseInt(url.searchParams.get('limit')) || 20
+        const offset = parseInt(url.searchParams.get('offset')) || 0
+
+        // Get recent booking attempts
+        const bookings = await database.collection('bookings')
+          .find({ userId: firebaseUser.uid })
+          .sort({ createdAt: -1 })
+          .skip(offset)
+          .limit(limit)
+          .toArray()
+
+        // Get class and studio information
+        const classIds = bookings.map(b => b.classInstanceId).filter(Boolean)
+        const studioIds = bookings.map(b => b.studioId).filter(Boolean)
+
+        const classes = await database.collection('class_schedules')
+          .find({ id: { $in: classIds } })
+          .toArray()
+
+        const studios = await database.collection('profiles')
+          .find({ 
+            userId: { $in: studioIds },
+            role: 'merchant'
+          })
+          .toArray()
+
+        const enrichedBookings = bookings.map(booking => {
+          const classInfo = classes.find(c => c.id === booking.classInstanceId)
+          const studio = studios.find(s => s.userId === booking.studioId)
+
+          let validationStatus = 'unknown'
+          if (booking.status === 'confirmed') validationStatus = 'success'
+          else if (booking.status === 'cancelled') validationStatus = 'cancelled'
+          else if (booking.status === 'pending_payment') validationStatus = 'pending'
+          else if (booking.status === 'payment_failed') validationStatus = 'failed'
+
+          return {
+            id: booking.id,
+            status: booking.status,
+            validationStatus: validationStatus,
+            paymentMethod: booking.paymentMethod,
+            createdAt: booking.createdAt,
+            confirmedAt: booking.confirmedAt,
+            class: classInfo ? {
+              name: classInfo.name,
+              startTime: classInfo.startTime,
+              instructor: classInfo.instructor
+            } : null,
+            studio: studio ? {
+              name: studio.businessName || studio.studioName,
+              address: studio.address
+            } : null
+          }
+        })
+
+        const totalCount = await database.collection('bookings')
+          .countDocuments({ userId: firebaseUser.uid })
+
+        return NextResponse.json({
+          success: true,
+          bookings: enrichedBookings,
+          validation: {
+            totalBookings: enrichedBookings.length,
+            successful: enrichedBookings.filter(b => b.validationStatus === 'success').length,
+            pending: enrichedBookings.filter(b => b.validationStatus === 'pending').length,
+            failed: enrichedBookings.filter(b => b.validationStatus === 'failed').length,
+            cancelled: enrichedBookings.filter(b => b.validationStatus === 'cancelled').length
+          },
+          pagination: {
+            total: totalCount,
+            limit: limit,
+            offset: offset,
+            hasMore: offset + limit < totalCount
+          }
+        })
+
+      } catch (error) {
+        console.error('Validation history error:', error)
+        return NextResponse.json({ error: 'Failed to retrieve validation history' }, { status: 500 })
+      }
+    }
+
+    // Get credit balance summary
+    if (path === '/bookings/credit-balance') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        // Get X Pass credits
+        const xpassCredits = await database.collection('xpass_credits').findOne({
+          userId: firebaseUser.uid
+        })
+
+        // Get active class packages
+        const activePackages = await database.collection('class_packages').find({
+          userId: firebaseUser.uid,
+          status: 'active',
+          remainingClasses: { $gt: 0 },
+          expirationDate: { $gt: new Date() }
+        }).toArray()
+
+        // Get active subscriptions
+        const activeSubscriptions = await database.collection('subscriptions').find({
+          userId: firebaseUser.uid,
+          status: 'active',
+          currentPeriodEnd: { $gt: new Date() }
+        }).toArray()
+
+        // Calculate total available credits
+        const totalPackageCredits = activePackages.reduce((sum, pkg) => sum + pkg.remainingClasses, 0)
+        const totalXPassCredits = xpassCredits?.availableCredits || 0
+        const totalSubscriptionAccess = activeSubscriptions.length
+
+        // Get studio information for packages and subscriptions
+        const studioIds = [...new Set([
+          ...activePackages.map(pkg => pkg.studioId),
+          ...activeSubscriptions.map(sub => sub.studioId)
+        ])].filter(Boolean)
+
+        const studios = await database.collection('profiles')
+          .find({ 
+            userId: { $in: studioIds },
+            role: 'merchant'
+          })
+          .toArray()
+
+        // Enrich packages with studio info
+        const enrichedPackages = activePackages.map(pkg => {
+          const studio = studios.find(s => s.userId === pkg.studioId)
+          return {
+            ...pkg,
+            studio: studio ? {
+              name: studio.businessName || studio.studioName,
+              address: studio.address
+            } : null,
+            daysUntilExpiration: Math.ceil((new Date(pkg.expirationDate) - new Date()) / (1000 * 60 * 60 * 24))
+          }
+        })
+
+        // Enrich subscriptions with studio info
+        const enrichedSubscriptions = activeSubscriptions.map(sub => {
+          const studio = studios.find(s => s.userId === sub.studioId)
+          return {
+            ...sub,
+            studio: studio ? {
+              name: studio.businessName || studio.studioName,
+              address: studio.address
+            } : null,
+            daysRemaining: Math.ceil((new Date(sub.currentPeriodEnd) - new Date()) / (1000 * 60 * 60 * 24))
+          }
+        })
+
+        return NextResponse.json({
+          success: true,
+          creditBalance: {
+            xpass: {
+              availableCredits: totalXPassCredits,
+              lastUpdated: xpassCredits?.updatedAt,
+              totalEarned: xpassCredits?.totalEarned || 0,
+              totalSpent: xpassCredits?.totalSpent || 0
+            },
+            classPackages: {
+              totalCredits: totalPackageCredits,
+              activePackages: enrichedPackages.length,
+              packages: enrichedPackages
+            },
+            subscriptions: {
+              totalAccess: totalSubscriptionAccess,
+              activeSubscriptions: enrichedSubscriptions.length,
+              subscriptions: enrichedSubscriptions
+            },
+            summary: {
+              totalAvailableCredits: totalPackageCredits + totalXPassCredits,
+              totalSubscriptionAccess: totalSubscriptionAccess,
+              hasActiveCredits: totalPackageCredits > 0 || totalXPassCredits > 0 || totalSubscriptionAccess > 0
+            }
+          }
+        })
+
+      } catch (error) {
+        console.error('Credit balance error:', error)
+        return NextResponse.json({ error: 'Failed to retrieve credit balance' }, { status: 500 })
+      }
+    }
+
+    // Get booking reconciliation report (for studios)
+    if (path === '/bookings/reconciliation') {
+      const firebaseUser = await getFirebaseUser(request)
+      if (!firebaseUser) {
+        return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+      }
+
+      try {
+        const userProfile = await database.collection('profiles').findOne({ userId: firebaseUser.uid })
+        
+        if (userProfile?.role !== 'merchant') {
+          return NextResponse.json({ error: 'Access denied. Merchant role required.' }, { status: 403 })
+        }
+
+        const url = new URL(request.url)
+        const startDate = new Date(url.searchParams.get('startDate') || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
+        const endDate = new Date(url.searchParams.get('endDate') || new Date())
+
+        // Get bookings for this studio in date range
+        const bookings = await database.collection('bookings').find({
+          studioId: firebaseUser.uid,
+          createdAt: { $gte: startDate, $lte: endDate }
+        }).toArray()
+
+        // Group by payment method
+        const paymentMethodBreakdown = {}
+        let totalRevenue = 0
+        let totalPlatformFees = 0
+
+        bookings.forEach(booking => {
+          const method = booking.paymentMethod || 'unknown'
+          if (!paymentMethodBreakdown[method]) {
+            paymentMethodBreakdown[method] = {
+              count: 0,
+              revenue: 0,
+              platformFees: 0,
+              statuses: {}
+            }
+          }
+
+          paymentMethodBreakdown[method].count++
+          
+          const status = booking.status || 'unknown'
+          paymentMethodBreakdown[method].statuses[status] = (paymentMethodBreakdown[method].statuses[status] || 0) + 1
+
+          if (booking.amount) {
+            paymentMethodBreakdown[method].revenue += booking.amount
+            totalRevenue += booking.amount
+          }
+
+          if (booking.platformFee) {
+            paymentMethodBreakdown[method].platformFees += booking.platformFee
+            totalPlatformFees += booking.platformFee
+          }
+        })
+
+        return NextResponse.json({
+          success: true,
+          reconciliation: {
+            period: {
+              startDate: startDate,
+              endDate: endDate,
+              totalDays: Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24))
+            },
+            summary: {
+              totalBookings: bookings.length,
+              totalRevenue: totalRevenue,
+              totalPlatformFees: totalPlatformFees,
+              netRevenue: totalRevenue - totalPlatformFees
+            },
+            paymentMethodBreakdown: paymentMethodBreakdown,
+            statusBreakdown: {
+              confirmed: bookings.filter(b => b.status === 'confirmed').length,
+              pending_payment: bookings.filter(b => b.status === 'pending_payment').length,
+              cancelled: bookings.filter(b => b.status === 'cancelled').length,
+              payment_failed: bookings.filter(b => b.status === 'payment_failed').length,
+              no_show: bookings.filter(b => b.status === 'no_show').length
+            }
+          }
+        })
+
+      } catch (error) {
+        console.error('Booking reconciliation error:', error)
+        return NextResponse.json({ error: 'Failed to generate reconciliation report' }, { status: 500 })
+      }
+    }
+
     // Get studio's payment statistics (for merchants)
     if (path === '/payments/studio-stats') {
       const firebaseUser = await getFirebaseUser(request)
