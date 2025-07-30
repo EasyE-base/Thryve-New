@@ -35,10 +35,17 @@ export default function Home() {
   const [currentTestimonial, setCurrentTestimonial] = useState(0)
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0)
   const [showSignInModal, setShowSignInModal] = useState(false)
-  const [selectedClass, setSelectedClass] = useState(null)
+  const [selectedClass, setSele‌ctedClass] = useState(null)
   const [showBookingModal, setShowBookingModal] = useState(false)
   const [showMessaging, setShowMessaging] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
+  // Move modal state to parent component to prevent reset
+  const [isModalSignUp, setIsModalSignUp] = useState(false)
+  const [modalEmail, setModalEmail] = useState('')
+  const [modalPassword, setModalPassword] = useState('')
+  const [modalName, setModalName] = useState('')
+  const [modalShowPassword, setModalShowPassword] = useState(false)
+  const [modalLoading, setModalLoading] = useState(false)
   const heroRef = useRef(null)
 
   // Auto-rotate videos with smooth transitions (3 seconds per video)
