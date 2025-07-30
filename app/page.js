@@ -367,10 +367,10 @@ export default function Home() {
             </Link>
             
             <div className="hidden md:flex items-center space-x-8">
-              <Link href="/explore" className="text-white/80 hover:text-white transition-colors font-medium smooth-transition">
+              <Link href="/marketplace" className="text-white/80 hover:text-white transition-colors font-medium smooth-transition">
                 Explore
               </Link>
-              <Link href="/xpass" className="text-white/80 hover:text-white transition-colors font-medium smooth-transition">
+              <Link href="/xpass-purchase" className="text-white/80 hover:text-white transition-colors font-medium smooth-transition">
                 X Pass
               </Link>
               <Link href="/pricing" className="text-white/80 hover:text-white transition-colors font-medium smooth-transition">
