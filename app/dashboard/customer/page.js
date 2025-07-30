@@ -35,29 +35,29 @@ export default function CustomerDashboard() {
   })
   const router = useRouter()
 
-  // Authentication check and redirect
   useEffect(() => {
-    if (!authLoading) {
-      if (!user) {
-        toast.error('Please sign in to access your dashboard')
-        router.push('/')
-        return
+    if (authLoading) return
+
+    if (!user) {
+      toast.error('Please sign in to access your dashboard')
+      router.push('/')
+      return
+    }
+
+    if (role && role !== 'customer') {
+      toast.error('Access denied. This dashboard is for customers only.')
+      const dashboardRoutes = {
+        instructor: '/dashboard/instructor',
+        merchant: '/dashboard/merchant'
       }
-      
-      if (role && role !== 'customer') {
-        toast.error('Access denied. This dashboard is for customers only.')
-        const dashboardRoutes = {
-          instructor: '/dashboard/instructor',
-          merchant: '/dashboard/merchant'
-        }
-        router.push(dashboardRoutes[role] || '/dashboard/customer')
-        return
-      }
-      
-      if (user && (role === 'customer' || role === null)) {
-        fetchDashboardData()
-        setLoading(false)
-      }
+      router.push(dashboardRoutes[role] || '/dashboard/customer')
+      return
+    }
+
+    // Fetch real dashboard data
+    if (user && (role === 'customer' || role === null)) {
+      fetchDashboardData()
+      setLoading(false)
     }
   }, [user, role, authLoading, router])
 
@@ -216,23 +216,6 @@ export default function CustomerDashboard() {
       }
     })).filter(event => !isNaN(event.start))
   }
-
-  useEffect(() => {
-    if (authLoading) return
-
-    if (!user) {
-      router.push('/')
-      return
-    }
-
-    if (role && role !== 'customer') {
-      router.push(`/dashboard/${role}`)
-      return
-    }
-
-    // Fetch real dashboard data
-    fetchDashboardData()
-  }, [user, role, authLoading, router])
 
   const handleSignOut = async () => {
     try {
