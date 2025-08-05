@@ -5,7 +5,7 @@ import {
   onAuthStateChange, 
   onUserProfileChange,
   signUpWithEmailAndPassword,
-  signInWithEmailAndPassword as firebaseSignIn,
+  signInUser,
   signInWithGoogle,
   linkGoogleAccount,
   signOutUser,
@@ -95,7 +95,7 @@ export function useFirebaseAuth() {
   const signIn = async (email, password) => {
     setLoading(true)
     try {
-      const result = await firebaseSignIn(email, password)
+      const result = await signInUser(email, password)
       return result
     } catch (error) {
       console.error('Sign in error:', error)
