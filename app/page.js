@@ -4,10 +4,12 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/auth-provider'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
+import SignInModal from '@/components/landing/SignInModal'
 
 export default function HomePage() {
   const { user, loading } = useAuth()
   const [mounted, setMounted] = useState(false)
+  const [showSignInModal, setShowSignInModal] = useState(false)
 
   // Client-only mounting to prevent SSR/hydration mismatch
   useEffect(() => setMounted(true), [])
@@ -41,9 +43,17 @@ export default function HomePage() {
                   </Link>
                 </div>
               ) : (
-                <Link href="/signup">
-                  <Button>Get Started</Button>
-                </Link>
+                <div className="flex items-center space-x-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setShowSignInModal(true)}
+                  >
+                    Sign In
+                  </Button>
+                  <Link href="/signup">
+                    <Button>Get Started</Button>
+                  </Link>
+                </div>
               )}
             </div>
           </div>
@@ -68,11 +78,19 @@ export default function HomePage() {
                   </Button>
                 </Link>
               ) : (
-                <Link href="/signup">
-                  <Button className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg">
-                    Start Free Trial
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Button 
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg"
+                    onClick={() => setShowSignInModal(true)}
+                  >
+                    Sign In
                   </Button>
-                </Link>
+                  <Link href="/signup">
+                    <Button variant="outline" className="px-8 py-3 text-lg">
+                      Start Free Trial
+                    </Button>
+                  </Link>
+                </div>
               )}
             </div>
           </div>
@@ -178,6 +196,12 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
+
+      {/* Sign In Modal */}
+      <SignInModal 
+        isOpen={showSignInModal} 
+        onClose={() => setShowSignInModal(false)} 
+      />
     </div>
   )
 }

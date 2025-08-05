@@ -5,6 +5,7 @@ import { createUserWithEmailAndPassword } from 'firebase/auth'
 import { doc, setDoc } from 'firebase/firestore'
 import { auth, db } from '@/lib/firebase'
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/components/auth-provider'
 
 export default function SimpleTestPage() {
   const [formData, setFormData] = useState({
@@ -14,22 +15,18 @@ export default function SimpleTestPage() {
   })
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState(null)
+  const { user, signOut } = useAuth()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
     setResult(null)
-
     try {
       console.log('🔥 Testing Firebase auth with:', formData.email)
-      
-      // Create user with Firebase
       const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password)
       const user = userCredential.user
-      
       console.log('🔥 Firebase user created:', user.uid)
       
-      // Create user document in Firestore
       await setDoc(doc(db, 'users', user.uid), {
         email: user.email,
         displayName: formData.name,
@@ -37,7 +34,6 @@ export default function SimpleTestPage() {
         role: null,
         profileComplete: false
       })
-      
       console.log('🔥 Firestore document created')
       
       setResult({
@@ -49,7 +45,6 @@ export default function SimpleTestPage() {
           displayName: formData.name
         }
       })
-      
     } catch (error) {
       console.error('🔥 Firebase auth error:', error)
       setResult({
@@ -61,68 +56,93 @@ export default function SimpleTestPage() {
     }
   }
 
+  const handleSignOut = async () => {
+    try {
+      await signOut()
+      setResult({
+        success: true,
+        message: 'Signed out successfully!'
+      })
+    } catch (error) {
+      setResult({
+        success: false,
+        message: error.message
+      })
+    }
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8">
         <h1 className="text-2xl font-bold text-center mb-6">Firebase Auth Test</h1>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Name
-            </label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({...formData, name: e.target.value})}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              placeholder="Test User"
-              required
-            />
+        {user ? (
+          <div className="space-y-4">
+            <div className="bg-green-50 border border-green-200 text-green-800 p-4 rounded-md">
+              <h3 className="font-semibold mb-2">✅ Signed In</h3>
+              <p><strong>Email:</strong> {user.email}</p>
+              <p><strong>UID:</strong> {user.uid}</p>
+            </div>
+            <Button onClick={handleSignOut} className="w-full">
+              Sign Out
+            </Button>
           </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
-            <input
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({...formData, email: e.target.value})}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              placeholder="test@example.com"
-              required
-            />
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
-            <input
-              type="password"
-              value={formData.password}
-              onChange={(e) => setFormData({...formData, password: e.target.value})}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
-              placeholder="password123"
-              required
-              minLength={6}
-            />
-          </div>
-          
-          <Button 
-            type="submit" 
-            className="w-full"
-            disabled={loading}
-          >
-            {loading ? 'Creating Account...' : 'Test Firebase Auth'}
-          </Button>
-        </form>
-
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Name
+              </label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="Test User"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email
+              </label>
+              <input
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({...formData, email: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="test@example.com"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Password
+              </label>
+              <input
+                type="password"
+                value={formData.password}
+                onChange={(e) => setFormData({...formData, password: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="password123"
+                required
+                minLength={6}
+              />
+            </div>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={loading}
+            >
+              {loading ? 'Creating Account...' : 'Test Firebase Auth'}
+            </Button>
+          </form>
+        )}
+        
         {result && (
           <div className={`mt-4 p-4 rounded-md ${
-            result.success 
-              ? 'bg-green-50 border border-green-200 text-green-800' 
+            result.success
+              ? 'bg-green-50 border border-green-200 text-green-800'
               : 'bg-red-50 border border-red-200 text-red-800'
           }`}>
             <h3 className="font-semibold mb-2">
@@ -138,7 +158,7 @@ export default function SimpleTestPage() {
             )}
           </div>
         )}
-
+        
         <div className="mt-8 text-center">
           <a href="/" className="text-blue-600 hover:text-blue-800 underline">
             Go back to home

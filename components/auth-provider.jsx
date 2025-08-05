@@ -38,6 +38,8 @@ export function AuthProvider({ children }) {
           
           // Handle redirects based on profile completion
           if (pathname === '/' || pathname === '/signup') {
+            // Temporarily disable redirects for testing
+            /*
             if (!userData?.role) {
               console.log('🔥 AuthProvider: No role, redirecting to role selection');
               router.push('/signup/role-selection');
@@ -58,6 +60,7 @@ export function AuthProvider({ children }) {
               };
               router.push(dashboardPaths[userData.role]);
             }
+            */
           }
         } catch (error) {
           console.error('🔥 AuthProvider: Error fetching user data:', error);

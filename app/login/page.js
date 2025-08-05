@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react'
-import { useAuth } from '@/hooks/useAuth'
+import { useAuth } from '@/components/auth-provider'
 
 export default function LoginPage() {
   const [formData, setFormData] = useState({
@@ -20,7 +20,7 @@ export default function LoginPage() {
   
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { signIn } = useAuth()
+  const { user } = useAuth()
 
   const redirectTo = searchParams.get('redirect') || '/dashboard'
 
@@ -38,16 +38,26 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      const result = await signIn(formData.email, formData.password)
+      // Import the signIn function directly from firebase-auth
+      const { signIn } = await import('@/lib/firebase-auth')
+      const user = await signIn(formData.email, formData.password)
       
-      if (result.success) {
-        // Redirect to the intended destination or dashboard
-        router.push(redirectTo)
-      } else {
-        setError(result.error || 'Invalid email or password')
-      }
+      // If we get here, sign in was successful
+      console.log('Sign in successful:', user)
+      
+      // Redirect to the intended destination or dashboard
+      router.push(redirectTo)
     } catch (error) {
-      setError('An unexpected error occurred. Please try again.')
+      console.error('Sign in error:', error)
+      if (error.code === 'auth/invalid-credential') {
+        setError('Invalid email or password')
+      } else if (error.code === 'auth/user-not-found') {
+        setError('No account found with this email')
+      } else if (error.code === 'auth/wrong-password') {
+        setError('Incorrect password')
+      } else {
+        setError('An unexpected error occurred. Please try again.')
+      }
     } finally {
       setIsLoading(false)
     }
@@ -99,29 +109,32 @@ export default function LoginPage() {
                   value={formData.password}
                   onChange={handleInputChange}
                   required
+                  className="pr-10"
                 />
-                <Button
+                <button
                   type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
                   onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </Button>
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4 text-gray-400" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-gray-400" />
+                  )}
+                </button>
               </div>
             </div>
 
             {error && (
-              <div className="text-red-600 text-sm bg-red-50 p-3 rounded-lg">
+              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md">
                 {error}
               </div>
             )}
 
             <Button
               type="submit"
+              className="w-full"
               disabled={isLoading}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
             >
               {isLoading ? 'Signing In...' : 'Sign In'}
             </Button>
@@ -134,15 +147,6 @@ export default function LoginPage() {
                 Sign up
               </Link>
             </p>
-          </div>
-
-          <div className="mt-6 text-center">
-            <Link 
-              href="/forgot-password" 
-              className="text-emerald-600 hover:text-emerald-700 text-sm font-medium"
-            >
-              Forgot your password?
-            </Link>
           </div>
         </div>
       </div>
