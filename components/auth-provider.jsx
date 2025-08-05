@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged, createUserWithEmailAndPassword } from 'firebase/auth';
+import { onAuthStateChanged, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, linkWithCredential } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { useRouter, usePathname } from 'next/navigation';
@@ -22,15 +22,14 @@ export function AuthProvider({ children }) {
         try {
           // Get additional user data from Firestore
           const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-          const userData = userDoc.data();
+          const userData = userDoc.exists() ? userDoc.data() : null;
           
-          // Combine Firebase auth user with Firestore data
           const fullUser = {
             uid: firebaseUser.uid,
             email: firebaseUser.email,
-            displayName: firebaseUser.displayName,
-            photoURL: firebaseUser.photoURL,
-            ...userData
+            displayName: firebaseUser.displayName || userData?.displayName,
+            role: userData?.role || null,
+            profileComplete: userData?.profileComplete || false
           };
           
           setUser(fullUser);
@@ -109,10 +108,89 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const signInWithGoogle = async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      
+      // Check if user document exists in Firestore
+      const userDoc = await getDoc(doc(db, 'users', user.uid));
+      const isNewUser = !userDoc.exists();
+      
+      if (isNewUser) {
+        // Create user document for new Google users
+        await setDoc(doc(db, 'users', user.uid), {
+          email: user.email,
+          displayName: user.displayName,
+          createdAt: new Date(),
+          role: null,
+          profileComplete: false
+        });
+        console.log('🔥 AuthProvider: New Google user created:', user.uid);
+      } else {
+        console.log('🔥 AuthProvider: Existing Google user signed in:', user.uid);
+      }
+      
+      return {
+        success: true,
+        user: {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName,
+          role: userDoc.exists() ? userDoc.data().role : null,
+          profileComplete: userDoc.exists() ? userDoc.data().profileComplete : false
+        },
+        isNewUser
+      };
+    } catch (error) {
+      console.error('🔥 AuthProvider: Google sign in error:', error);
+      
+      // Handle account exists with different credential
+      if (error.code === 'auth/account-exists-with-different-credential') {
+        return {
+          success: false,
+          code: 'account-exists',
+          email: error.customData?.email,
+          credential: error.credential
+        };
+      }
+      
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  };
+
+  const linkGoogle = async (credential) => {
+    try {
+      const result = await linkWithCredential(auth.currentUser, credential);
+      console.log('🔥 AuthProvider: Google account linked successfully');
+      
+      return {
+        success: true,
+        user: {
+          uid: result.user.uid,
+          email: result.user.email,
+          displayName: result.user.displayName
+        }
+      };
+    } catch (error) {
+      console.error('🔥 AuthProvider: Link Google error:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  };
+
   const value = {
     user,
     loading,
     signUp,
+    signInWithGoogle,
+    linkGoogle,
     signOut: async () => {
       try {
         await auth.signOut();
