@@ -1,154 +1,84 @@
-import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server'
+import { auth } from 'firebase-admin'
+import { initAdmin } from '@/lib/firebase-admin'
 
-// Routes that require authentication **and** completed onboarding
-const protectedRoutes = [
-  '/dashboard',
-  '/settings',
-  '/my-bookings',
-  '/instructor-payouts',
-  '/studio-payouts',
-  '/business-settings',
-];
+// Initialize Firebase Admin SDK
+initAdmin()
 
-// Routes that require authentication but not completed onboarding.
-// These are the onboarding pages themselves.
-const onboardingRoutes = [
-  '/onboarding',
-  // we do **not** include /signup/role-selection here so that users can
-  // access role selection before any middleware checks.
-];
+export async function middleware(request) {
+  const { pathname } = request.nextUrl
+  const sessionCookie = request.cookies.get('session')?.value
 
-// Routes that require specific roles once onboarding is complete.
-const roleProtectedRoutes = {
-  '/marketplace': ['merchant', 'instructor', 'studio-owner'],
-  '/studio': ['merchant', 'studio-owner'],
-  '/instructor-payouts': ['instructor'],
-  '/studio-payouts': ['merchant', 'studio-owner'],
-};
+  // Define public paths that don't require authentication
+  const publicPaths = ['/login', '/signup', '/forgot-password', '/']
+  // Define onboarding paths
+  const onboardingPaths = ['/signup/role-selection', '/onboarding/customer', '/onboarding/instructor', '/onboarding/merchant']
 
-// Pages that only unauthenticated users should visit.
-// We leave this array empty by default because login/signup flow is handled
-// explicitly, but you can add routes like '/login' if you want to force
-// signed-in users away from those pages.
-const guestOnlyRoutes = [
-  '/login',
-];
-
-// Main middleware function runs on every matched request
-export function middleware(request) {
-  const { pathname } = request.nextUrl;
-
-  // 1. Skip middleware for Next.js internals, API routes and static assets
-  if (
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/api') ||
-    pathname.includes('.') ||
-    pathname.startsWith('/favicon')
-  ) {
-    return NextResponse.next();
+  // Allow access to public paths and API routes
+  if (publicPaths.includes(pathname) || pathname.startsWith('/api/')) {
+    return NextResponse.next()
   }
 
-  // 2. Skip middleware for the sign‑up flow and home page to allow new users in
-  if (pathname.startsWith('/signup') || pathname === '/') {
-    return NextResponse.next();
+  // If no session cookie, redirect to login for protected routes
+  if (!sessionCookie) {
+    return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // 3. Attempt to read the user session from a cookie named `user`
-  const userCookie = request.cookies.get('user');
-  let user = null;
-  if (userCookie) {
-    try {
-      user = JSON.parse(userCookie.value);
-    } catch (error) {
-      console.error('middleware: failed to parse user cookie:', error);
-      // If the cookie is invalid, clear it and continue unauthenticated
-      const response = NextResponse.next();
-      response.cookies.delete('user');
-      return response;
+  try {
+    // Verify the session cookie
+    const decodedToken = await auth().verifySessionCookie(sessionCookie, true)
+    const { role } = decodedToken // The role comes directly from the token now!
+
+    console.log(`[Middleware] User ${decodedToken.uid} with role ${role} accessing ${pathname}`)
+
+    // --- Routing Logic ---
+
+    // 1. If user has a role and is trying to access onboarding, redirect to dashboard
+    if (role && onboardingPaths.includes(pathname)) {
+      console.log(`[Middleware] User with role ${role} trying to access onboarding, redirecting to dashboard`)
+      return NextResponse.redirect(new URL('/dashboard', request.url))
     }
+
+    // 2. If user has NO role, they MUST go to the role selection page
+    if (!role && !onboardingPaths.includes(pathname)) {
+      console.log(`[Middleware] User without role trying to access ${pathname}, redirecting to role selection`)
+      return NextResponse.redirect(new URL('/signup/role-selection', request.url))
+    }
+    
+    // 3. If user is trying to access the wrong onboarding flow, redirect them
+    if (pathname.startsWith('/onboarding/customer') && role && role !== 'customer') {
+      console.log(`[Middleware] User with role ${role} trying to access customer onboarding, redirecting to dashboard`)
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
+    if (pathname.startsWith('/onboarding/instructor') && role && role !== 'instructor') {
+      console.log(`[Middleware] User with role ${role} trying to access instructor onboarding, redirecting to dashboard`)
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
+    if (pathname.startsWith('/onboarding/merchant') && role && role !== 'merchant') {
+      console.log(`[Middleware] User with role ${role} trying to access merchant onboarding, redirecting to dashboard`)
+      return NextResponse.redirect(new URL('/dashboard', request.url))
+    }
+
+    // If all checks pass, allow the request to proceed
+    return NextResponse.next()
+
+  } catch (error) {
+    // If cookie is invalid or expired, clear it and redirect to login
+    console.error('Middleware auth error:', error.message)
+    const response = NextResponse.redirect(new URL('/login', request.url))
+    response.cookies.set('session', '', { maxAge: -1 }) // Clear the cookie
+    return response
   }
-
-  // Helper: determine if current route is in a list
-  const isOnboardingRoute = onboardingRoutes.some(route =>
-    pathname.startsWith(route),
-  );
-  const requiresFullAuth = protectedRoutes.some(route =>
-    pathname.startsWith(route),
-  );
-
-  // 4. Onboarding pages: user must be authenticated, but onboarding may not be complete
-  if (isOnboardingRoute) {
-    if (!user) {
-      // Redirect unauthenticated users trying to access onboarding to login
-      const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('redirect', pathname);
-      return NextResponse.redirect(loginUrl);
-    }
-    // Authenticated users can access onboarding
-    return NextResponse.next();
-  }
-
-  // 5. Fully protected pages: require authentication and completed onboarding
-  if (requiresFullAuth) {
-    if (!user) {
-      // Not authenticated → redirect to login and preserve intended path
-      const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('redirect', pathname);
-      return NextResponse.redirect(loginUrl);
-    }
-    // User is signed in but has not completed onboarding
-    if (!user.onboardingCompleted) {
-      // If user chose a role, send them back to the appropriate onboarding page
-      if (user.role) {
-        return NextResponse.redirect(
-          new URL(`/onboarding/${user.role}`, request.url),
-        );
-      }
-      // No role yet → send to role selection
-      return NextResponse.redirect(
-        new URL('/signup/role-selection', request.url),
-      );
-    }
-  }
-
-  // 6. Role‑based protection for authenticated & onboarded users
-  const roleRequirement = Object.entries(roleProtectedRoutes).find(([route]) =>
-    pathname.startsWith(route),
-  );
-  if (roleRequirement && user) {
-    const [, allowedRoles] = roleRequirement;
-    if (!allowedRoles.includes(user.role)) {
-      // User does not have permission for this route
-      if (user.role === 'customer' || user.role === 'client') {
-        // Customers/clients should be sent to explore
-        return NextResponse.redirect(new URL('/explore', request.url));
-      }
-      // Other roles get sent to dashboard
-      return NextResponse.redirect(new URL('/dashboard', request.url));
-    }
-  }
-
-  // 7. Keep signed‑in users away from guest‑only pages (e.g. login)
-  if (guestOnlyRoutes.includes(pathname) && user) {
-    if (user.onboardingCompleted) {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
-    }
-    // If onboarding is incomplete, send to next step
-    if (user.role) {
-      return NextResponse.redirect(
-        new URL(`/onboarding/${user.role}`, request.url),
-      );
-    }
-    return NextResponse.redirect(
-      new URL('/signup/role-selection', request.url),
-    );
-  }
-
-  // Otherwise continue normally
-  return NextResponse.next();
 }
 
-// Apply middleware to all pages except API routes and static assets
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
-};
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    '/((?!_next/static|_next/image|favicon.ico).*)',
+  ],
+}

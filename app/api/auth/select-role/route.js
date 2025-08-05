@@ -1,41 +1,40 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth-config'
-import { updateUserRole } from '@/lib/auth'
+import { auth } from 'firebase-admin'
+import { getFirestore, doc, updateDoc, serverTimestamp } from 'firebase/firestore'
+import { initAdmin } from '@/lib/firebase-admin'
 
 export async function POST(request) {
+  await initAdmin()
+  const { role } = await request.json()
+  const idToken = request.headers.get('authorization')?.split('Bearer ')[1]
+
+  if (!idToken) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
-      )
-    }
+    const decodedToken = await auth().verifyIdToken(idToken)
+    const userId = decodedToken.uid
 
-    const body = await request.json()
-    const { role } = body
+    console.log(`[API/select-role] Received request for user: ${userId} with role: ${role}`)
 
-    if (!role || !['customer', 'instructor', 'merchant'].includes(role)) {
-      return NextResponse.json(
-        { error: 'Valid role is required' },
-        { status: 400 }
-      )
-    }
+    const db = getFirestore()
+    const userRef = doc(db, 'users', userId)
 
-    // Update user role in database
-    await updateUserRole(session.user.id, role)
-    
-    return NextResponse.json({ 
-      message: 'Role updated successfully',
-      role
+    await updateDoc(userRef, {
+      role: role,
+      roleSelectedAt: serverTimestamp(),
+      onboardingStatus: 'started', // Add a status flag
     })
+
+    // Set a custom claim. This is the key to making middleware aware instantly.
+    await auth().setCustomUserClaims(userId, { role: role })
+
+    console.log(`[API/select-role] Successfully updated role and set custom claim for user: ${userId}`)
+
+    return NextResponse.json({ success: true, role: role })
   } catch (error) {
-    console.error('Role selection API error:', error)
-    return NextResponse.json(
-      { error: error.message || 'Failed to update role' },
-      { status: 400 }
-    )
+    console.error('[API/select-role] Error:', error)
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }

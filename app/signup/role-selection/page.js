@@ -25,29 +25,40 @@ export default function RoleSelectionPage() {
 
     setIsLoading(true);
     try {
-      // Update user document with selected role
-      const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, {
-        role: selectedRole,
-        onboardingCompleted: false,
-        updatedAt: new Date().toISOString()
+      // Get the current user's ID token
+      const idToken = await user.getIdToken();
+      
+      // Call the API route to update the role
+      const response = await fetch('/api/auth/select-role', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`
+        },
+        body: JSON.stringify({ role: selectedRole })
       });
 
-      toast.success(`Role set successfully!`);
+      const result = await response.json();
 
-      // Redirect based on role
-      switch (selectedRole) {
-        case 'studio':
-          router.push('/onboarding/merchant');
-          break;
-        case 'instructor':
-          router.push('/onboarding/instructor');
-          break;
-        case 'customer':
-          router.push('/onboarding/customer');
-          break;
-        default:
-          router.push('/dashboard');
+      if (result.success) {
+        toast.success(`Role set successfully!`);
+
+        // Redirect based on role
+        switch (selectedRole) {
+          case 'studio':
+            router.push('/onboarding/merchant');
+            break;
+          case 'instructor':
+            router.push('/onboarding/instructor');
+            break;
+          case 'customer':
+            router.push('/onboarding/customer');
+            break;
+          default:
+            router.push('/dashboard');
+        }
+      } else {
+        toast.error(result.error || 'Failed to save role. Please try again.');
       }
     } catch (error) {
       console.error('Error updating role:', error);
