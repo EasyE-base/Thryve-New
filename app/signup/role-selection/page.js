@@ -1,118 +1,107 @@
-"use client";
+'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/components/auth-provider';
-import { updateUserRole } from '@/lib/firebase-auth';
-import { User, Dumbbell, Building2, ArrowRight, CheckCircle } from 'lucide-react';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { toast } from 'sonner';
 
-const RoleSelectionPage = () => {
+export default function RoleSelectionPage() {
   const [selectedRole, setSelectedRole] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const { user, loading: authLoading } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-
-  const roles = [
-    {
-      id: 'customer',
-      title: 'Fitness Enthusiast',
-      description: 'Book classes, track workouts, and achieve your fitness goals',
-      icon: <User className="h-8 w-8" />,
-      features: [
-        'Book fitness classes',
-        'Track your progress',
-        'Connect with trainers',
-        'Join community challenges'
-      ],
-      redirectPath: '/profile/customer'
-    },
-    {
-      id: 'instructor',
-      title: 'Fitness Instructor',
-      description: 'Teach classes, manage clients, and grow your fitness business',
-      icon: <Dumbbell className="h-8 w-8" />,
-      features: [
-        'Create and manage classes',
-        'Track client progress',
-        'Manage your schedule',
-        'Earn from teaching'
-      ],
-      redirectPath: '/profile/instructor'
-    },
-    {
-      id: 'merchant',
-      title: 'Studio Owner',
-      description: 'Manage your fitness studio, instructors, and business operations',
-      icon: <Building2 className="h-8 w-8" />,
-      features: [
-        'Manage your studio',
-        'Handle instructor payouts',
-        'Track business metrics',
-        'Grow your community'
-      ],
-      redirectPath: '/profile/studio'
-    }
-  ];
+  const { user } = useAuth();
 
   useEffect(() => {
-    // If user already has a role, redirect them appropriately
-    if (user && user.role) {
-      console.log('🔄 Role Selection: User already has role, checking profile:', user.role);
-      const userRole = roles.find(r => r.id === user.role);
-      if (userRole) {
-        // If profile is complete, go to dashboard, otherwise go to profile builder
-        if (user.profileComplete) {
-          const dashboardPath = userRole.redirectPath.replace('/profile/', '/dashboard/');
-          router.push(dashboardPath);
-        } else {
-          router.push(userRole.redirectPath);
-        }
-      }
+    // Redirect to login if not authenticated
+    if (!user) {
+      router.push('/login');
     }
   }, [user, router]);
 
   const handleRoleSelection = async () => {
-    if (!selectedRole) {
-      setError('Please select a role to continue');
-      return;
-    }
+    if (!selectedRole || !user) return;
 
-    if (!user) {
-      setError('Authentication session expired. Please sign in again.');
-      console.error('❌ Role Selection: No user found - auth not persisted');
-      setTimeout(() => router.push('/'), 3000);
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-
+    setIsLoading(true);
     try {
-      console.log('🔄 Role Selection: Updating user role:', { userId: user.uid, role: selectedRole });
-      await updateUserRole(user.uid, selectedRole);
-      console.log('✅ Role Selection: User role updated successfully:', selectedRole);
+      // Update user document with selected role
+      const userRef = doc(db, 'users', user.uid);
+      await updateDoc(userRef, {
+        role: selectedRole,
+        onboardingCompleted: false,
+        updatedAt: new Date().toISOString()
+      });
 
-      // Find the selected role and redirect
-      const role = roles.find(r => r.id === selectedRole);
-      if (role) {
-        router.push(role.redirectPath);
+      toast.success(`Role set successfully!`);
+
+      // Redirect based on role
+      switch (selectedRole) {
+        case 'studio':
+          router.push('/onboarding/merchant');
+          break;
+        case 'instructor':
+          router.push('/onboarding/instructor');
+          break;
+        case 'customer':
+          router.push('/onboarding/customer');
+          break;
+        default:
+          router.push('/dashboard');
       }
     } catch (error) {
-      console.error('❌ Role Selection: Error updating user role:', error);
-      setError('Failed to update role. Please try again.');
+      console.error('Error updating role:', error);
+      toast.error('Failed to save role. Please try again.');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  // Show loading while auth is initializing
-  if (authLoading) {
+  const roles = [
+    {
+      id: 'studio',
+      title: 'Studio Owner',
+      description: 'Manage your fitness studio, schedule classes, and grow your business',
+      icon: '🏢',
+      features: [
+        'Create and manage class schedules',
+        'Track revenue and attendance',
+        'Manage instructors',
+        'Accept online bookings'
+      ],
+      color: 'bg-purple-500'
+    },
+    {
+      id: 'instructor',
+      title: 'Fitness Instructor',
+      description: 'Teach classes, build your following, and manage your schedule',
+      icon: '🏋️‍♀️',
+      features: [
+        'Create your instructor profile',
+        'Manage class schedules',
+        'Track your students',
+        'Get paid seamlessly'
+      ],
+      color: 'bg-blue-500'
+    },
+    {
+      id: 'customer',
+      title: 'Fitness Enthusiast',
+      description: 'Discover and book fitness classes that match your goals',
+      icon: '💪',
+      features: [
+        'Browse nearby studios',
+        'Book classes instantly',
+        'Track your fitness journey',
+        'Save favorite instructors'
+      ],
+      color: 'bg-green-500'
+    }
+  ];
+
+  if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading...</p>
@@ -121,117 +110,112 @@ const RoleSelectionPage = () => {
     );
   }
 
-  // Show message if no user
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">Please sign in first</h2>
-          <p className="text-gray-600 mb-6">You need to be signed in to select your role.</p>
-          <Button onClick={() => router.push('/')}>
-            Go to Home
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-12">
-      <div className="container mx-auto px-4 max-w-4xl">
-        <div className="text-center mb-12">
-          <Badge variant="secondary" className="px-4 py-2 text-sm mb-4">
-            Complete Your Profile
-          </Badge>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+      {/* Background decoration */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-300 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-yellow-300 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-2000"></div>
+        <div className="absolute top-40 left-40 w-80 h-80 bg-pink-300 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-4000"></div>
+      </div>
 
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Choose Your Role
+      <div className="relative max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-16">
+          <h1 className="text-5xl font-bold text-gray-900 mb-4">
+            Welcome to THRYVE! 🎉
           </h1>
-
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Select how you'd like to use THRYVE to get a personalized experience tailored to your needs.
+            Let's get you started. First, tell us how you'll be using THRYVE.
           </p>
-
-          {user && (
-            <p className="text-sm text-gray-500 mt-2">
-              Welcome, {user.email}
-            </p>
-          )}
         </div>
 
-        {error && (
-          <div className="mb-6 p-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md max-w-md mx-auto">
-            {error}
-          </div>
-        )}
-
-        <div className="grid md:grid-cols-3 gap-8 mb-12">
+        {/* Role Cards */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
           {roles.map((role) => (
-            <Card 
+            <button
               key={role.id}
-              className={`cursor-pointer transition-all duration-200 hover:shadow-xl ${
-                selectedRole === role.id 
-                  ? 'ring-2 ring-blue-500 bg-blue-50 border-blue-200' 
-                  : 'border-gray-200 hover:border-blue-300'
-              } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-              onClick={() => !loading && setSelectedRole(role.id)}
+              onClick={() => setSelectedRole(role.id)}
+              className={`relative p-8 rounded-2xl bg-white shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 text-left ${
+                selectedRole === role.id ? 'ring-4 ring-blue-500 ring-opacity-50' : ''
+              }`}
             >
-              <CardHeader className="text-center pb-4">
-                <div className={`mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full ${
-                  selectedRole === role.id 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-blue-100 text-blue-600'
-                }`}>
-                  {role.icon}
+              {/* Selected indicator */}
+              {selectedRole === role.id && (
+                <div className="absolute top-4 right-4">
+                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </div>
                 </div>
+              )}
 
-                <CardTitle className="text-xl font-semibold mb-2">
-                  {role.title}
-                </CardTitle>
+              {/* Icon with gradient background */}
+              <div className={`inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br ${role.color} mb-6`}>
+                <span className="text-4xl">{role.icon}</span>
+              </div>
 
-                <p className="text-gray-600 text-sm">
-                  {role.description}
-                </p>
-              </CardHeader>
+              {/* Content */}
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">{role.title}</h3>
+              <p className="text-gray-600 mb-6">{role.description}</p>
 
-              <CardContent className="pt-0">
-                <ul className="space-y-2">
-                  {role.features.map((feature, index) => (
-                    <li key={index} className="flex items-center text-sm text-gray-600">
-                      <CheckCircle className={`h-4 w-4 mr-2 ${
-                        selectedRole === role.id ? 'text-blue-600' : 'text-gray-400'
-                      }`} />
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
+              {/* Features */}
+              <ul className="space-y-3">
+                {role.features.map((feature, index) => (
+                  <li key={index} className="flex items-start">
+                    <svg className="w-5 h-5 text-green-500 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span className="text-gray-700">{feature}</span>
+                  </li>
+                ))}
+              </ul>
+            </button>
           ))}
         </div>
 
+        {/* Continue Button */}
         <div className="text-center">
-          <Button 
-            size="lg"
+          <button
             onClick={handleRoleSelection}
-            disabled={!selectedRole || loading}
-            className="bg-blue-600 hover:bg-blue-700 text-lg px-8 py-3"
+            disabled={!selectedRole || isLoading}
+            className={`px-12 py-4 rounded-full text-lg font-semibold transition-all duration-300 ${
+              selectedRole && !isLoading
+                ? 'bg-black text-white hover:bg-gray-800 transform hover:scale-105'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
           >
-            {loading ? 'Setting up your account...' : 'Continue'}
-            {!loading && <ArrowRight className="ml-2 h-5 w-5" />}
-          </Button>
-
-          {selectedRole && (
-            <p className="mt-4 text-sm text-gray-600">
-              You selected: <span className="font-semibold">
-                {roles.find(r => r.id === selectedRole)?.title}
+            {isLoading ? (
+              <span className="flex items-center">
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Setting up your account...
               </span>
+            ) : (
+              `Continue as ${selectedRole ? roles.find(r => r.id === selectedRole)?.title : '...'}`
+            )}
+          </button>
+          
+          {!selectedRole && (
+            <p className="mt-4 text-sm text-gray-500">
+              Please select a role to continue
             </p>
           )}
+        </div>
+
+        {/* Help Text */}
+        <div className="mt-12 text-center">
+          <p className="text-sm text-gray-500">
+            Not sure which role to choose?{' '}
+            <button className="text-blue-600 hover:text-blue-700 font-medium">
+              Learn more about each role
+            </button>
+          </p>
         </div>
       </div>
     </div>
   );
-};
-
-export default RoleSelectionPage;
+}
