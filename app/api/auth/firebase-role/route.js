@@ -1,63 +1,105 @@
 import { NextResponse } from 'next/server'
 import { MongoClient } from 'mongodb'
 
-async function connectDB() {
-  const client = new MongoClient(process.env.MONGO_URL)
-  await client.connect()
-  return client.db(process.env.DB_NAME || 'thryve_fitness')
-}
-
 export async function POST(request) {
+  let client = null
+  
   try {
-    const { uid, email, role } = await request.json()
+    console.log('🔥 Firebase role API called')
+    
+    // Parse request body
+    let requestData
+    try {
+      requestData = await request.json()
+      console.log('🔥 Request data:', requestData)
+    } catch (parseError) {
+      console.error('❌ Failed to parse request JSON:', parseError)
+      return NextResponse.json(
+        { error: 'Invalid JSON in request body' },
+        { status: 400 }
+      )
+    }
 
+    const { uid, email, role } = requestData
+
+    // Validate required fields
     if (!uid || !email || !role) {
+      console.error('❌ Missing required fields:', { uid: !!uid, email: !!email, role: !!role })
       return NextResponse.json(
         { error: 'UID, email, and role are required' },
         { status: 400 }
       )
     }
 
+    // Validate role
     if (!['customer', 'instructor', 'merchant'].includes(role)) {
+      console.error('❌ Invalid role:', role)
       return NextResponse.json(
         { error: 'Invalid role' },
         { status: 400 }
       )
     }
 
-    const db = await connectDB()
-    const users = db.collection('firebase_users')
+    console.log('🔥 Connecting to MongoDB...')
+    
+    // Connect to MongoDB
+    try {
+      client = new MongoClient(process.env.MONGO_URL)
+      await client.connect()
+      const db = client.db(process.env.DB_NAME || 'thryve_fitness')
+      console.log('🔥 MongoDB connected successfully')
 
-    // Upsert user with role
-    const result = await users.updateOne(
-      { uid },
-      { 
-        $set: { 
-          uid,
-          email,
-          role,
-          onboarding_complete: false,
-          updatedAt: new Date()
+      const users = db.collection('firebase_users')
+
+      // Upsert user with role
+      const result = await users.updateOne(
+        { uid },
+        { 
+          $set: { 
+            uid,
+            email,
+            role,
+            onboarding_complete: false,
+            updatedAt: new Date()
+          },
+          $setOnInsert: {
+            createdAt: new Date()
+          }
         },
-        $setOnInsert: {
-          createdAt: new Date()
-        }
-      },
-      { upsert: true }
-    )
+        { upsert: true }
+      )
 
-    console.log('🔥 Firebase user role updated:', { uid, email, role })
+      console.log('🔥 Firebase user role updated:', { uid, email, role, result: result.modifiedCount || result.upsertedCount })
 
-    return NextResponse.json({
-      message: 'Role updated successfully',
-      role,
-      upserted: result.upsertedCount > 0
-    })
+      return NextResponse.json({
+        message: 'Role updated successfully',
+        role,
+        upserted: result.upsertedCount > 0
+      })
+      
+    } catch (dbError) {
+      console.error('❌ MongoDB error:', dbError)
+      return NextResponse.json(
+        { error: 'Database connection failed' },
+        { status: 502 }
+      )
+    }
+    
   } catch (error) {
     console.error('❌ Firebase role update error:', error)
     return NextResponse.json(
-      { error: 'Failed to update role' },
+      { error: 'Internal server error' },
       { status: 500 }
     )
+  } finally {
+    // Always close MongoDB connection
+    if (client) {
+      try {
+        await client.close()
+        console.log('🔥 MongoDB connection closed')
+      } catch (closeError) {
+        console.error('❌ Error closing MongoDB connection:', closeError)
+      }
+    }
   }
 }

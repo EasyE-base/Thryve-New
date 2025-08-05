@@ -3,6 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useAuth } from '@/components/auth-provider'
 import { 
   Home, 
   Calendar, 
@@ -19,6 +20,7 @@ import { cn } from '@/lib/utils'
 
 const Navigation = ({ userRole = 'customer' }) => {
   const pathname = usePathname()
+  const { onboardingCompleted } = useAuth()
 
   const getNavigationItems = () => {
     const baseItems = [
@@ -33,6 +35,11 @@ const Navigation = ({ userRole = 'customer' }) => {
         icon: Calendar,
       }
     ]
+
+    // Only show dashboard and other protected routes if onboarding is completed
+    if (!onboardingCompleted) {
+      return baseItems
+    }
 
     if (userRole === 'instructor') {
       return [

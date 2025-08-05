@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/auth-provider'
 import { useOnboarding } from '@/components/onboarding/OnboardingProvider'
@@ -19,30 +19,39 @@ import { ArrowRight, ArrowLeft, CheckCircle, User, Building, MapPin, CreditCard,
 import { toast } from 'sonner'
 
 export default function MerchantOnboarding() {
-  const { user, role, loading: authLoading } = useAuth()
+  const { user, role, loading: authLoading, completeOnboarding: markOnboardingComplete } = useAuth()
   const { onboardingStatus, formData, updateFormData, completeStep, completeOnboarding } = useOnboarding()
+  const router = useRouter()
+  
+  const totalSteps = 6
+  const stepLabels = ["Profile", "Location", "Operations", "Staff", "Pricing", "Setup"]
+
+  // ✅ FIXED: Separated state objects to prevent cross-contamination
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [showWelcomeTour, setShowWelcomeTour] = useState(false)
-  const [stepData, setStepData] = useState({
-    // Step 1: Personal & Business Info
+
+  // Separate state objects for each step
+  const [profileData, setProfileData] = useState({
     firstName: '',
     lastName: '',
     phone: '',
     businessName: '',
     businessType: '',
-    businessEmail: '',
-    
-    // Step 2: Location & Details
+    businessEmail: ''
+  })
+
+  const [locationData, setLocationData] = useState({
     address: '',
     city: '',
     state: '',
     zipCode: '',
     description: '',
     amenities: [],
-    capacity: [50],
-    
-    // Step 3: Operating Hours & Policies
+    capacity: [50]
+  })
+
+  const [operationsData, setOperationsData] = useState({
     operatingHours: {
       monday: { open: '06:00', close: '22:00' },
       tuesday: { open: '06:00', close: '22:00' },
@@ -54,21 +63,24 @@ export default function MerchantOnboarding() {
     },
     cancellationPolicy: '24-hour',
     noShowFee: [15],
-    lateCancelFee: [10],
-    
-    // Step 4: Staff & Management
+    lateCancelFee: [10]
+  })
+
+  const [staffData, setStaffData] = useState({
     staffCount: [5],
     instructorRequirements: [],
     managementStyle: '',
-    hiringPlans: '',
-    
-    // Step 5: Pricing & Features
+    hiringPlans: ''
+  })
+
+  const [pricingData, setPricingData] = useState({
     membershipTypes: [],
     pricingModel: '',
     specialFeatures: [],
-    marketingPreferences: [],
-    
-    // Step 6: Legal & Payment Setup
+    marketingPreferences: []
+  })
+
+  const [setupData, setSetupData] = useState({
     businessLicense: '',
     insurance: '',
     taxId: '',
@@ -76,267 +88,248 @@ export default function MerchantOnboarding() {
     termsAccepted: false,
     privacyAccepted: false
   })
-  
-  const router = useRouter()
-  const totalSteps = 6
-  const stepLabels = ["Profile", "Location", "Operations", "Staff", "Pricing", "Setup"]
 
-  const businessTypes = [
-    'Gym/Fitness Center',
-    'Yoga Studio', 
-    'Pilates Studio',
-    'Dance Studio',
-    'Martial Arts Studio',
-    'CrossFit Box',
-    'Personal Training Studio',
-    'Wellness Center',
-    'Spa & Fitness',
-    'Community Recreation Center',
-    'Other'
-  ]
+  // ✅ FIXED: Proper validation with memoization
+  const isProfileValid = useMemo(() => {
+    return !!(profileData.firstName && profileData.lastName && profileData.businessName && profileData.businessType)
+  }, [profileData.firstName, profileData.lastName, profileData.businessName, profileData.businessType])
 
-  const amenityOptions = [
-    'Parking Available', 'Locker Rooms', 'Showers', 'Equipment Rental',
-    'Retail/Pro Shop', 'Juice Bar', 'WiFi', 'Air Conditioning',
-    'Sound System', 'Mirrors', 'Mats Provided', 'Towel Service',
-    'Child Care', 'Physical Therapy', 'Massage Services', 'Sauna/Steam Room'
-  ]
+  const isLocationValid = useMemo(() => {
+    return !!(locationData.address && locationData.city && locationData.state && locationData.zipCode)
+  }, [locationData.address, locationData.city, locationData.state, locationData.zipCode])
 
-  const instructorRequirementOptions = [
-    'Professional Certification Required',
-    'Liability Insurance Required',
-    'Background Check Required',
-    'CPR/First Aid Certification',
-    'Minimum Years Experience',
-    'Continuing Education Requirements',
-    'Regular Performance Reviews'
-  ]
+  const isOperationsValid = useMemo(() => {
+    return !!(operationsData.cancellationPolicy)
+  }, [operationsData.cancellationPolicy])
 
-  const membershipTypeOptions = [
-    'Monthly Unlimited', 'Class Packages', 'Drop-in Classes',
-    'Annual Memberships', 'Student Discounts', 'Senior Discounts',
-    'Corporate Packages', 'Family Plans'
-  ]
+  const isStaffValid = useMemo(() => {
+    return !!(staffData.managementStyle)
+  }, [staffData.managementStyle])
 
-  const specialFeatureOptions = [
-    'X Pass Accepted', 'Live Streaming', 'On-Demand Videos',
-    'Personal Training', 'Nutrition Coaching', 'Wellness Programs',
-    'Corporate Wellness', 'Youth Programs', 'Senior Programs'
-  ]
+  const isPricingValid = useMemo(() => {
+    return !!(pricingData.pricingModel && pricingData.membershipTypes.length > 0)
+  }, [pricingData.pricingModel, pricingData.membershipTypes.length])
 
-  const marketingPreferenceOptions = [
-    'Social Media Promotion', 'Email Marketing', 'Local Partnerships',
-    'Referral Programs', 'Special Events', 'Workshop Series'
-  ]
+  const isSetupValid = useMemo(() => {
+    return !!(setupData.termsAccepted && setupData.privacyAccepted)
+  }, [setupData.termsAccepted, setupData.privacyAccepted])
 
+  // ✅ FIXED: Consolidated validation logic
+  const canAdvanceStep = useMemo(() => {
+    switch (currentStep) {
+      case 1: return isProfileValid
+      case 2: return isLocationValid
+      case 3: return isOperationsValid
+      case 4: return isStaffValid
+      case 5: return isPricingValid
+      case 6: return isSetupValid
+      default: return false
+    }
+  }, [currentStep, isProfileValid, isLocationValid, isOperationsValid, isStaffValid, isPricingValid, isSetupValid])
+
+  // ✅ FIXED: Safe state update functions
+  const updateProfileData = useCallback((field, value) => {
+    setProfileData(prev => ({ ...prev, [field]: value }))
+  }, [])
+
+  const updateLocationData = useCallback((field, value) => {
+    setLocationData(prev => ({ ...prev, [field]: value }))
+  }, [])
+
+  const updateOperationsData = useCallback((field, value) => {
+    setOperationsData(prev => ({ ...prev, [field]: value }))
+  }, [])
+
+  const updateStaffData = useCallback((field, value) => {
+    setStaffData(prev => ({ ...prev, [field]: value }))
+  }, [])
+
+  const updatePricingData = useCallback((field, value) => {
+    setPricingData(prev => ({ ...prev, [field]: value }))
+  }, [])
+
+  const updateSetupData = useCallback((field, value) => {
+    setSetupData(prev => ({ ...prev, [field]: value }))
+  }, [])
+
+  // ✅ FIXED: Proper array handling for amenities, requirements, etc.
+  const handleArrayToggle = useCallback((field, value, stepType) => {
+    const updateFunction = {
+      'location': updateLocationData,
+      'staff': updateStaffData,
+      'pricing': updatePricingData
+    }[stepType]
+
+    if (updateFunction) {
+      updateFunction(field, prev => {
+        const currentArray = stepType === 'location' ? locationData[field] : 
+                           stepType === 'staff' ? staffData[field] : 
+                           pricingData[field]
+        
+        if (currentArray.includes(value)) {
+          return currentArray.filter(item => item !== value)
+        } else {
+          return [...currentArray, value]
+        }
+      })
+    }
+  }, [updateLocationData, updateStaffData, updatePricingData, locationData, staffData, pricingData])
+
+  // Authentication check
   useEffect(() => {
     if (authLoading) return
 
     if (!user) {
-      toast.error('Please sign in first')
-      router.push('/')
+      toast.error('Please sign in to continue')
+      router.push('/login')
       return
     }
 
-    if (role && role !== 'merchant' && !authLoading) {
-      const redirectTimer = setTimeout(() => {
-        console.log('🔄 Merchant onboarding: Redirecting user with role', role, 'to correct onboarding')
-        router.push(`/onboarding/${role}`)
-      }, 500)
-
-      return () => clearTimeout(redirectTimer)
+    if (role && role !== 'merchant') {
+      toast.error('Access denied. Studio owner account required.')
+      router.push('/')
+      return
     }
+  }, [user, role, authLoading, router])
 
-    // Check if this is first time user
-    const hasSeenTour = localStorage.getItem(`tour_seen_${user?.uid}`)
-    if (!hasSeenTour && user) {
-      setShowWelcomeTour(true)
+  // Handle step navigation
+  const handleNext = useCallback(() => {
+    if (currentStep < totalSteps) {
+      setCurrentStep(prev => prev + 1)
     }
-    
-    // Load saved data
-    if (formData.step1) {
-      setStepData(prev => ({ ...prev, ...formData.step1 }))
-    }
-  }, [user, role, authLoading, router, formData])
+  }, [currentStep, totalSteps])
 
-  const updateStepData = (field, value) => {
-    setStepData(prev => {
-      const newData = { ...prev, [field]: value }
-      updateFormData(newData, currentStep)
-      return newData
-    })
-  }
-
-  const updateNestedData = (parent, field, value) => {
-    setStepData(prev => {
-      const newData = {
-        ...prev,
-        [parent]: {
-          ...prev[parent],
-          [field]: value
-        }
-      }
-      updateFormData(newData, currentStep)
-      return newData
-    })
-  }
-
-  const updateDoubleNestedData = (parent, child, field, value) => {
-    setStepData(prev => {
-      const newData = {
-        ...prev,
-        [parent]: {
-          ...prev[parent],
-          [child]: {
-            ...prev[parent][child],
-            [field]: value
-          }
-        }
-      }
-      updateFormData(newData, currentStep)
-      return newData
-    })
-  }
-
-  const nextStep = () => {
-    if (currentStep < totalSteps && isStepValid()) {
-      completeStep(currentStep)
-      setCurrentStep(currentStep + 1)
-    }
-  }
-
-  const prevStep = () => {
+  const handlePrevious = useCallback(() => {
     if (currentStep > 1) {
-      setCurrentStep(currentStep - 1)
+      setCurrentStep(prev => prev - 1)
     }
-  }
+  }, [currentStep])
 
-  const isStepValid = () => {
-    switch (currentStep) {
-      case 1:
-        return stepData.firstName && stepData.lastName && stepData.businessName && stepData.businessType
-      case 2:
-        return stepData.address && stepData.city && stepData.state && stepData.zipCode
-      case 3:
-        return stepData.cancellationPolicy
-      case 4:
-        return stepData.managementStyle
-      case 5:
-        return stepData.pricingModel && stepData.membershipTypes.length > 0
-      case 6:
-        return stepData.termsAccepted && stepData.privacyAccepted
-      default:
-        return false
-    }
-  }
-
-  const handleArrayToggle = (field, value) => {
-    const current = stepData[field] || []
-    const updated = current.includes(value)
-      ? current.filter(item => item !== value)
-      : [...current, value]
-    updateStepData(field, updated)
-  }
-
-  const handleComplete = async () => {
-    if (!isStepValid() || loading) return
+  // Handle form submission
+  const handleSubmit = useCallback(async () => {
+    if (!canAdvanceStep) return
 
     setLoading(true)
+
     try {
-      await completeOnboarding(stepData)
-      setShowWelcomeTour(true)
-      localStorage.setItem(`tour_seen_${user.uid}`, 'true')
-      toast.success('Welcome to Thryve Business! Your studio profile is complete.')
+      // Combine all step data for submission
+      const completeFormData = {
+        ...profileData,
+        ...locationData,
+        ...operationsData,
+        ...staffData,
+        ...pricingData,
+        ...setupData,
+        role: 'merchant'
+      }
+
+      const response = await fetch('/api/onboarding/complete', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await user.getIdToken()}`
+        },
+        body: JSON.stringify(completeFormData)
+      })
+
+      if (response.ok) {
+        await completeOnboarding()
+        await markOnboardingComplete()
+        toast.success('Onboarding completed successfully!')
+        router.push('/dashboard/merchant')
+      } else {
+        throw new Error('Failed to complete onboarding')
+      }
     } catch (error) {
-      console.error('Onboarding completion error:', error)
+      console.error('Onboarding submission error:', error)
       toast.error('Failed to complete onboarding. Please try again.')
     } finally {
       setLoading(false)
     }
-  }
+  }, [canAdvanceStep, profileData, locationData, operationsData, staffData, pricingData, setupData, user, completeOnboarding, router])
 
-  const renderStep = () => {
+  // Render step content
+  const renderStepContent = () => {
     switch (currentStep) {
       case 1:
         return (
           <div className="space-y-6">
-            <div className="text-center">
-              <User className="h-12 w-12 text-[#1E90FF] mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Personal & Business Information</h2>
-              <p className="text-gray-600">Tell us about yourself and your fitness business</p>
+            <div className="text-center mb-8">
+              <User className="h-16 w-16 text-[#1E90FF] mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-gray-900">Profile & Business Info</h2>
+              <p className="text-gray-600">Tell us about yourself and your studio</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <Label htmlFor="firstName">First Name *</Label>
                 <Input
                   id="firstName"
-                  value={stepData.firstName}
-                  onChange={(e) => updateStepData('firstName', e.target.value)}
+                  value={profileData.firstName}
+                  onChange={(e) => updateProfileData('firstName', e.target.value)}
                   placeholder="Enter your first name"
-                  required
                 />
               </div>
+
               <div className="space-y-2">
                 <Label htmlFor="lastName">Last Name *</Label>
                 <Input
                   id="lastName"
-                  value={stepData.lastName}
-                  onChange={(e) => updateStepData('lastName', e.target.value)}
+                  value={profileData.lastName}
+                  onChange={(e) => updateProfileData('lastName', e.target.value)}
                   placeholder="Enter your last name"
-                  required
                 />
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone Number</Label>
                 <Input
                   id="phone"
-                  type="tel"
-                  value={stepData.phone}
-                  onChange={(e) => updateStepData('phone', e.target.value)}
+                  value={profileData.phone}
+                  onChange={(e) => updateProfileData('phone', e.target.value)}
                   placeholder="(555) 123-4567"
                 />
               </div>
+
               <div className="space-y-2">
                 <Label htmlFor="businessEmail">Business Email</Label>
                 <Input
                   id="businessEmail"
                   type="email"
-                  value={stepData.businessEmail}
-                  onChange={(e) => updateStepData('businessEmail', e.target.value)}
-                  placeholder="info@yourstudio.com"
+                  value={profileData.businessEmail}
+                  onChange={(e) => updateProfileData('businessEmail', e.target.value)}
+                  placeholder="studio@example.com"
                 />
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="businessName">Business Name *</Label>
-              <Input
-                id="businessName"
-                value={stepData.businessName}
-                onChange={(e) => updateStepData('businessName', e.target.value)}
-                placeholder="Enter your business name"
-                required
-              />
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="businessName">Studio Name *</Label>
+                <Input
+                  id="businessName"
+                  value={profileData.businessName}
+                  onChange={(e) => updateProfileData('businessName', e.target.value)}
+                  placeholder="Your Studio Name"
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="businessType">Business Type *</Label>
-              <select
-                id="businessType"
-                value={stepData.businessType}
-                onChange={(e) => updateStepData('businessType', e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                required
-              >
-                <option value="">Select business type</option>
-                {businessTypes.map(type => (
-                  <option key={type} value={type}>{type}</option>
-                ))}
-              </select>
+              <div className="space-y-2">
+                <Label htmlFor="businessType">Studio Type *</Label>
+                <select
+                  id="businessType"
+                  value={profileData.businessType}
+                  onChange={(e) => updateProfileData('businessType', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#1E90FF]"
+                >
+                  <option value="">Select studio type</option>
+                  <option value="yoga">Yoga Studio</option>
+                  <option value="pilates">Pilates Studio</option>
+                  <option value="crossfit">CrossFit Box</option>
+                  <option value="dance">Dance Studio</option>
+                  <option value="martial-arts">Martial Arts</option>
+                  <option value="general-fitness">General Fitness</option>
+                  <option value="specialized">Specialized Training</option>
+                </select>
+              </div>
             </div>
           </div>
         )
@@ -344,103 +337,103 @@ export default function MerchantOnboarding() {
       case 2:
         return (
           <div className="space-y-6">
-            <div className="text-center">
-              <MapPin className="h-12 w-12 text-[#1E90FF] mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Location & Facility Details</h2>
-              <p className="text-gray-600">Where is your business located and what do you offer?</p>
+            <div className="text-center mb-8">
+              <MapPin className="h-16 w-16 text-[#1E90FF] mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-gray-900">Location & Studio Details</h2>
+              <p className="text-gray-600">Where is your studio located?</p>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="address">Street Address *</Label>
-              <Input
-                id="address"
-                value={stepData.address}
-                onChange={(e) => updateStepData('address', e.target.value)}
-                placeholder="123 Main Street"
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="city">City *</Label>
+                <Label htmlFor="address">Studio Address *</Label>
                 <Input
-                  id="city"
-                  value={stepData.city}
-                  onChange={(e) => updateStepData('city', e.target.value)}
-                  placeholder="City"
-                  required
+                  id="address"
+                  value={locationData.address}
+                  onChange={(e) => updateLocationData('address', e.target.value)}
+                  placeholder="123 Main Street"
                 />
               </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="city">City *</Label>
+                  <Input
+                    id="city"
+                    value={locationData.city}
+                    onChange={(e) => updateLocationData('city', e.target.value)}
+                    placeholder="City"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="state">State *</Label>
+                  <Input
+                    id="state"
+                    value={locationData.state}
+                    onChange={(e) => updateLocationData('state', e.target.value)}
+                    placeholder="State"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="zipCode">ZIP Code *</Label>
+                  <Input
+                    id="zipCode"
+                    value={locationData.zipCode}
+                    onChange={(e) => updateLocationData('zipCode', e.target.value)}
+                    placeholder="12345"
+                  />
+                </div>
+              </div>
+
               <div className="space-y-2">
-                <Label htmlFor="state">State *</Label>
-                <Input
-                  id="state"
-                  value={stepData.state}
-                  onChange={(e) => updateStepData('state', e.target.value)}
-                  placeholder="State"
-                  required
+                <Label htmlFor="description">Studio Description</Label>
+                <Textarea
+                  id="description"
+                  value={locationData.description}
+                  onChange={(e) => updateLocationData('description', e.target.value)}
+                  placeholder="Describe your studio's atmosphere, mission, and what makes it special..."
+                  rows={4}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="zipCode">Zip Code *</Label>
-                <Input
-                  id="zipCode"
-                  value={stepData.zipCode}
-                  onChange={(e) => updateStepData('zipCode', e.target.value)}
-                  placeholder="12345"
-                  required
-                />
+
+              <div className="space-y-4">
+                <Label>Amenities & Features</Label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {[
+                    'Parking Available', 'Showers', 'Lockers', 'Retail Shop',
+                    'Childcare', 'WiFi', 'Sound System', 'Air Conditioning',
+                    'Yoga Props', 'Free Weights', 'Cardio Equipment'
+                  ].map((amenity) => (
+                    <div key={amenity} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={amenity}
+                        checked={locationData.amenities.includes(amenity)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            updateLocationData('amenities', [...locationData.amenities, amenity])
+                          } else {
+                            updateLocationData('amenities', locationData.amenities.filter(a => a !== amenity))
+                          }
+                        }}
+                      />
+                      <Label htmlFor={amenity} className="text-sm">{amenity}</Label>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="description">Business Description</Label>
-              <Textarea
-                id="description"
-                value={stepData.description}
-                onChange={(e) => updateStepData('description', e.target.value)}
-                placeholder="Describe your business, what makes it special, and what clients can expect..."
-                className="min-h-[100px]"
-              />
-            </div>
-
-            <div>
-              <Label className="text-base font-medium">Amenities & Features</Label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
-                {amenityOptions.map((amenity) => (
-                  <div key={amenity} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={amenity}
-                      checked={stepData.amenities.includes(amenity)}
-                      onCheckedChange={() => handleArrayToggle('amenities', amenity)}
-                    />
-                    <Label htmlFor={amenity} className="text-sm">
-                      {amenity}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <Label className="text-base font-medium">Total Facility Capacity</Label>
-              <div className="mt-3">
+              <div className="space-y-4">
+                <Label htmlFor="capacity">Studio Capacity: {locationData.capacity[0]} people</Label>
                 <Slider
-                  value={stepData.capacity}
-                  onValueChange={(value) => updateStepData('capacity', value)}
-                  max={500}
+                  id="capacity"
                   min={10}
+                  max={200}
                   step={5}
+                  value={locationData.capacity}
+                  onValueChange={(value) => updateLocationData('capacity', value)}
                   className="w-full"
                 />
-                <div className="flex justify-between text-sm text-gray-500 mt-1">
-                  <span>10</span>
-                  <span className="font-medium text-[#1E90FF]">
-                    {stepData.capacity[0]} people
-                  </span>
-                  <span>500+</span>
-                </div>
               </div>
             </div>
           </div>
@@ -449,94 +442,78 @@ export default function MerchantOnboarding() {
       case 3:
         return (
           <div className="space-y-6">
-            <div className="text-center">
-              <Settings className="h-12 w-12 text-[#1E90FF] mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Operating Hours & Policies</h2>
-              <p className="text-gray-600">When are you open and what are your policies?</p>
+            <div className="text-center mb-8">
+              <Settings className="h-16 w-16 text-[#1E90FF] mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-gray-900">Operations & Policies</h2>
+              <p className="text-gray-600">Set your operating hours and policies</p>
             </div>
 
-            <div className="space-y-4">
-              <Label className="text-base font-medium">Operating Hours</Label>
-              {Object.keys(stepData.operatingHours).map((day) => (
-                <div key={day} className="grid grid-cols-3 gap-4 items-center">
-                  <Label className="capitalize font-medium">{day}</Label>
-                  <div className="space-y-1">
-                    <Label className="text-xs text-gray-500">Open</Label>
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <Label>Operating Hours</Label>
+                {Object.entries(operationsData.operatingHours).map(([day, hours]) => (
+                  <div key={day} className="flex items-center space-x-4">
+                    <div className="w-24 capitalize font-medium">{day}</div>
                     <Input
                       type="time"
-                      value={stepData.operatingHours[day].open}
-                      onChange={(e) => updateDoubleNestedData('operatingHours', day, 'open', e.target.value)}
+                      value={hours.open}
+                      onChange={(e) => updateOperationsData('operatingHours', {
+                        ...operationsData.operatingHours,
+                        [day]: { ...hours, open: e.target.value }
+                      })}
+                      className="w-32"
                     />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs text-gray-500">Close</Label>
+                    <span>to</span>
                     <Input
                       type="time"
-                      value={stepData.operatingHours[day].close}
-                      onChange={(e) => updateDoubleNestedData('operatingHours', day, 'close', e.target.value)}
+                      value={hours.close}
+                      onChange={(e) => updateOperationsData('operatingHours', {
+                        ...operationsData.operatingHours,
+                        [day]: { ...hours, close: e.target.value }
+                      })}
+                      className="w-32"
                     />
                   </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="cancellationPolicy">Cancellation Policy *</Label>
-              <select
-                id="cancellationPolicy"
-                value={stepData.cancellationPolicy}
-                onChange={(e) => updateStepData('cancellationPolicy', e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-              >
-                <option value="">Select cancellation policy</option>
-                <option value="2-hour">2 hours before class</option>
-                <option value="4-hour">4 hours before class</option>
-                <option value="12-hour">12 hours before class</option>
-                <option value="24-hour">24 hours before class</option>
-                <option value="48-hour">48 hours before class</option>
-              </select>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <Label className="text-base font-medium">No-Show Fee</Label>
-                <div className="mt-3">
-                  <Slider
-                    value={stepData.noShowFee}
-                    onValueChange={(value) => updateStepData('noShowFee', value)}
-                    max={50}
-                    min={0}
-                    step={5}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-sm text-gray-500 mt-1">
-                    <span>$0</span>
-                    <span className="font-medium text-[#1E90FF]">
-                      ${stepData.noShowFee[0]}
-                    </span>
-                    <span>$50</span>
-                  </div>
-                </div>
+                ))}
               </div>
 
-              <div>
-                <Label className="text-base font-medium">Late Cancel Fee</Label>
-                <div className="mt-3">
+              <div className="space-y-4">
+                <Label htmlFor="cancellationPolicy">Cancellation Policy *</Label>
+                <select
+                  id="cancellationPolicy"
+                  value={operationsData.cancellationPolicy}
+                  onChange={(e) => updateOperationsData('cancellationPolicy', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#1E90FF]"
+                >
+                  <option value="">Select policy</option>
+                  <option value="2-hour">2 Hours Before</option>
+                  <option value="4-hour">4 Hours Before</option>
+                  <option value="24-hour">24 Hours Before</option>
+                  <option value="48-hour">48 Hours Before</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <Label>No-Show Fee: ${operationsData.noShowFee[0]}</Label>
                   <Slider
-                    value={stepData.lateCancelFee}
-                    onValueChange={(value) => updateStepData('lateCancelFee', value)}
-                    max={30}
                     min={0}
+                    max={50}
                     step={5}
-                    className="w-full"
+                    value={operationsData.noShowFee}
+                    onValueChange={(value) => updateOperationsData('noShowFee', value)}
                   />
-                  <div className="flex justify-between text-sm text-gray-500 mt-1">
-                    <span>$0</span>
-                    <span className="font-medium text-[#1E90FF]">
-                      ${stepData.lateCancelFee[0]}
-                    </span>
-                    <span>$30</span>
-                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <Label>Late Cancel Fee: ${operationsData.lateCancelFee[0]}</Label>
+                  <Slider
+                    min={0}
+                    max={30}
+                    step={5}
+                    value={operationsData.lateCancelFee}
+                    onValueChange={(value) => updateOperationsData('lateCancelFee', value)}
+                  />
                 </div>
               </div>
             </div>
@@ -546,77 +523,75 @@ export default function MerchantOnboarding() {
       case 4:
         return (
           <div className="space-y-6">
-            <div className="text-center">
-              <Users className="h-12 w-12 text-[#1E90FF] mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Staff & Management</h2>
-              <p className="text-gray-600">Tell us about your team and hiring needs</p>
+            <div className="text-center mb-8">
+              <Users className="h-16 w-16 text-[#1E90FF] mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-gray-900">Staff & Management</h2>
+              <p className="text-gray-600">Tell us about your team and hiring plans</p>
             </div>
 
-            <div>
-              <Label className="text-base font-medium">Current Staff Count</Label>
-              <div className="mt-3">
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <Label>Current Staff Count: {staffData.staffCount[0]} people</Label>
                 <Slider
-                  value={stepData.staffCount}
-                  onValueChange={(value) => updateStepData('staffCount', value)}
-                  max={50}
                   min={1}
+                  max={50}
                   step={1}
-                  className="w-full"
+                  value={staffData.staffCount}
+                  onValueChange={(value) => updateStaffData('staffCount', value)}
                 />
-                <div className="flex justify-between text-sm text-gray-500 mt-1">
-                  <span>1</span>
-                  <span className="font-medium text-[#1E90FF]">
-                    {stepData.staffCount[0]} staff members
-                  </span>
-                  <span>50+</span>
+              </div>
+
+              <div className="space-y-4">
+                <Label>Instructor Requirements</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {[
+                    'Certified Training', 'CPR Certification', 'Insurance Required',
+                    'Background Check', 'Teaching Experience', 'Continuing Education'
+                  ].map((requirement) => (
+                    <div key={requirement} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={requirement}
+                        checked={staffData.instructorRequirements.includes(requirement)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            updateStaffData('instructorRequirements', [...staffData.instructorRequirements, requirement])
+                          } else {
+                            updateStaffData('instructorRequirements', staffData.instructorRequirements.filter(r => r !== requirement))
+                          }
+                        }}
+                      />
+                      <Label htmlFor={requirement} className="text-sm">{requirement}</Label>
+                    </div>
+                  ))}
                 </div>
               </div>
-            </div>
 
-            <div>
-              <Label className="text-base font-medium">Instructor Requirements</Label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
-                {instructorRequirementOptions.map((requirement) => (
-                  <div key={requirement} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={requirement}
-                      checked={stepData.instructorRequirements.includes(requirement)}
-                      onCheckedChange={() => handleArrayToggle('instructorRequirements', requirement)}
-                    />
-                    <Label htmlFor={requirement} className="text-sm">
-                      {requirement}
-                    </Label>
-                  </div>
-                ))}
+              <div className="space-y-2">
+                <Label htmlFor="managementStyle">Management Style *</Label>
+                <select
+                  id="managementStyle"
+                  value={staffData.managementStyle}
+                  onChange={(e) => updateStaffData('managementStyle', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#1E90FF]"
+                >
+                  <option value="">Select management style</option>
+                  <option value="hands-on">Hands-On Management</option>
+                  <option value="collaborative">Collaborative Leadership</option>
+                  <option value="delegative">Delegative Approach</option>
+                  <option value="supportive">Supportive Management</option>
+                </select>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="managementStyle">Management Style *</Label>
-              <select
-                id="managementStyle"
-                value={stepData.managementStyle}
-                onChange={(e) => updateStepData('managementStyle', e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-              >
-                <option value="">Select management style</option>
-                <option value="hands-on">Hands-on Management</option>
-                <option value="collaborative">Collaborative Leadership</option>
-                <option value="delegative">Delegative Approach</option>
-                <option value="results-oriented">Results-Oriented</option>
-                <option value="supportive">Supportive & Coaching</option>
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="hiringPlans">Hiring Plans</Label>
-              <Textarea
-                id="hiringPlans"
-                value={stepData.hiringPlans}
-                onChange={(e) => updateStepData('hiringPlans', e.target.value)}
-                placeholder="Do you plan to hire more instructors? What positions are you looking to fill?"
-                className="min-h-[80px]"
-              />
+              <div className="space-y-2">
+                <Label htmlFor="hiringPlans">Hiring Plans</Label>
+                <Textarea
+                  id="hiringPlans"
+                  value={staffData.hiringPlans}
+                  onChange={(e) => updateStaffData('hiringPlans', e.target.value)}
+                  placeholder="Describe your plans for hiring instructors and staff..."
+                  rows={4}
+                />
+              </div>
             </div>
           </div>
         )
@@ -624,80 +599,102 @@ export default function MerchantOnboarding() {
       case 5:
         return (
           <div className="space-y-6">
-            <div className="text-center">
-              <DollarSign className="h-12 w-12 text-[#1E90FF] mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Pricing & Features</h2>
-              <p className="text-gray-600">How do you structure your pricing and what features do you offer?</p>
+            <div className="text-center mb-8">
+              <DollarSign className="h-16 w-16 text-[#1E90FF] mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-gray-900">Pricing & Features</h2>
+              <p className="text-gray-600">Set up your pricing and membership options</p>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="pricingModel">Primary Pricing Model *</Label>
-              <select
-                id="pricingModel"
-                value={stepData.pricingModel}
-                onChange={(e) => updateStepData('pricingModel', e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-              >
-                <option value="">Select pricing model</option>
-                <option value="membership">Monthly/Annual Memberships</option>
-                <option value="class-packs">Class Package System</option>
-                <option value="drop-in">Drop-in Classes</option>
-                <option value="hybrid">Hybrid Model</option>
-                <option value="subscription">Subscription Based</option>
-              </select>
-            </div>
-
-            <div>
-              <Label className="text-base font-medium">Membership Types Offered *</Label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
-                {membershipTypeOptions.map((type) => (
-                  <div key={type} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={type}
-                      checked={stepData.membershipTypes.includes(type)}
-                      onCheckedChange={() => handleArrayToggle('membershipTypes', type)}
-                    />
-                    <Label htmlFor={type} className="text-sm">
-                      {type}
-                    </Label>
-                  </div>
-                ))}
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <Label>Membership Types *</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {[
+                    'Drop-in Classes', 'Class Packages', 'Monthly Unlimited',
+                    'Annual Memberships', 'Student Discounts', 'Senior Discounts'
+                  ].map((type) => (
+                    <div key={type} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={type}
+                        checked={pricingData.membershipTypes.includes(type)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            updatePricingData('membershipTypes', [...pricingData.membershipTypes, type])
+                          } else {
+                            updatePricingData('membershipTypes', pricingData.membershipTypes.filter(t => t !== type))
+                          }
+                        }}
+                      />
+                      <Label htmlFor={type} className="text-sm">{type}</Label>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
 
-            <div>
-              <Label className="text-base font-medium">Special Features</Label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
-                {specialFeatureOptions.map((feature) => (
-                  <div key={feature} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={feature}
-                      checked={stepData.specialFeatures.includes(feature)}
-                      onCheckedChange={() => handleArrayToggle('specialFeatures', feature)}
-                    />
-                    <Label htmlFor={feature} className="text-sm">
-                      {feature}
-                    </Label>
-                  </div>
-                ))}
+              <div className="space-y-2">
+                <Label htmlFor="pricingModel">Pricing Model *</Label>
+                <select
+                  id="pricingModel"
+                  value={pricingData.pricingModel}
+                  onChange={(e) => updatePricingData('pricingModel', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#1E90FF]"
+                >
+                  <option value="">Select pricing model</option>
+                  <option value="premium">Premium Pricing</option>
+                  <option value="competitive">Competitive Pricing</option>
+                  <option value="value">Value Pricing</option>
+                  <option value="tiered">Tiered Pricing</option>
+                </select>
               </div>
-            </div>
 
-            <div>
-              <Label className="text-base font-medium">Marketing Preferences</Label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
-                {marketingPreferenceOptions.map((preference) => (
-                  <div key={preference} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={preference}
-                      checked={stepData.marketingPreferences.includes(preference)}
-                      onCheckedChange={() => handleArrayToggle('marketingPreferences', preference)}
-                    />
-                    <Label htmlFor={preference} className="text-sm">
-                      {preference}
-                    </Label>
-                  </div>
-                ))}
+              <div className="space-y-4">
+                <Label>Special Features</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {[
+                    'Online Classes', 'Personal Training', 'Workshops',
+                    'Retreats', 'Corporate Programs', 'Teacher Training'
+                  ].map((feature) => (
+                    <div key={feature} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={feature}
+                        checked={pricingData.specialFeatures.includes(feature)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            updatePricingData('specialFeatures', [...pricingData.specialFeatures, feature])
+                          } else {
+                            updatePricingData('specialFeatures', pricingData.specialFeatures.filter(f => f !== feature))
+                          }
+                        }}
+                      />
+                      <Label htmlFor={feature} className="text-sm">{feature}</Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <Label>Marketing Preferences</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {[
+                    'Social Media', 'Email Marketing', 'Local Partnerships',
+                    'Referral Programs', 'Community Events', 'Online Advertising'
+                  ].map((preference) => (
+                    <div key={preference} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={preference}
+                        checked={pricingData.marketingPreferences.includes(preference)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            updatePricingData('marketingPreferences', [...pricingData.marketingPreferences, preference])
+                          } else {
+                            updatePricingData('marketingPreferences', pricingData.marketingPreferences.filter(p => p !== preference))
+                          }
+                        }}
+                      />
+                      <Label htmlFor={preference} className="text-sm">{preference}</Label>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -706,85 +703,78 @@ export default function MerchantOnboarding() {
       case 6:
         return (
           <div className="space-y-6">
-            <div className="text-center">
-              <CheckCircle className="h-12 w-12 text-[#1E90FF] mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Legal & Payment Setup</h2>
-              <p className="text-gray-600">Final details to get your studio up and running</p>
+            <div className="text-center mb-8">
+              <CheckCircle className="h-16 w-16 text-[#1E90FF] mx-auto mb-4" />
+              <h2 className="text-2xl font-bold text-gray-900">Legal & Setup</h2>
+              <p className="text-gray-600">Final steps to complete your studio setup</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="businessLicense">Business License Number</Label>
-                <Input
-                  id="businessLicense"
-                  value={stepData.businessLicense}
-                  onChange={(e) => updateStepData('businessLicense', e.target.value)}
-                  placeholder="Business license number"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="insurance">Liability Insurance</Label>
-                <Input
-                  id="insurance"
-                  value={stepData.insurance}
-                  onChange={(e) => updateStepData('insurance', e.target.value)}
-                  placeholder="Insurance provider/policy"
-                />
-              </div>
-            </div>
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="businessLicense">Business License Number</Label>
+                  <Input
+                    id="businessLicense"
+                    value={setupData.businessLicense}
+                    onChange={(e) => updateSetupData('businessLicense', e.target.value)}
+                    placeholder="License number"
+                  />
+                </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="taxId">Tax ID / EIN</Label>
-                <Input
-                  id="taxId"
-                  value={stepData.taxId}
-                  onChange={(e) => updateStepData('taxId', e.target.value)}
-                  placeholder="Federal tax ID"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="bankingDetails">Banking Information</Label>
-                <Input
-                  id="bankingDetails"
-                  value={stepData.bankingDetails}
-                  onChange={(e) => updateStepData('bankingDetails', e.target.value)}
-                  placeholder="Bank account for payments"
-                />
-              </div>
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="insurance">Insurance Provider</Label>
+                  <Input
+                    id="insurance"
+                    value={setupData.insurance}
+                    onChange={(e) => updateSetupData('insurance', e.target.value)}
+                    placeholder="Insurance company"
+                  />
+                </div>
 
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="termsAccepted"
-                  checked={stepData.termsAccepted}
-                  onCheckedChange={(checked) => updateStepData('termsAccepted', checked)}
-                />
-                <Label htmlFor="termsAccepted" className="text-sm">
-                  I agree to the Terms of Service and Merchant Agreement *
-                </Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="privacyAccepted"
-                  checked={stepData.privacyAccepted}
-                  onCheckedChange={(checked) => updateStepData('privacyAccepted', checked)}
-                />
-                <Label htmlFor="privacyAccepted" className="text-sm">
-                  I agree to Privacy Policy and data handling practices *
-                </Label>
-              </div>
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="taxId">Tax ID (EIN)</Label>
+                  <Input
+                    id="taxId"
+                    value={setupData.taxId}
+                    onChange={(e) => updateSetupData('taxId', e.target.value)}
+                    placeholder="Tax identification number"
+                  />
+                </div>
 
-            <div className="bg-green-50 p-4 rounded-lg">
-              <div className="flex items-center mb-2">
-                <Zap className="h-5 w-5 text-green-600 mr-2" />
-                <h3 className="font-semibold text-green-900">Ready to Launch!</h3>
+                <div className="space-y-2">
+                  <Label htmlFor="bankingDetails">Banking Information</Label>
+                  <Input
+                    id="bankingDetails"
+                    value={setupData.bankingDetails}
+                    onChange={(e) => updateSetupData('bankingDetails', e.target.value)}
+                    placeholder="Bank account details"
+                  />
+                </div>
               </div>
-              <p className="text-green-800 text-sm">
-                Complete your setup to start managing your studio, staff, and classes on Thryve Business.
-              </p>
+
+              <div className="space-y-4 pt-6 border-t">
+                <div className="flex items-start space-x-3">
+                  <Checkbox
+                    id="termsAccepted"
+                    checked={setupData.termsAccepted}
+                    onCheckedChange={(checked) => updateSetupData('termsAccepted', checked)}
+                  />
+                  <Label htmlFor="termsAccepted" className="text-sm leading-6">
+                    I agree to the <a href="/terms" className="text-[#1E90FF] underline">Terms of Service</a> and understand the platform fees and policies. *
+                  </Label>
+                </div>
+
+                <div className="flex items-start space-x-3">
+                  <Checkbox
+                    id="privacyAccepted"
+                    checked={setupData.privacyAccepted}
+                    onCheckedChange={(checked) => updateSetupData('privacyAccepted', checked)}
+                  />
+                  <Label htmlFor="privacyAccepted" className="text-sm leading-6">
+                    I agree to the <a href="/privacy" className="text-[#1E90FF] underline">Privacy Policy</a> and consent to data processing for platform operations. *
+                  </Label>
+                </div>
+              </div>
             </div>
           </div>
         )
@@ -795,63 +785,40 @@ export default function MerchantOnboarding() {
   }
 
   if (authLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    )
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-3xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Welcome to Thryve Business! 🏢</h1>
-          <p className="text-xl text-gray-600 mb-6">Let's set up your studio management profile</p>
+    <OnboardingLayout>
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-4xl mx-auto px-4 py-8">
+          <StepIndicator 
+            currentStep={currentStep} 
+            totalSteps={totalSteps} 
+            stepLabels={stepLabels}
+          />
           
-          <StepIndicator
+          <Card className="mt-8">
+            <CardContent className="p-8">
+              {renderStepContent()}
+            </CardContent>
+          </Card>
+
+          <OnboardingSteps
             currentStep={currentStep}
             totalSteps={totalSteps}
-            completedSteps={onboardingStatus.completedSteps}
-            stepLabels={stepLabels}
-            className="mb-8"
+            canAdvance={canAdvanceStep}
+            onNext={handleNext}
+            onPrevious={handlePrevious}
+            onComplete={handleSubmit}
+            loading={loading}
           />
         </div>
 
-        {/* Main Form */}
-        <Card className="shadow-2xl border-0">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Studio Owner Onboarding</CardTitle>
-            <CardDescription className="text-lg">
-              Step {currentStep} of {totalSteps}
-            </CardDescription>
-          </CardHeader>
-
-          <CardContent className="p-8">
-            {renderStep()}
-
-            {/* Navigation Buttons */}
-            <OnboardingSteps
-              currentStep={currentStep}
-              totalSteps={totalSteps}
-              onNext={nextStep}
-              onPrevious={prevStep}
-              onComplete={handleComplete}
-              canProceed={isStepValid()}
-              loading={loading}
-              completeLabel="Launch My Studio"
-            />
-          </CardContent>
-        </Card>
+        {showWelcomeTour && (
+          <WelcomeTour onComplete={() => setShowWelcomeTour(false)} />
+        )}
       </div>
-
-      {/* Welcome Tour */}
-      <WelcomeTour
-        isOpen={showWelcomeTour}
-        onClose={() => setShowWelcomeTour(false)}
-        userRole="merchant"
-      />
-    </div>
+    </OnboardingLayout>
   )
 }

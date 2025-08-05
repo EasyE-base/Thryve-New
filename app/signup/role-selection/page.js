@@ -1,271 +1,237 @@
-'use client'
+"use client";
 
-import React, { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { 
-  Users, 
-  GraduationCap, 
-  Building, 
-  ArrowRight,
-  CheckCircle,
-  Star,
-  Calendar,
-  DollarSign,
-  Loader2
-} from 'lucide-react'
-import Link from 'next/link'
-import { useAuth } from '@/components/auth-provider'
-import { updateUserRole } from '@/lib/firebase-auth'
-import { toast } from 'sonner'
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/components/auth-provider';
+import { updateUserRole } from '@/lib/firebase-auth';
+import { User, Dumbbell, Building2, ArrowRight, CheckCircle } from 'lucide-react';
 
-export default function RoleSelectionPage() {
-  const [selectedRole, setSelectedRole] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [pendingUser, setPendingUser] = useState(null)
-  const { user, refreshRole } = useAuth()
-
-  // Check for pending role selection on mount
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const pendingData = localStorage.getItem('pendingRoleSelection')
-      if (pendingData) {
-        try {
-          const parsedData = JSON.parse(pendingData)
-          // Check if data is recent (within 1 hour)
-          if (Date.now() - parsedData.timestamp < 3600000) {
-            setPendingUser(parsedData)
-          } else {
-            // Clear stale data
-            localStorage.removeItem('pendingRoleSelection')
-          }
-        } catch (e) {
-          console.error('Error parsing pending role selection data:', e)
-          localStorage.removeItem('pendingRoleSelection')
-        }
-      }
-    }
-  }, [])
+const RoleSelectionPage = () => {
+  const [selectedRole, setSelectedRole] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
 
   const roles = [
     {
       id: 'customer',
       title: 'Fitness Enthusiast',
-      description: 'Find and book amazing fitness classes',
-      icon: Users,
-      color: 'bg-blue-500',
+      description: 'Book classes, track workouts, and achieve your fitness goals',
+      icon: <User className="h-8 w-8" />,
       features: [
-        'Book classes at any studio',
-        'Use Thryve X Pass for flexible pricing',
-        'Track your fitness journey',
-        'Connect with instructors'
+        'Book fitness classes',
+        'Track your progress',
+        'Connect with trainers',
+        'Join community challenges'
       ],
-      dashboard: '/dashboard/customer'
+      redirectPath: '/profile/customer'
     },
     {
       id: 'instructor',
       title: 'Fitness Instructor',
-      description: 'Teach classes and manage your fitness career',
-      icon: GraduationCap,
-      color: 'bg-green-500',
+      description: 'Teach classes, manage clients, and grow your fitness business',
+      icon: <Dumbbell className="h-8 w-8" />,
       features: [
-        'Create and manage your classes',
-        'Track earnings and payouts',
-        'Build your student community',
-        'Access performance analytics'
+        'Create and manage classes',
+        'Track client progress',
+        'Manage your schedule',
+        'Earn from teaching'
       ],
-      dashboard: '/dashboard/instructor',
-      badge: 'Popular'
+      redirectPath: '/profile/instructor'
     },
     {
       id: 'merchant',
       title: 'Studio Owner',
-      description: 'Manage your fitness studio and instructors',
-      icon: Building,
-      color: 'bg-purple-500',
+      description: 'Manage your fitness studio, instructors, and business operations',
+      icon: <Building2 className="h-8 w-8" />,
       features: [
-        'Manage studio operations',
+        'Manage your studio',
         'Handle instructor payouts',
-        'View business analytics',
-        'Configure class pricing'
+        'Track business metrics',
+        'Grow your community'
       ],
-      dashboard: '/dashboard/merchant'
+      redirectPath: '/profile/studio'
     }
-  ]
+  ];
 
-  const handleRoleSelect = (role) => {
-    setSelectedRole(role)
-  }
+  useEffect(() => {
+    // If user already has a role, redirect them appropriately
+    if (user && user.role) {
+      console.log('🔄 Role Selection: User already has role, checking profile:', user.role);
+      const userRole = roles.find(r => r.id === user.role);
+      if (userRole) {
+        // If profile is complete, go to dashboard, otherwise go to profile builder
+        if (user.profileComplete) {
+          const dashboardPath = userRole.redirectPath.replace('/profile/', '/dashboard/');
+          router.push(dashboardPath);
+        } else {
+          router.push(userRole.redirectPath);
+        }
+      }
+    }
+  }, [user, router]);
 
-  const handleContinue = async () => {
+  const handleRoleSelection = async () => {
     if (!selectedRole) {
-      toast.error('Please select a role to continue')
-      return
+      setError('Please select a role to continue');
+      return;
     }
 
-    setLoading(true)
+    if (!user) {
+      setError('Authentication session expired. Please sign in again.');
+      console.error('❌ Role Selection: No user found - auth not persisted');
+      setTimeout(() => router.push('/'), 3000);
+      return;
+    }
+
+    setLoading(true);
+    setError('');
 
     try {
-      // Determine which user to use (authenticated user or pending signup)
-      const targetUser = user || pendingUser
-      
-      if (!targetUser) {
-        toast.error('No user found. Please sign in again.')
-        window.location.href = '/'
-        return
-      }
+      console.log('🔄 Role Selection: Updating user role:', { userId: user.uid, role: selectedRole });
+      await updateUserRole(user.uid, selectedRole);
+      console.log('✅ Role Selection: User role updated successfully:', selectedRole);
 
-      // Save role to backend
-      await updateUserRole(targetUser, selectedRole.id)
-      
-      // Clear pending data
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('pendingRoleSelection')
+      // Find the selected role and redirect
+      const role = roles.find(r => r.id === selectedRole);
+      if (role) {
+        router.push(role.redirectPath);
       }
-      
-      // Refresh role in auth context if user is authenticated
-      if (user) {
-        await refreshRole()
-      }
-      
-      toast.success(`Welcome! You're now set up as a ${selectedRole.title}`)
-      
-      // Redirect to appropriate dashboard
-      setTimeout(() => {
-        window.location.href = selectedRole.dashboard
-      }, 1000)
-      
     } catch (error) {
-      console.error('Role selection error:', error)
-      toast.error(error.message || 'Failed to set up your account. Please try again.')
+      console.error('❌ Role Selection: Error updating user role:', error);
+      setError('Failed to update role. Please try again.');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
+  };
+
+  // Show loading while auth is initializing
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show message if no user
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-4">Please sign in first</h2>
+          <p className="text-gray-600 mb-6">You need to be signed in to select your role.</p>
+          <Button onClick={() => router.push('/')}>
+            Go to Home
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
-      <div className="max-w-6xl w-full">
-        {/* Header */}
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-12">
+      <div className="container mx-auto px-4 max-w-4xl">
         <div className="text-center mb-12">
-          <Link href="/" className="inline-flex items-center gap-2 mb-8">
-            <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center">
-              <span className="text-white font-bold text-lg">T</span>
-            </div>
-            <span className="text-2xl font-bold text-gray-900">Thryve</span>
-          </Link>
-          
+          <Badge variant="secondary" className="px-4 py-2 text-sm mb-4">
+            Complete Your Profile
+          </Badge>
+
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
             Choose Your Role
           </h1>
+
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Select how you'll be using Thryve to get the best experience tailored for you
+            Select how you'd like to use THRYVE to get a personalized experience tailored to your needs.
           </p>
-          
-          {/* Show user info if available */}
-          {(user || pendingUser) && (
-            <div className="mt-4 p-3 bg-blue-50 rounded-lg inline-block">
-              <p className="text-sm text-blue-800">
-                Setting up account for: <span className="font-semibold">{user?.email || pendingUser?.email}</span>
-              </p>
-            </div>
+
+          {user && (
+            <p className="text-sm text-gray-500 mt-2">
+              Welcome, {user.email}
+            </p>
           )}
         </div>
 
-        {/* Role Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-          {roles.map((role) => {
-            const Icon = role.icon
-            const isSelected = selectedRole?.id === role.id
-            
-            return (
-              <Card 
-                key={role.id}
-                className={`cursor-pointer transition-all duration-200 hover:shadow-lg hover:-translate-y-1 ${
-                  isSelected 
-                    ? 'ring-2 ring-blue-500 shadow-lg transform -translate-y-1' 
-                    : 'hover:ring-1 hover:ring-gray-300'
-                }`}
-                onClick={() => handleRoleSelect(role)}
-              >
-                <CardHeader className="text-center">
-                  <div className="flex items-center justify-center mb-4">
-                    <div className={`h-16 w-16 rounded-full ${role.color} flex items-center justify-center`}>
-                      <Icon className="h-8 w-8 text-white" />
-                    </div>
-                    {isSelected && (
-                      <div className="absolute top-4 right-4">
-                        <CheckCircle className="h-6 w-6 text-blue-500" />
-                      </div>
-                    )}
-                  </div>
-                  
-                  <CardTitle className="flex items-center justify-center gap-2">
-                    {role.title}
-                    {role.badge && (
-                      <Badge variant="secondary" className="bg-green-100 text-green-800">
-                        {role.badge}
-                      </Badge>
-                    )}
-                  </CardTitle>
-                  
-                  <CardDescription className="text-base">
-                    {role.description}
-                  </CardDescription>
-                </CardHeader>
-                
-                <CardContent>
-                  <ul className="space-y-3">
-                    {role.features.map((feature, index) => (
-                      <li key={index} className="flex items-start gap-3">
-                        <CheckCircle className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
-                        <span className="text-gray-700">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-            )
-          })}
+        {error && (
+          <div className="mb-6 p-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md max-w-md mx-auto">
+            {error}
+          </div>
+        )}
+
+        <div className="grid md:grid-cols-3 gap-8 mb-12">
+          {roles.map((role) => (
+            <Card 
+              key={role.id}
+              className={`cursor-pointer transition-all duration-200 hover:shadow-xl ${
+                selectedRole === role.id 
+                  ? 'ring-2 ring-blue-500 bg-blue-50 border-blue-200' 
+                  : 'border-gray-200 hover:border-blue-300'
+              } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              onClick={() => !loading && setSelectedRole(role.id)}
+            >
+              <CardHeader className="text-center pb-4">
+                <div className={`mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full ${
+                  selectedRole === role.id 
+                    ? 'bg-blue-600 text-white' 
+                    : 'bg-blue-100 text-blue-600'
+                }`}>
+                  {role.icon}
+                </div>
+
+                <CardTitle className="text-xl font-semibold mb-2">
+                  {role.title}
+                </CardTitle>
+
+                <p className="text-gray-600 text-sm">
+                  {role.description}
+                </p>
+              </CardHeader>
+
+              <CardContent className="pt-0">
+                <ul className="space-y-2">
+                  {role.features.map((feature, index) => (
+                    <li key={index} className="flex items-center text-sm text-gray-600">
+                      <CheckCircle className={`h-4 w-4 mr-2 ${
+                        selectedRole === role.id ? 'text-blue-600' : 'text-gray-400'
+                      }`} />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
-        {/* Continue Button */}
         <div className="text-center">
           <Button 
             size="lg"
-            onClick={handleContinue}
+            onClick={handleRoleSelection}
             disabled={!selectedRole || loading}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-full text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+            className="bg-blue-600 hover:bg-blue-700 text-lg px-8 py-3"
           >
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Setting up your account...
-              </>
-            ) : (
-              <>
-                Continue as {selectedRole?.title || 'Selected Role'}
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </>
-            )}
+            {loading ? 'Setting up your account...' : 'Continue'}
+            {!loading && <ArrowRight className="ml-2 h-5 w-5" />}
           </Button>
-          
-          <p className="text-gray-500 mt-4">
-            You can always change your role later in settings
-          </p>
-        </div>
 
-        {/* Footer */}
-        <div className="text-center mt-12 pt-8 border-t border-gray-200">
-          <p className="text-gray-500">
-            Already have an account?{' '}
-            <Link href="/" className="text-blue-600 hover:underline font-medium">
-              Sign in instead
-            </Link>
-          </p>
+          {selectedRole && (
+            <p className="mt-4 text-sm text-gray-600">
+              You selected: <span className="font-semibold">
+                {roles.find(r => r.id === selectedRole)?.title}
+              </span>
+            </p>
+          )}
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
+
+export default RoleSelectionPage;

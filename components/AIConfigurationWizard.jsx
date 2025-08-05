@@ -1,35 +1,22 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { useAuth } from '@/components/auth-provider'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { useState } from 'react'
+import { Building, Bot, Settings, Zap, CheckCircle, ChevronRight } from 'lucide-react'
+import { useAuth } from '@/hooks/useAuth'
+import { useWizardState } from '@/hooks/useWizardState'
 import { Progress } from '@/components/ui/progress'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { 
-  Bot, 
-  ChevronRight, 
-  ChevronLeft, 
-  Sparkles, 
-  CheckCircle, 
-  Clock, 
-  DollarSign,
-  Users,
-  Calendar,
-  Settings,
-  Target,
-  TrendingUp,
-  MapPin,
-  Building,
-  Zap,
-  Star,
-  AlertCircle,
-  Lightbulb
-} from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { toast } from 'sonner'
 
+// ✅ MODULAR COMPONENTS: Step-based imports
+import WizardLayout from '@/components/ai-wizard/WizardLayout'
+import StudioInfoStep from '@/components/ai-wizard/steps/StudioInfoStep'
+import AIAnalysisStep from '@/components/ai-wizard/steps/AIAnalysisStep'
+import ConfigReviewStep from '@/components/ai-wizard/steps/ConfigReviewStep'
+import ImplementationStep from '@/components/ai-wizard/steps/ImplementationStep'
+import CompleteStep from '@/components/ai-wizard/steps/CompleteStep'
+
+// ✅ MODULAR AI WIZARD: Clean, maintainable, focused
 const AIConfigurationWizard = () => {
   const { user } = useAuth()
   const [currentStep, setCurrentStep] = useState(0)

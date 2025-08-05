@@ -34,12 +34,65 @@ import Link from 'next/link'
 import { toast } from 'sonner'
 
 export default function MarketplacePage() {
-  const { user } = useAuth()
+  const { user, role, loading } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
   const [showFilters, setShowFilters] = useState(false)
   const [currentSwipe, setCurrentSwipe] = useState(0)
   const [instructors, setInstructors] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [dataLoading, setDataLoading] = useState(true)
+
+  // ⛔ ACCESS CONTROL: Block access for regular customers
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="max-w-md text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Restricted</h1>
+          <p className="text-gray-600 mb-6">Please sign in to access the instructor marketplace.</p>
+          <Link href="/login?redirect=/marketplace">
+            <Button className="bg-blue-600 hover:bg-blue-700">Sign In</Button>
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
+  if (role !== 'merchant' && role !== 'instructor' && role !== 'studio-owner') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="max-w-md text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Unauthorized Access</h1>
+          <p className="text-gray-600 mb-6">
+            The instructor marketplace is only available to studio owners and instructors. 
+            Looking for classes? Try our Explore page instead.
+          </p>
+          <div className="space-y-3">
+            <Link href="/explore">
+              <Button className="bg-blue-600 hover:bg-blue-700 w-full">
+                Explore Classes
+              </Button>
+            </Link>
+            <Link href="/">
+              <Button variant="outline" className="w-full">
+                Back to Home
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   const [filters, setFilters] = useState({
     classType: [],
     location: '',
@@ -71,7 +124,7 @@ export default function MarketplacePage() {
       console.error('Error fetching instructors:', error)
       setInstructors([])
     } finally {
-      setLoading(false)
+              setDataLoading(false)
     }
   }
 

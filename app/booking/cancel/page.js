@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -8,7 +8,7 @@ import { XCircle, ArrowLeft, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 
-export default function BookingCancelPage() {
+function BookingCancelContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   
@@ -99,5 +99,17 @@ export default function BookingCancelPage() {
         </Card>
       </div>
     </div>
+  )
+}
+
+export default function BookingCancelPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
+        <div className="text-white">Loading...</div>
+      </div>
+    }>
+      <BookingCancelContent />
+    </Suspense>
   )
 }

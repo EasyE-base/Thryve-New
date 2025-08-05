@@ -1,51 +1,58 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/auth-provider'
-import { useOnboarding } from '@/components/onboarding/OnboardingProvider'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useOnboarding } from '@/hooks/useOnboarding'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Checkbox } from '@/components/ui/checkbox'
+import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Slider } from '@/components/ui/slider'
-import OnboardingLayout from '@/components/onboarding/OnboardingLayout'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import OnboardingSteps from '@/components/onboarding/OnboardingSteps'
-import WelcomeTour from '@/components/onboarding/WelcomeTour'
-import StepIndicator from '@/components/onboarding/StepIndicator'
-import { ArrowRight, ArrowLeft, CheckCircle, User, Award, Calendar, CreditCard, FileText, Camera, Zap, DollarSign } from 'lucide-react'
+import { User, Award, Calendar, CheckCircle, Settings } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function InstructorOnboarding() {
-  const { user, role, loading: authLoading } = useAuth()
+  const { user, role, loading: authLoading, completeOnboarding: markOnboardingComplete } = useAuth()
   const { onboardingStatus, formData, updateFormData, completeStep, completeOnboarding } = useOnboarding()
+  const router = useRouter()
+  
+  const totalSteps = 5
+  const stepLabels = ["Profile", "Credentials", "Teaching", "Verification", "Setup"]
+
+  // ✅ FIXED: Separated state objects to prevent cross-contamination
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [showWelcomeTour, setShowWelcomeTour] = useState(false)
-  const [stepData, setStepData] = useState({
-    // Step 1: Personal Information
+
+  // Separate state objects for each step
+  const [profileData, setProfileData] = useState({
     firstName: '',
     lastName: '',
     phone: '',
     profilePhoto: '',
-    bio: '',
-    
-    // Step 2: Certifications & Specialties
+    bio: ''
+  })
+
+  const [credentialsData, setCredentialsData] = useState({
     certifications: [],
     specialties: [],
     experience: '',
     education: '',
-    languages: ['English'],
-    
-    // Step 3: Availability & Teaching Preferences
+    languages: ['English']
+  })
+
+  const [teachingData, setTeachingData] = useState({
     availability: [],
     teachingStyle: '',
     maxClassSize: [10],
-    ratePerHour: [50],
-    
-    // Step 4: Verification & Professional Details
+    ratePerHour: [50]
+  })
+
+  const [verificationData, setVerificationData] = useState({
     insurance: '',
     backgroundCheck: false,
     references: [],
@@ -53,56 +60,126 @@ export default function InstructorOnboarding() {
       instagram: '',
       youtube: '',
       website: ''
-    },
-    
-    // Step 5: Payment & Legal
+    }
+  })
+
+  const [setupData, setSetupData] = useState({
     taxId: '',
     paymentDetails: '',
     termsAccepted: false,
     liabilityWaiver: false
   })
-  
-  const router = useRouter()
-  const totalSteps = 5
-  const stepLabels = ["Profile", "Credentials", "Teaching", "Verification", "Setup"]
 
-  const certificationOptions = [
-    'ACE Certified Personal Trainer',
-    'NASM Certified Personal Trainer', 
-    'ACSM Certified Exercise Physiologist',
-    'Yoga Alliance RYT-200',
-    'Yoga Alliance RYT-500',
-    'Pilates Instructor',
-    'CrossFit Level 1',
-    'PADI Scuba Instructor',
-    'Group Fitness Instructor',
-    'Nutrition Coach Certification',
-    'Other'
-  ]
+  // ✅ FIXED: Proper validation with memoization
+  const isProfileValid = useMemo(() => {
+    return !!(profileData.firstName && profileData.lastName && profileData.bio)
+  }, [profileData.firstName, profileData.lastName, profileData.bio])
 
-  const specialtyOptions = [
-    'Weight Training', 'Cardio', 'Yoga', 'Pilates', 'HIIT',
-    'CrossFit', 'Dance', 'Martial Arts', 'Rehabilitation',
-    'Senior Fitness', 'Youth Fitness', 'Nutrition Coaching',
-    'Prenatal Fitness', 'Injury Recovery', 'Sports Performance'
-  ]
+  const isCredentialsValid = useMemo(() => {
+    return !!(credentialsData.certifications.length > 0 && credentialsData.specialties.length > 0 && credentialsData.experience)
+  }, [credentialsData.certifications, credentialsData.specialties, credentialsData.experience])
 
-  const availabilityOptions = [
-    'Early Morning (5-8 AM)', 'Morning (8-12 PM)', 
-    'Afternoon (12-5 PM)', 'Evening (5-8 PM)', 
-    'Night (8-10 PM)', 'Weekends', 'Holidays'
-  ]
+  const isTeachingValid = useMemo(() => {
+    return !!(teachingData.availability.length > 0 && teachingData.teachingStyle)
+  }, [teachingData.availability, teachingData.teachingStyle])
 
-  const languageOptions = [
-    'English', 'Spanish', 'French', 'German', 'Italian',
-    'Portuguese', 'Chinese', 'Japanese', 'Korean', 'Arabic'
-  ]
+  const isVerificationValid = useMemo(() => {
+    return !!(verificationData.insurance && verificationData.backgroundCheck)
+  }, [verificationData.insurance, verificationData.backgroundCheck])
 
-  const teachingStyleOptions = [
-    'Encouraging & Supportive', 'High Energy & Motivational', 
-    'Calm & Mindful', 'Technical & Detailed', 'Fun & Interactive',
-    'Challenging & Intense', 'Beginner Friendly', 'Advanced Training'
-  ]
+  const isSetupValid = useMemo(() => {
+    return !!(setupData.termsAccepted && setupData.liabilityWaiver)
+  }, [setupData.termsAccepted, setupData.liabilityWaiver])
+
+  // ✅ FIXED: Validation logic using memoized values
+  const canAdvanceStep = useMemo(() => {
+    switch (currentStep) {
+      case 1: return isProfileValid
+      case 2: return isCredentialsValid
+      case 3: return isTeachingValid
+      case 4: return isVerificationValid
+      case 5: return isSetupValid
+      default: return false
+    }
+  }, [currentStep, isProfileValid, isCredentialsValid, isTeachingValid, isVerificationValid, isSetupValid])
+
+  // ✅ FIXED: Safe state update functions
+  const updateProfileData = useCallback((field, value) => {
+    setProfileData(prev => ({ ...prev, [field]: value }))
+  }, [])
+
+  const updateCredentialsData = useCallback((field, value) => {
+    setCredentialsData(prev => ({ ...prev, [field]: value }))
+  }, [])
+
+  const updateTeachingData = useCallback((field, value) => {
+    setTeachingData(prev => ({ ...prev, [field]: value }))
+  }, [])
+
+  const updateVerificationData = useCallback((field, value) => {
+    setVerificationData(prev => ({ ...prev, [field]: value }))
+  }, [])
+
+  const updateSetupData = useCallback((field, value) => {
+    setSetupData(prev => ({ ...prev, [field]: value }))
+  }, [])
+
+  // ✅ FIXED: Array toggle function for multi-select
+  const handleArrayToggle = useCallback((setState, field, value) => {
+    setState(prev => ({
+      ...prev,
+      [field]: prev[field].includes(value)
+        ? prev[field].filter(item => item !== value)
+        : [...prev[field], value]
+    }))
+  }, [])
+
+  const nextStep = useCallback(() => {
+    if (currentStep < totalSteps && canAdvanceStep) {
+      completeStep(currentStep)
+      setCurrentStep(currentStep + 1)
+    }
+  }, [currentStep, canAdvanceStep, totalSteps, completeStep])
+
+  const prevStep = useCallback(() => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1)
+    }
+  }, [currentStep])
+
+  const handleComplete = async () => {
+    if (!canAdvanceStep || loading) return
+
+    setLoading(true)
+    try {
+      const allData = {
+        profile: profileData,
+        credentials: credentialsData,
+        teaching: teachingData,
+        verification: verificationData,
+        setup: setupData
+      }
+
+      const response = await fetch('/api/onboarding/instructor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(allData)
+      })
+
+      if (response.ok) {
+        await completeOnboarding()
+        await markOnboardingComplete()
+        router.push('/dashboard/instructor')
+      } else {
+        throw new Error('Failed to complete onboarding')
+      }
+    } catch (error) {
+      console.error('Onboarding error:', error)
+      toast.error('Error completing onboarding. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
     if (authLoading) return
@@ -130,88 +207,51 @@ export default function InstructorOnboarding() {
     
     // Load saved data
     if (formData.step1) {
-      setStepData(prev => ({ ...prev, ...formData.step1 }))
+      setProfileData(prev => ({ ...prev, ...formData.step1 }))
     }
   }, [user, role, authLoading, router, formData])
 
-  const updateStepData = (field, value) => {
-    setStepData(prev => {
-      const newData = { ...prev, [field]: value }
-      updateFormData(newData, currentStep)
-      return newData
-    })
-  }
+  // Options arrays
+  const certificationOptions = [
+    'ACE Certified Personal Trainer',
+    'NASM Certified Personal Trainer', 
+    'ACSM Certified Exercise Physiologist',
+    'Yoga Alliance RYT-200',
+    'Yoga Alliance RYT-500',
+    'Pilates Instructor',
+    'CrossFit Level 1',
+    'PADI Scuba Instructor',
+    'Group Fitness Instructor',
+    'Nutrition Coach Certification',
+    'Other'
+  ]
 
-  const updateNestedData = (parent, field, value) => {
-    setStepData(prev => {
-      const newData = {
-        ...prev,
-        [parent]: {
-          ...prev[parent],
-          [field]: value
-        }
-      }
-      updateFormData(newData, currentStep)
-      return newData
-    })
-  }
+  const specialtyOptions = [
+    'Weight Training', 'Cardio', 'Yoga', 'Pilates', 'HIIT',
+    'CrossFit', 'Dance', 'Martial Arts', 'Rehabilitation',
+    'Senior Fitness', 'Youth Fitness', 'Nutrition Coaching',
+    'Prenatal Fitness', 'Injury Recovery', 'Sports Performance'
+  ]
 
-  const nextStep = () => {
-    if (currentStep < totalSteps && isStepValid()) {
-      completeStep(currentStep)
-      setCurrentStep(currentStep + 1)
-    }
-  }
+  const availabilityOptions = [
+    'Early Morning (5-8 AM)',
+    'Morning (8-12 PM)', 'Afternoon (12-5 PM)', 
+    'Evening (5-8 PM)', 'Night (8-10 PM)', 
+    'Weekends', 'Holidays'
+  ]
 
-  const prevStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1)
-    }
-  }
+  const languageOptions = [
+    'English', 'Spanish', 'French', 'German', 'Italian',
+    'Portuguese', 'Chinese', 'Japanese', 'Korean', 'Arabic'
+  ]
 
-  const isStepValid = () => {
-    switch (currentStep) {
-      case 1:
-        return stepData.firstName && stepData.lastName && stepData.phone && stepData.bio
-      case 2:
-        return stepData.certifications.length > 0 && stepData.specialties.length > 0 && stepData.experience
-      case 3:
-        return stepData.availability.length > 0 && stepData.teachingStyle
-      case 4:
-        return stepData.insurance
-      case 5:
-        return stepData.termsAccepted && stepData.liabilityWaiver
-      default:
-        return false
-    }
-  }
+  const teachingStyleOptions = [
+    'Encouraging & Supportive', 'High Energy & Motivational', 
+    'Calm & Mindful', 'Technical & Detailed', 'Fun & Interactive',
+    'Challenging & Intense', 'Beginner Friendly', 'Advanced Training'
+  ]
 
-  const handleArrayToggle = (field, value) => {
-    const current = stepData[field] || []
-    const updated = current.includes(value)
-      ? current.filter(item => item !== value)
-      : [...current, value]
-    updateStepData(field, updated)
-  }
-
-  const handleComplete = async () => {
-    if (!isStepValid() || loading) return
-
-    setLoading(true)
-    try {
-      await completeOnboarding(stepData)
-      setShowWelcomeTour(true)
-      localStorage.setItem(`tour_seen_${user.uid}`, 'true')
-      toast.success('Welcome to Thryve! Your instructor profile is complete.')
-    } catch (error) {
-      console.error('Onboarding completion error:', error)
-      toast.error('Failed to complete onboarding. Please try again.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const renderStep = () => {
+  const renderStepContent = () => {
     switch (currentStep) {
       case 1:
         return (
@@ -227,9 +267,8 @@ export default function InstructorOnboarding() {
                 <Label htmlFor="firstName">First Name *</Label>
                 <Input
                   id="firstName"
-                  value={stepData.firstName}
-                  onChange={(e) => updateStepData('firstName', e.target.value)}
-                  placeholder="Enter your first name"
+                  value={profileData.firstName}
+                  onChange={(e) => updateProfileData('firstName', e.target.value)}
                   required
                 />
               </div>
@@ -237,34 +276,40 @@ export default function InstructorOnboarding() {
                 <Label htmlFor="lastName">Last Name *</Label>
                 <Input
                   id="lastName"
-                  value={stepData.lastName}
-                  onChange={(e) => updateStepData('lastName', e.target.value)}
-                  placeholder="Enter your last name"
+                  value={profileData.lastName}
+                  onChange={(e) => updateProfileData('lastName', e.target.value)}
                   required
                 />
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number *</Label>
-              <Input
-                id="phone"
-                type="tel"
-                value={stepData.phone}
-                onChange={(e) => updateStepData('phone', e.target.value)}
-                placeholder="(555) 123-4567"
-                required
-              />
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={profileData.phone}
+                  onChange={(e) => updateProfileData('phone', e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="profilePhoto">Profile Photo URL</Label>
+                <Input
+                  id="profilePhoto"
+                  type="url"
+                  value={profileData.profilePhoto}
+                  onChange={(e) => updateProfileData('profilePhoto', e.target.value)}
+                  placeholder="https://..."
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="bio">Professional Bio *</Label>
               <Textarea
                 id="bio"
-                value={stepData.bio}
-                onChange={(e) => updateStepData('bio', e.target.value)}
-                placeholder="Tell potential clients about yourself, your experience, and your approach to fitness..."
-                className="min-h-[120px]"
+                value={profileData.bio}
+                onChange={(e) => updateProfileData('bio', e.target.value)}
+                placeholder="Tell us about your fitness journey and teaching philosophy..."
+                rows={4}
                 required
               />
             </div>
@@ -277,88 +322,86 @@ export default function InstructorOnboarding() {
             <div className="text-center">
               <Award className="h-12 w-12 text-[#1E90FF] mx-auto mb-4" />
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Certifications & Specialties</h2>
-              <p className="text-gray-600">What are your professional qualifications?</p>
+              <p className="text-gray-600">Share your qualifications and areas of expertise</p>
             </div>
 
-            <div>
-              <Label className="text-base font-medium">Certifications *</Label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
-                {certificationOptions.map((cert) => (
-                  <div key={cert} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={cert}
-                      checked={stepData.certifications.includes(cert)}
-                      onCheckedChange={() => handleArrayToggle('certifications', cert)}
-                    />
-                    <Label htmlFor={cert} className="text-sm">
-                      {cert}
-                    </Label>
-                  </div>
-                ))}
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <Label>Certifications *</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {certificationOptions.map((cert) => (
+                    <div key={cert} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={cert}
+                        checked={credentialsData.certifications.includes(cert)}
+                        onCheckedChange={() => handleArrayToggle(setCredentialsData, 'certifications', cert)}
+                      />
+                      <Label htmlFor={cert} className="text-sm">{cert}</Label>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
 
-            <div>
-              <Label className="text-base font-medium">Specialties *</Label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mt-3">
-                {specialtyOptions.map((specialty) => (
-                  <div key={specialty} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={specialty}
-                      checked={stepData.specialties.includes(specialty)}
-                      onCheckedChange={() => handleArrayToggle('specialties', specialty)}
-                    />
-                    <Label htmlFor={specialty} className="text-sm">
-                      {specialty}
-                    </Label>
-                  </div>
-                ))}
+              <div className="space-y-3">
+                <Label>Specialties *</Label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {specialtyOptions.map((specialty) => (
+                    <div key={specialty} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={specialty}
+                        checked={credentialsData.specialties.includes(specialty)}
+                        onCheckedChange={() => handleArrayToggle(setCredentialsData, 'specialties', specialty)}
+                      />
+                      <Label htmlFor={specialty} className="text-sm">{specialty}</Label>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="experience">Years of Experience *</Label>
-                <select
-                  id="experience"
-                  value={stepData.experience}
-                  onChange={(e) => updateStepData('experience', e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                >
-                  <option value="">Select experience level</option>
-                  <option value="less-than-1">Less than 1 year</option>
-                  <option value="1-3">1-3 years</option>
-                  <option value="3-5">3-5 years</option>
-                  <option value="5-10">5-10 years</option>
-                  <option value="more-than-10">More than 10 years</option>
-                </select>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="experience">Years of Experience *</Label>
+                  <Select 
+                    value={credentialsData.experience} 
+                    onValueChange={(value) => updateCredentialsData('experience', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select experience level" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Less than 1 year">Less than 1 year</SelectItem>
+                      <SelectItem value="1-2 years">1-2 years</SelectItem>
+                      <SelectItem value="3-5 years">3-5 years</SelectItem>
+                      <SelectItem value="5-10 years">5-10 years</SelectItem>
+                      <SelectItem value="10+ years">10+ years</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="education">Education Background</Label>
+                  <Input
+                    id="education"
+                    value={credentialsData.education}
+                    onChange={(e) => updateCredentialsData('education', e.target.value)}
+                    placeholder="Degree, School, etc."
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="education">Education Background</Label>
-                <Input
-                  id="education"
-                  value={stepData.education}
-                  onChange={(e) => updateStepData('education', e.target.value)}
-                  placeholder="Degree in Exercise Science, Kinesiology, etc."
-                />
-              </div>
-            </div>
 
-            <div>
-              <Label className="text-base font-medium">Languages Spoken</Label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
-                {languageOptions.map((language) => (
-                  <div key={language} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={language}
-                      checked={stepData.languages.includes(language)}
-                      onCheckedChange={() => handleArrayToggle('languages', language)}
-                    />
-                    <Label htmlFor={language} className="text-sm">
-                      {language}
-                    </Label>
-                  </div>
-                ))}
+              <div className="space-y-3">
+                <Label>Languages Spoken</Label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {languageOptions.map((language) => (
+                    <div key={language} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={language}
+                        checked={credentialsData.languages.includes(language)}
+                        onCheckedChange={() => handleArrayToggle(setCredentialsData, 'languages', language)}
+                      />
+                      <Label htmlFor={language} className="text-sm">{language}</Label>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
@@ -370,83 +413,65 @@ export default function InstructorOnboarding() {
             <div className="text-center">
               <Calendar className="h-12 w-12 text-[#1E90FF] mx-auto mb-4" />
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Teaching Preferences</h2>
-              <p className="text-gray-600">When and how do you like to teach?</p>
+              <p className="text-gray-600">When and how do you prefer to teach?</p>
             </div>
 
-            <div>
-              <Label className="text-base font-medium">Available Times *</Label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
-                {availabilityOptions.map((time) => (
-                  <div key={time} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={time}
-                      checked={stepData.availability.includes(time)}
-                      onCheckedChange={() => handleArrayToggle('availability', time)}
-                    />
-                    <Label htmlFor={time} className="text-sm">
-                      {time}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="teachingStyle">Teaching Style *</Label>
-              <select
-                id="teachingStyle"
-                value={stepData.teachingStyle}
-                onChange={(e) => updateStepData('teachingStyle', e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-              >
-                <option value="">Select your teaching style</option>
-                {teachingStyleOptions.map(style => (
-                  <option key={style} value={style}>{style}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <Label className="text-base font-medium">Preferred Max Class Size</Label>
-                <div className="mt-3">
-                  <Slider
-                    value={stepData.maxClassSize}
-                    onValueChange={(value) => updateStepData('maxClassSize', value)}
-                    max={50}
-                    min={1}
-                    step={1}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-sm text-gray-500 mt-1">
-                    <span>1</span>
-                    <span className="font-medium text-[#1E90FF]">
-                      {stepData.maxClassSize[0]} students
-                    </span>
-                    <span>50+</span>
-                  </div>
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <Label>Availability *</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {availabilityOptions.map((time) => (
+                    <div key={time} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={time}
+                        checked={teachingData.availability.includes(time)}
+                        onCheckedChange={() => handleArrayToggle(setTeachingData, 'availability', time)}
+                      />
+                      <Label htmlFor={time} className="text-sm">{time}</Label>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              <div>
-                <Label className="text-base font-medium">Hourly Rate</Label>
-                <div className="mt-3">
-                  <Slider
-                    value={stepData.ratePerHour}
-                    onValueChange={(value) => updateStepData('ratePerHour', value)}
-                    max={200}
-                    min={25}
-                    step={5}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-sm text-gray-500 mt-1">
-                    <span>$25</span>
-                    <span className="font-medium text-[#1E90FF]">
-                      ${stepData.ratePerHour[0]}/hour
-                    </span>
-                    <span>$200+</span>
-                  </div>
-                </div>
+              <div className="space-y-2">
+                <Label>Teaching Style *</Label>
+                <Select 
+                  value={teachingData.teachingStyle} 
+                  onValueChange={(value) => updateTeachingData('teachingStyle', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select your teaching style" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {teachingStyleOptions.map((style) => (
+                      <SelectItem key={style} value={style}>{style}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-3">
+                <Label>Maximum Class Size: {teachingData.maxClassSize[0]} students</Label>
+                <Slider
+                  value={teachingData.maxClassSize}
+                  onValueChange={(value) => updateTeachingData('maxClassSize', value)}
+                  max={50}
+                  min={1}
+                  step={1}
+                  className="w-full"
+                />
+              </div>
+
+              <div className="space-y-3">
+                <Label>Hourly Rate: ${teachingData.ratePerHour[0]}</Label>
+                <Slider
+                  value={teachingData.ratePerHour}
+                  onValueChange={(value) => updateTeachingData('ratePerHour', value)}
+                  max={200}
+                  min={20}
+                  step={5}
+                  className="w-full"
+                />
               </div>
             </div>
           </div>
@@ -456,66 +481,79 @@ export default function InstructorOnboarding() {
         return (
           <div className="space-y-6">
             <div className="text-center">
-              <FileText className="h-12 w-12 text-[#1E90FF] mx-auto mb-4" />
+              <CheckCircle className="h-12 w-12 text-[#1E90FF] mx-auto mb-4" />
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Verification & Professional Details</h2>
-              <p className="text-gray-600">Help us verify your professional credentials</p>
+              <p className="text-gray-600">Complete your professional verification</p>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="insurance">Professional Liability Insurance *</Label>
-              <select
-                id="insurance"
-                value={stepData.insurance}
-                onChange={(e) => updateStepData('insurance', e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-              >
-                <option value="">Select insurance status</option>
-                <option value="current">I have current liability insurance</option>
-                <option value="obtaining">I am in the process of obtaining insurance</option>
-                <option value="none">I do not have insurance</option>
-              </select>
-            </div>
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="insurance">Liability Insurance *</Label>
+                <Select 
+                  value={verificationData.insurance} 
+                  onValueChange={(value) => updateVerificationData('insurance', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select insurance status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="I have liability insurance">I have liability insurance</SelectItem>
+                    <SelectItem value="I need help getting insurance">I need help getting insurance</SelectItem>
+                    <SelectItem value="I'm covered under studio insurance">I'm covered under studio insurance</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="backgroundCheck"
-                checked={stepData.backgroundCheck}
-                onCheckedChange={(checked) => updateStepData('backgroundCheck', checked)}
-              />
-              <Label htmlFor="backgroundCheck" className="text-sm">
-                I consent to a background check (required for certain class types)
-              </Label>
-            </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="backgroundCheck"
+                  checked={verificationData.backgroundCheck}
+                  onCheckedChange={(checked) => updateVerificationData('backgroundCheck', checked)}
+                />
+                <Label htmlFor="backgroundCheck">
+                  I consent to a background check *
+                </Label>
+              </div>
 
-            <div className="space-y-4">
-              <Label className="text-base font-medium">Social Media & Professional Links</Label>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="instagram">Instagram</Label>
-                  <Input
-                    id="instagram"
-                    value={stepData.socialMedia.instagram}
-                    onChange={(e) => updateNestedData('socialMedia', 'instagram', e.target.value)}
-                    placeholder="@yourusername"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="youtube">YouTube</Label>
-                  <Input
-                    id="youtube"
-                    value={stepData.socialMedia.youtube}
-                    onChange={(e) => updateNestedData('socialMedia', 'youtube', e.target.value)}
-                    placeholder="Channel URL"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="website">Personal Website</Label>
-                  <Input
-                    id="website"
-                    value={stepData.socialMedia.website}
-                    onChange={(e) => updateNestedData('socialMedia', 'website', e.target.value)}
-                    placeholder="https://yoursite.com"
-                  />
+              <div className="space-y-4">
+                <Label>Social Media & Portfolio (Optional)</Label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="instagram">Instagram</Label>
+                    <Input
+                      id="instagram"
+                      value={verificationData.socialMedia.instagram}
+                      onChange={(e) => updateVerificationData('socialMedia', {
+                        ...verificationData.socialMedia,
+                        instagram: e.target.value
+                      })}
+                      placeholder="@username"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="youtube">YouTube</Label>
+                    <Input
+                      id="youtube"
+                      value={verificationData.socialMedia.youtube}
+                      onChange={(e) => updateVerificationData('socialMedia', {
+                        ...verificationData.socialMedia,
+                        youtube: e.target.value
+                      })}
+                      placeholder="Channel URL"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="website">Website</Label>
+                    <Input
+                      id="website"
+                      value={verificationData.socialMedia.website}
+                      onChange={(e) => updateVerificationData('socialMedia', {
+                        ...verificationData.socialMedia,
+                        website: e.target.value
+                      })}
+                      placeholder="https://..."
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -526,52 +564,63 @@ export default function InstructorOnboarding() {
         return (
           <div className="space-y-6">
             <div className="text-center">
-              <CheckCircle className="h-12 w-12 text-[#1E90FF] mx-auto mb-4" />
+              <Settings className="h-12 w-12 text-[#1E90FF] mx-auto mb-4" />
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Final Setup</h2>
-              <p className="text-gray-600">Just a few more details to get you started</p>
+              <p className="text-gray-600">Complete your instructor profile setup</p>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="taxId">Tax ID / EIN (Optional)</Label>
-              <Input
-                id="taxId"
-                value={stepData.taxId}
-                onChange={(e) => updateStepData('taxId', e.target.value)}
-                placeholder="For tax reporting purposes"
-              />
-            </div>
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="taxId">Tax ID / SSN (Optional)</Label>
+                  <Input
+                    id="taxId"
+                    value={setupData.taxId}
+                    onChange={(e) => updateSetupData('taxId', e.target.value)}
+                    placeholder="For payment processing"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="paymentDetails">Payment Method</Label>
+                  <Select 
+                    value={setupData.paymentDetails} 
+                    onValueChange={(value) => updateSetupData('paymentDetails', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select payment method" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Direct Deposit">Direct Deposit</SelectItem>
+                      <SelectItem value="PayPal">PayPal</SelectItem>
+                      <SelectItem value="Venmo">Venmo</SelectItem>
+                      <SelectItem value="Check">Check</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
 
-            <div className="space-y-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="termsAccepted"
-                  checked={stepData.termsAccepted}
-                  onCheckedChange={(checked) => updateStepData('termsAccepted', checked)}
-                />
-                <Label htmlFor="termsAccepted" className="text-sm">
-                  I agree to the Terms of Service and Instructor Agreement *
-                </Label>
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="terms"
+                    checked={setupData.termsAccepted}
+                    onCheckedChange={(checked) => updateSetupData('termsAccepted', checked)}
+                  />
+                  <Label htmlFor="terms" className="text-sm">
+                    I accept the <a href="/terms" className="text-[#1E90FF] hover:underline">Terms of Service</a> *
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="liability"
+                    checked={setupData.liabilityWaiver}
+                    onCheckedChange={(checked) => updateSetupData('liabilityWaiver', checked)}
+                  />
+                  <Label htmlFor="liability" className="text-sm">
+                    I accept the <a href="/liability" className="text-[#1E90FF] hover:underline">Liability Waiver</a> *
+                  </Label>
+                </div>
               </div>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="liabilityWaiver"
-                  checked={stepData.liabilityWaiver}
-                  onCheckedChange={(checked) => updateStepData('liabilityWaiver', checked)}
-                />
-                <Label htmlFor="liabilityWaiver" className="text-sm">
-                  I understand and accept liability waivers and safety requirements *
-                </Label>
-              </div>
-            </div>
-
-            <div className="bg-green-50 p-4 rounded-lg">
-              <div className="flex items-center mb-2">
-                <Zap className="h-5 w-5 text-green-600 mr-2" />
-                <h3 className="font-semibold text-green-900">Ready to Inspire!</h3>
-              </div>
-              <p className="text-green-800 text-sm">
-                Complete your setup to start teaching, earning, and building your fitness community on Thryve.
-              </p>
             </div>
           </div>
         )
@@ -581,64 +630,48 @@ export default function InstructorOnboarding() {
     }
   }
 
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    )
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-3xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Welcome to Thryve Instructors! 💪</h1>
-          <p className="text-xl text-gray-600 mb-6">Let's set up your professional instructor profile</p>
-          
-          <StepIndicator
-            currentStep={currentStep}
-            totalSteps={totalSteps}
-            completedSteps={onboardingStatus.completedSteps}
-            stepLabels={stepLabels}
-            className="mb-8"
-          />
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-[#1E90FF]/5 to-white">
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Instructor Onboarding</h1>
+            <p className="text-gray-600">Join our community of fitness professionals</p>
+          </div>
 
-        {/* Main Form */}
-        <Card className="shadow-2xl border-0">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Instructor Onboarding</CardTitle>
-            <CardDescription className="text-lg">
-              Step {currentStep} of {totalSteps}
-            </CardDescription>
-          </CardHeader>
+          <div className="bg-white rounded-lg shadow-lg p-8">
+            <div className="mb-8">
+              <div className="flex justify-between items-center mb-4">
+                <span className="text-sm font-medium text-gray-600">
+                  Step {currentStep} of {totalSteps}
+                </span>
+                <span className="text-sm font-medium text-gray-600">
+                  {stepLabels[currentStep - 1]}
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-[#1E90FF] h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${(currentStep / totalSteps) * 100}%` }}
+                />
+              </div>
+            </div>
 
-          <CardContent className="p-8">
-            {renderStep()}
+            {renderStepContent()}
 
-            {/* Navigation Buttons */}
             <OnboardingSteps
               currentStep={currentStep}
               totalSteps={totalSteps}
               onNext={nextStep}
               onPrevious={prevStep}
               onComplete={handleComplete}
-              canProceed={isStepValid()}
+              canProceed={canAdvanceStep}
               loading={loading}
-              completeLabel="Complete Instructor Setup"
+              completeLabel="Start Teaching"
             />
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
-
-      {/* Welcome Tour */}
-      <WelcomeTour
-        isOpen={showWelcomeTour}
-        onClose={() => setShowWelcomeTour(false)}
-        userRole="instructor"
-      />
     </div>
   )
 }
