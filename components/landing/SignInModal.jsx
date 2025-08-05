@@ -119,3 +119,6 @@ export function SignInModal({ isOpen, onClose }) {
     </Dialog>
   );
 }
+
+// Add default export
+export default SignInModal;

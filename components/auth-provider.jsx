@@ -1,8 +1,8 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { onAuthStateChanged, createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { useRouter, usePathname } from 'next/navigation';
 
@@ -73,9 +73,43 @@ export function AuthProvider({ children }) {
     return () => unsubscribe();
   }, [pathname, router]);
 
+  const signUp = async (email, password, name) => {
+    try {
+      console.log('🔥 AuthProvider: Creating user with email:', email);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      
+      // Create user document in Firestore
+      await setDoc(doc(db, 'users', user.uid), {
+        email: user.email,
+        displayName: name,
+        createdAt: new Date(),
+        role: null,
+        profileComplete: false
+      });
+      
+      console.log('🔥 AuthProvider: User created successfully:', user.uid);
+      
+      return {
+        success: true,
+        user: {
+          uid: user.uid,
+          email: user.email,
+          displayName: name,
+          role: null,
+          profileComplete: false
+        }
+      };
+    } catch (error) {
+      console.error('🔥 AuthProvider: Sign up error:', error);
+      throw error;
+    }
+  };
+
   const value = {
     user,
     loading,
+    signUp,
     signOut: async () => {
       try {
         await auth.signOut();
@@ -92,3 +126,6 @@ export function AuthProvider({ children }) {
     </AuthContext.Provider>
   );
 }
+
+// Add default export
+export default AuthProvider;
