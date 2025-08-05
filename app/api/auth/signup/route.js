@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { signUp } from '@/lib/auth'
+import { signUpWithEmailAndPassword } from '@/lib/auth'
 
 export async function POST(request) {
   try {
@@ -13,16 +13,23 @@ export async function POST(request) {
       )
     }
 
-    const user = await signUp(email, password, firstName, lastName)
+    const result = await signUpWithEmailAndPassword(email, password, `${firstName} ${lastName}`)
     
-    return NextResponse.json({ 
-      message: 'User created successfully',
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name
-      }
-    })
+    if (result.success) {
+      return NextResponse.json({ 
+        message: 'User created successfully',
+        user: {
+          id: result.user.uid,
+          email: result.user.email,
+          name: result.user.displayName
+        }
+      })
+    } else {
+      return NextResponse.json(
+        { error: result.error || 'Failed to create user' },
+        { status: 400 }
+      )
+    }
   } catch (error) {
     console.error('Signup API error:', error)
     return NextResponse.json(

@@ -1,124 +1,148 @@
-"use client";
+'use client'
 
-import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { signIn, signUp } from '@/lib/firebase-auth';
-import { useRouter } from 'next/navigation';
-import { Loader2, AlertCircle } from 'lucide-react';
+import React, { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Eye, EyeOff, X } from 'lucide-react'
+import { toast } from 'sonner'
+import { useAuth } from '@/components/auth-provider'
+import { useRouter } from 'next/navigation'
+import GoogleSignInButton from '@/components/auth/GoogleSignInButton'
 
-export function SignInModal({ isOpen, onClose }) {
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const router = useRouter();
+export default function SignInModal({ isOpen, onClose }) {
+  const [formData, setFormData] = useState({
+    email: '',
+    password: ''
+  })
+  const [showPassword, setShowPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const { signIn } = useAuth()
+  const router = useRouter()
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    })
+  }
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
+    e.preventDefault()
+    setLoading(true)
 
     try {
-      if (isSignUp) {
-        await signUp(email, password);
-        console.log('Sign up successful');
-        router.push('/signup/role-selection');
-      } else {
-        const user = await signIn(email, password);
-        console.log('Sign in successful');
-        
-        // Let AuthProvider handle the redirect
-        // It will check role and profileComplete status
-      }
-      onClose();
-    } catch (err) {
-      console.error('Auth error:', err);
-      setError(err.message);
+      await signIn(formData.email, formData.password)
+      toast.success('Signed in successfully!')
+      onClose()
+      router.push('/dashboard')
+    } catch (error) {
+      console.error('Sign in error:', error)
+      toast.error(error.message || 'Failed to sign in')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
+
+  if (!isOpen) return null
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>
-            {isSignUp ? 'Create an Account' : 'Sign In to THRYVE'}
-          </DialogTitle>
-        </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md flex items-center gap-2">
-              <AlertCircle className="h-4 w-4" />
-              <span className="text-sm">{error}</span>
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              disabled={loading}
-              placeholder="you@example.com"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              disabled={loading}
-              placeholder="••••••••"
-              minLength={6}
-            />
-          </div>
-
-          <Button 
-            type="submit" 
-            className="w-full"
-            disabled={loading}
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div className="flex justify-between items-center p-6 border-b">
+          <h2 className="text-2xl font-bold text-gray-900">Sign In</h2>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700"
           >
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {isSignUp ? 'Creating Account...' : 'Signing In...'}
-              </>
-            ) : (
-              isSignUp ? 'Create Account' : 'Sign In'
-            )}
+            <X className="h-5 w-5" />
           </Button>
+        </div>
 
-          <div className="text-center space-y-2">
-            <button
-              type="button"
-              onClick={() => setIsSignUp(!isSignUp)}
-              className="text-sm text-blue-600 hover:underline"
-              disabled={loading}
-            >
-              {isSignUp 
-                ? 'Already have an account? Sign in' 
-                : "Don't have an account? Sign up"}
-            </button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
+        <Card className="border-0 shadow-none">
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              {/* Google Sign In */}
+              <GoogleSignInButton onSuccess={onClose} />
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-white px-2 text-gray-500">Or continue with</span>
+                </div>
+              </div>
+
+              {/* Email/Password Form */}
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="you@example.com"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Password
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      name="password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Enter your password"
+                      required
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4 text-gray-500" /> : <Eye className="h-4 w-4 text-gray-500" />}
+                    </Button>
+                  </div>
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={loading}
+                >
+                  {loading ? 'Signing In...' : 'Sign In'}
+                </Button>
+              </form>
+
+              <div className="text-center text-sm text-gray-600">
+                Don't have an account?{' '}
+                <button
+                  onClick={() => {
+                    onClose()
+                    router.push('/signup')
+                  }}
+                  className="text-blue-600 hover:text-blue-800 font-medium"
+                >
+                  Sign up
+                </button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
 }
-
-// Add default export
-export default SignInModal;
