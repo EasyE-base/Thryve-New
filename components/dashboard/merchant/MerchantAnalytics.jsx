@@ -18,37 +18,35 @@ export default function MerchantAnalytics() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
           title="Total Revenue"
-          value={revenue?.total || 25000}
+          value={revenue?.total || 0}
           format="currency"
           icon={DollarSign}
           color="green"
-          trend={12}
-          trendDirection="up"
+          subtitle={revenue?.total ? "All time revenue" : "No revenue yet"}
         />
         <MetricCard
           title="Total Bookings"
-          value={analytics?.totalBookings || 1234}
+          value={analytics?.totalBookings || 0}
           format="number"
           icon={Calendar}
           color="blue"
-          trend={8}
-          trendDirection="up"
+          subtitle={analytics?.totalBookings ? "Total bookings" : "No bookings yet"}
         />
         <MetricCard
           title="Avg Fill Rate"
-          value={analytics?.fillRate || 85}
+          value={analytics?.fillRate || 0}
           format="percentage"
           icon={TrendingUp}
           color="purple"
+          subtitle={analytics?.fillRate ? "Average fill rate" : "No classes yet"}
         />
         <MetricCard
           title="Customer Growth"
-          value={analytics?.customerGrowth || 15}
+          value={analytics?.customerGrowth || 0}
           format="percentage"
           icon={Users}
           color="orange"
-          trend={5}
-          trendDirection="up"
+          subtitle={analytics?.customerGrowth ? "Monthly growth" : "No customers yet"}
         />
       </div>
 
