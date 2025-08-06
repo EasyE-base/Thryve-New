@@ -29,7 +29,9 @@ export function AuthProvider({ children }) {
             email: firebaseUser.email,
             displayName: firebaseUser.displayName || userData?.displayName,
             role: userData?.role || null,
-            profileComplete: userData?.profileComplete || false
+            profileComplete: userData?.profileComplete || false,
+            // Include Firebase user methods
+            getIdToken: firebaseUser.getIdToken.bind(firebaseUser)
           };
           
           setUser(fullUser);
@@ -37,19 +39,17 @@ export function AuthProvider({ children }) {
           
           // Handle redirects based on profile completion
           if (pathname === '/' || pathname === '/signup') {
-            // Temporarily disable redirects for testing
-            /*
             if (!userData?.role) {
               console.log('🔥 AuthProvider: No role, redirecting to role selection');
               router.push('/signup/role-selection');
             } else if (!userData?.profileComplete) {
               console.log('🔥 AuthProvider: Role selected but profile incomplete, redirecting to profile builder');
-              const profilePaths = {
-                customer: '/profile/customer',
-                instructor: '/profile/instructor',
-                merchant: '/profile/studio'
+              const onboardingPaths = {
+                customer: '/onboarding/customer',
+                instructor: '/onboarding/instructor',
+                merchant: '/onboarding/merchant'
               };
-              router.push(profilePaths[userData.role]);
+              router.push(onboardingPaths[userData.role]);
             } else {
               console.log('🔥 AuthProvider: Profile complete, redirecting to dashboard');
               const dashboardPaths = {
@@ -59,7 +59,9 @@ export function AuthProvider({ children }) {
               };
               router.push(dashboardPaths[userData.role]);
             }
-            */
+          } else if (pathname === '/signup/role-selection' && !userData?.role) {
+            // User is on role selection page and has no role - this is correct, don't redirect
+            console.log('🔥 AuthProvider: User on role selection page, no redirect needed');
           }
         } catch (error) {
           console.error('🔥 AuthProvider: Error fetching user data:', error);

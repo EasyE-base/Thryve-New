@@ -3,14 +3,32 @@ import { NextResponse } from 'next/server';
 import { initAdmin } from '@/lib/firebase-admin';
 
 export async function GET(request) {
-  const sessionCookie = request.cookies.get('session')?.value;
-  if (!sessionCookie) return NextResponse.json({ role: null }, { status: 401 });
-
   try {
-    const { auth } = initAdmin();
-    const decoded = await auth.verifySessionCookie(sessionCookie, true);
-    return NextResponse.json({ role: decoded.role || null });
-  } catch {
+    // Get the Authorization header which should contain the Firebase ID token
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ role: null }, { status: 401 });
+    }
+
+    const idToken = authHeader.split('Bearer ')[1];
+    if (!idToken) {
+      return NextResponse.json({ role: null }, { status: 401 });
+    }
+
+    // Verify the Firebase ID token
+    const { auth, db } = initAdmin();
+    const decodedToken = await auth.verifyIdToken(idToken);
+    
+    // Get user data from Firestore
+    const userDoc = await db.collection('users').doc(decodedToken.uid).get();
+    const userData = userDoc.exists ? userDoc.data() : null;
+    
+    return NextResponse.json({ 
+      role: userData?.role || null,
+      profileComplete: userData?.profileComplete || false
+    });
+  } catch (error) {
+    console.error('Auth verification error:', error);
     return NextResponse.json({ role: null }, { status: 401 });
   }
 } 

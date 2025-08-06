@@ -15,7 +15,7 @@ export const useOnboarding = () => {
 }
 
 export default function OnboardingProvider({ children }) {
-  const { user, role } = useAuth()
+  const { user } = useAuth()
   const router = useRouter()
   const [onboardingStatus, setOnboardingStatus] = useState({
     isComplete: false,
@@ -27,15 +27,15 @@ export default function OnboardingProvider({ children }) {
   const [formData, setFormData] = useState({})
   const [loading, setLoading] = useState(true)
 
-  // Check onboarding status when user/role changes
+  // Check onboarding status when user changes
   useEffect(() => {
-    if (!user || !role) {
+    if (!user) {
       setLoading(false)
       return
     }
 
     checkOnboardingStatus()
-  }, [user, role])
+  }, [user])
 
   const checkOnboardingStatus = async () => {
     try {
@@ -61,38 +61,18 @@ export default function OnboardingProvider({ children }) {
         }
       }
 
-      // Check with server
-      const response = await fetch('/server-api/onboarding/status', {
-        headers: {
-          'Authorization': `Bearer ${await user.getIdToken()}`
-        }
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setOnboardingStatus({
-          isComplete: data.onboarding_complete || false,
-          currentStep: data.current_step || 1,
-          completedSteps: data.completed_steps || [],
-          totalSteps: data.total_steps || getTotalSteps(role),
-          lastSaved: data.last_saved
-        })
-        
-        if (data.profile_data) {
-          setFormData(data.profile_data)
-        }
-      } else {
-        // Server error - use defaults
-        setOnboardingStatus(prev => ({
-          ...prev,
-          totalSteps: getTotalSteps(role)
-        }))
-      }
-    } catch (error) {
-      console.error('Error checking onboarding status:', error)
+      // For now, use defaults since we don't have server API
+      const userRole = user.role || 'merchant' // Default to merchant for testing
       setOnboardingStatus(prev => ({
         ...prev,
-        totalSteps: getTotalSteps(role)
+        totalSteps: getTotalSteps(userRole)
+      }))
+    } catch (error) {
+      console.error('Error checking onboarding status:', error)
+      const userRole = user.role || 'merchant'
+      setOnboardingStatus(prev => ({
+        ...prev,
+        totalSteps: getTotalSteps(userRole)
       }))
     } finally {
       setLoading(false)
@@ -117,7 +97,7 @@ export default function OnboardingProvider({ children }) {
     // Auto-save to localStorage
     const saveData = {
       uid: user?.uid,
-      role,
+      role: user?.role || 'merchant',
       formData: { ...formData, [`step${stepNumber}`]: stepData },
       currentStep: stepNumber,
       lastSaved: new Date().toISOString()
@@ -144,57 +124,41 @@ export default function OnboardingProvider({ children }) {
     try {
       setLoading(true)
       
-      const response = await fetch('/server-api/onboarding/complete', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${await user.getIdToken()}`
-        },
-        body: JSON.stringify({
-          role,
-          profileData: { ...formData, ...finalData },
-          completedSteps: onboardingStatus.completedSteps,
-          totalSteps: onboardingStatus.totalSteps
-        })
-      })
-
-      if (response.ok || response.status === 502) {
-        // Mark as complete locally regardless of API success
-        const completionData = {
-          uid: user.uid,
-          email: user.email,
-          role,
-          onboarding_complete: true,
-          completed_at: new Date().toISOString(),
-          profile_data: { ...formData, ...finalData }
-        }
-        
-        localStorage.setItem('onboardingComplete', JSON.stringify(completionData))
-        
-        setOnboardingStatus(prev => ({
-          ...prev,
-          isComplete: true,
-          currentStep: prev.totalSteps,
-          completedSteps: Array.from({ length: prev.totalSteps }, (_, i) => i + 1)
-        }))
-
-        // Redirect to appropriate dashboard
-        setTimeout(() => {
-          router.push(`/dashboard/${role}`)
-        }, 1000)
-
-        return { success: true }
-      } else {
-        throw new Error('Failed to complete onboarding')
+      // For now, complete locally since we don't have server API
+      const userRole = user?.role || 'merchant'
+      const completionData = {
+        uid: user.uid,
+        email: user.email,
+        role: userRole,
+        onboarding_complete: true,
+        completed_at: new Date().toISOString(),
+        profile_data: { ...formData, ...finalData }
       }
+      
+      localStorage.setItem('onboardingComplete', JSON.stringify(completionData))
+      
+      setOnboardingStatus(prev => ({
+        ...prev,
+        isComplete: true,
+        currentStep: prev.totalSteps,
+        completedSteps: Array.from({ length: prev.totalSteps }, (_, i) => i + 1)
+      }))
+
+      // Redirect to appropriate dashboard
+      setTimeout(() => {
+        router.push(`/dashboard/${userRole}`)
+      }, 1000)
+
+      return { success: true }
     } catch (error) {
       console.error('Onboarding completion error:', error)
       
       // Fallback: complete locally and redirect
+      const userRole = user?.role || 'merchant'
       const completionData = {
         uid: user.uid,
         email: user.email,
-        role,
+        role: userRole,
         onboarding_complete: true,
         completed_at: new Date().toISOString(),
         profile_data: { ...formData, ...finalData }
@@ -208,7 +172,7 @@ export default function OnboardingProvider({ children }) {
       }))
 
       setTimeout(() => {
-        router.push(`/dashboard/${role}`)
+        router.push(`/dashboard/${userRole}`)
       }, 1000)
 
       return { success: true, offline: true }
@@ -220,11 +184,12 @@ export default function OnboardingProvider({ children }) {
   const restartOnboarding = () => {
     localStorage.removeItem('onboardingComplete')
     localStorage.removeItem(`onboarding_${user?.uid}`)
+    const userRole = user?.role || 'merchant'
     setOnboardingStatus({
       isComplete: false,
       currentStep: 1,
       completedSteps: [],
-      totalSteps: getTotalSteps(role),
+      totalSteps: getTotalSteps(userRole),
       lastSaved: null
     })
     setFormData({})

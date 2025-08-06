@@ -24,40 +24,32 @@ export default function RoleSelectionPage() {
 
     setIsLoading(true);
     try {
-      // Get the current user's ID token
-      const idToken = await user.getIdToken();
+      // Update the user document directly using client-side Firebase
+      const { doc, updateDoc } = await import('firebase/firestore');
+      const { db } = await import('@/lib/firebase');
       
-      // Call the API route to update the role
-      const response = await fetch('/api/auth/select-role', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${idToken}`
-        },
-        body: JSON.stringify({ role: selectedRole })
+      const userRef = doc(db, 'users', user.uid);
+      await updateDoc(userRef, {
+        role: selectedRole,
+        roleSelectedAt: new Date(),
+        onboardingStatus: 'started'
       });
 
-      const result = await response.json();
+      toast.success(`Role set successfully!`);
 
-      if (result.success) {
-        toast.success(`Role set successfully!`);
-
-        // Redirect based on role
-        switch (selectedRole) {
-          case 'studio':
-            router.push('/onboarding/merchant');
-            break;
-          case 'instructor':
-            router.push('/onboarding/instructor');
-            break;
-          case 'customer':
-            router.push('/onboarding/customer');
-            break;
-          default:
-            router.push('/dashboard');
-        }
-      } else {
-        toast.error(result.error || 'Failed to save role. Please try again.');
+      // Redirect based on role
+      switch (selectedRole) {
+        case 'studio':
+          router.push('/onboarding/merchant');
+          break;
+        case 'instructor':
+          router.push('/onboarding/instructor');
+          break;
+        case 'customer':
+          router.push('/onboarding/customer');
+          break;
+        default:
+          router.push('/dashboard');
       }
     } catch (error) {
       console.error('Error updating role:', error);

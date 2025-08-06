@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { initAdmin } from '@/lib/firebase-admin'
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore'
 
 export async function POST(request) {
   const { role } = await request.json()
@@ -17,11 +16,11 @@ export async function POST(request) {
 
     console.log(`[API/select-role] Received request for user: ${userId} with role: ${role}`)
 
-    const userRef = doc(db, 'users', userId)
+    const userRef = db.collection('users').doc(userId)
 
-    await updateDoc(userRef, {
+    await userRef.update({
       role: role,
-      roleSelectedAt: serverTimestamp(),
+      roleSelectedAt: new Date(),
       onboardingStatus: 'started', // Add a status flag
     })
 
