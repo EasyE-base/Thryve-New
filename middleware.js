@@ -1,11 +1,9 @@
-// middleware.js
-export const runtime = 'nodejs'; // THIS MUST BE THE VERY FIRST LINE
+export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
 import { auth } from 'firebase-admin';
 import { initAdmin } from '@/lib/firebase-admin';
 
-// Initialize Firebase Admin SDK
 initAdmin();
 
 export async function middleware(request) {
@@ -36,14 +34,13 @@ export async function middleware(request) {
     }
 
     if (pathname.startsWith('/onboarding/customer') && role && role !== 'customer') {
-        return NextResponse.redirect(new URL('/dashboard', request.url));
+      return NextResponse.redirect(new URL('/dashboard', request.url));
     }
     if (pathname.startsWith('/onboarding/business') && role && role !== 'business') {
-        return NextResponse.redirect(new URL('/dashboard', request.url));
+      return NextResponse.redirect(new URL('/dashboard', request.url));
     }
 
     return NextResponse.next();
-
   } catch (error) {
     console.error('Middleware auth error:', error.message);
     const response = NextResponse.redirect(new URL('/login', request.url));
@@ -53,7 +50,5 @@ export async function middleware(request) {
 }
 
 export const config = {
-  matcher: [
-    '/((?!_next/static|_next/image|favicon.ico).*)',
-  ],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 };
