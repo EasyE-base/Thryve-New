@@ -48,8 +48,9 @@ export function AuthProvider({ children }) {
           setUser(fullUser);
           console.log('🔥 AuthProvider: User authenticated:', fullUser.email);
           
-          // Handle redirects based on profile completion
-          if (pathname === '/' || pathname === '/signup') {
+          // Handle redirects based on profile completion - ONLY for specific paths
+          // Let authenticated users stay on homepage - don't auto-redirect
+          if (pathname === '/signup') {
             if (!userData?.role) {
               console.log('🔥 AuthProvider: No role, redirecting to role selection');
               router.push('/signup/role-selection');
