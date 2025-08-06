@@ -1,14 +1,17 @@
 'use client'
 
+import { useState } from 'react'
 import { useDashboard } from '@/contexts/DashboardContext'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Users, UserPlus, MessageSquare, Star, Calendar } from 'lucide-react'
+import InstructorInviteModal from './InstructorInviteModal'
 
 export default function MerchantInstructors() {
   const { instructors } = useDashboard()
+  const [inviteModalOpen, setInviteModalOpen] = useState(false)
 
   return (
     <div className="space-y-6">
@@ -17,7 +20,7 @@ export default function MerchantInstructors() {
           <h1 className="text-2xl font-bold">Instructor Management</h1>
           <p className="text-gray-600">Manage your teaching staff</p>
         </div>
-        <Button>
+        <Button onClick={() => setInviteModalOpen(true)}>
           <UserPlus className="h-4 w-4 mr-2" />
           Invite Instructor
         </Button>
@@ -63,6 +66,12 @@ export default function MerchantInstructors() {
           </Card>
         ))}
       </div>
+
+      {/* Invitation Modal */}
+      <InstructorInviteModal 
+        open={inviteModalOpen}
+        onOpenChange={setInviteModalOpen}
+      />
     </div>
   )
 }
