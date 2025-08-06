@@ -223,20 +223,12 @@ export default function MerchantOnboarding() {
         role: 'merchant'
       }
 
-      const response = await fetch('/api/onboarding/complete', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${await user.getIdToken()}`
-        },
-        body: JSON.stringify(completeFormData)
-      })
-
-      if (response.ok) {
-        await completeOnboarding()
-        await markOnboardingComplete()
+      // Use the OnboardingProvider's completeOnboarding function
+      const result = await completeOnboarding(completeFormData)
+      
+      if (result.success) {
         toast.success('Onboarding completed successfully!')
-        router.push('/dashboard/merchant')
+        // The OnboardingProvider will handle the redirect to dashboard
       } else {
         throw new Error('Failed to complete onboarding')
       }
@@ -246,7 +238,7 @@ export default function MerchantOnboarding() {
     } finally {
       setLoading(false)
     }
-  }, [canAdvanceStep, profileData, locationData, operationsData, staffData, pricingData, setupData, user, completeOnboarding, router])
+  }, [canAdvanceStep, profileData, locationData, operationsData, staffData, pricingData, setupData, completeOnboarding])
 
   // Render step content
   const renderStepContent = () => {

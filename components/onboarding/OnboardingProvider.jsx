@@ -144,9 +144,19 @@ export default function OnboardingProvider({ children }) {
         completedSteps: Array.from({ length: prev.totalSteps }, (_, i) => i + 1)
       }))
 
+      // Map role to correct dashboard path
+      const dashboardPaths = {
+        'studio': '/dashboard/merchant',
+        'merchant': '/dashboard/merchant',
+        'instructor': '/dashboard/instructor',
+        'customer': '/dashboard/customer'
+      }
+      
+      const dashboardPath = dashboardPaths[userRole] || '/dashboard/merchant'
+      
       // Redirect to appropriate dashboard
       setTimeout(() => {
-        router.push(`/dashboard/${userRole}`)
+        router.push(dashboardPath)
       }, 1000)
 
       return { success: true }
@@ -171,8 +181,18 @@ export default function OnboardingProvider({ children }) {
         isComplete: true
       }))
 
+      // Map role to correct dashboard path
+      const dashboardPaths = {
+        'studio': '/dashboard/merchant',
+        'merchant': '/dashboard/merchant',
+        'instructor': '/dashboard/instructor',
+        'customer': '/dashboard/customer'
+      }
+      
+      const dashboardPath = dashboardPaths[userRole] || '/dashboard/merchant'
+      
       setTimeout(() => {
-        router.push(`/dashboard/${userRole}`)
+        router.push(dashboardPath)
       }, 1000)
 
       return { success: true, offline: true }

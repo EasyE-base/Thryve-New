@@ -187,6 +187,31 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const completeOnboarding = async () => {
+    try {
+      // Update user document to mark onboarding as complete
+      const { doc, updateDoc } = await import('firebase/firestore');
+      const { db } = await import('@/lib/firebase');
+      
+      const userRef = doc(db, 'users', user.uid);
+      await updateDoc(userRef, {
+        profileComplete: true,
+        onboardingCompletedAt: new Date()
+      });
+
+      // Update local user state
+      setUser(prev => ({
+        ...prev,
+        profileComplete: true
+      }));
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error completing onboarding:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -200,7 +225,8 @@ export function AuthProvider({ children }) {
       } catch (error) {
         console.error('Sign out error:', error);
       }
-    }
+    },
+    completeOnboarding
   };
 
   return (
