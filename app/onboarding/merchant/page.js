@@ -212,22 +212,71 @@ export default function MerchantOnboarding() {
     setLoading(true)
 
     try {
+      // Import Firebase functions dynamically
+      const { doc, setDoc } = await import('firebase/firestore')
+      const { db } = await import('@/lib/firebase')
+
+      if (!user) {
+        throw new Error('User not authenticated')
+      }
+
       // Combine all step data for submission
       const completeFormData = {
+        // User profile data
         ...profileData,
-        ...locationData,
+        // Studio data
+        studioName: profileData.businessName,
+        studioType: profileData.businessType,
+        location: locationData.address,
+        city: locationData.city,
+        state: locationData.state,
+        zipCode: locationData.zipCode,
+        amenities: locationData.amenities,
+        description: locationData.description,
+        // Operations data
         ...operationsData,
+        // Staff and pricing data
         ...staffData,
         ...pricingData,
         ...setupData,
-        role: 'merchant'
+        // System fields
+        role: 'studio', // Keep as 'studio' for backwards compatibility
+        profileComplete: true,
+        onboardingCompletedAt: new Date(),
+        email: user.email,
+        createdAt: new Date()
       }
 
+      // Save to users collection
+      await setDoc(doc(db, 'users', user.uid), completeFormData, { merge: true })
+
+      // Create studio-specific profile
+      await setDoc(doc(db, 'studios', user.uid), {
+        name: profileData.businessName,
+        type: profileData.businessType,
+        location: locationData.address,
+        city: locationData.city,
+        state: locationData.state,
+        zipCode: locationData.zipCode,
+        amenities: locationData.amenities,
+        description: locationData.description,
+        operatingHours: operationsData.operatingHours,
+        capacity: operationsData.capacity,
+        policies: operationsData.policies,
+        pricing: pricingData,
+        paymentMethods: setupData.paymentMethods,
+        cancellationPolicy: setupData.cancellationPolicy,
+        createdBy: user.uid,
+        instructors: [],
+        classes: [],
+        createdAt: new Date()
+      })
+
+      toast.success('Studio profile completed successfully!')
+      
       // Use the OnboardingProvider's completeOnboarding function
       const result = await completeOnboarding(completeFormData)
-      
       if (result.success) {
-        toast.success('Onboarding completed successfully!')
         // The OnboardingProvider will handle the redirect to dashboard
       } else {
         throw new Error('Failed to complete onboarding')
@@ -238,7 +287,7 @@ export default function MerchantOnboarding() {
     } finally {
       setLoading(false)
     }
-  }, [canAdvanceStep, profileData, locationData, operationsData, staffData, pricingData, setupData, completeOnboarding])
+  }, [canAdvanceStep, profileData, locationData, operationsData, staffData, pricingData, setupData, completeOnboarding, user])
 
   // Render step content
   const renderStepContent = () => {

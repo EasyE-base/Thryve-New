@@ -31,25 +31,27 @@ export default function MerchantOverview() {
     createClass 
   } = useDashboard()
 
-  // ✅ CALCULATE METRICS
-  const todayClasses = classes?.filter(cls => isToday(new Date(cls.date))) || []
-  const tomorrowClasses = classes?.filter(cls => isTomorrow(new Date(cls.date))) || []
-  const todayBookings = bookings?.filter(booking => isToday(new Date(booking.date))) || []
+  // ✅ CALCULATE METRICS FROM REAL DATA
+  const todayClasses = classes?.filter(cls => isToday(new Date(cls.startTime || cls.date))) || []
+  const tomorrowClasses = classes?.filter(cls => isTomorrow(new Date(cls.startTime || cls.date))) || []
+  const todayBookings = bookings?.filter(booking => isToday(new Date(booking.createdAt || booking.date))) || []
   
-  const totalRevenue = revenue?.total || 0
-  const monthlyRevenue = revenue?.thisMonth || 0
-  const weeklyRevenue = revenue?.thisWeek || 0
-  const revenueGrowth = revenue?.growth || 0
+  // Use real data from API response
+  const overview = useDashboard().data?.overview || {}
+  const studioData = useDashboard().data?.studio || {}
+  
+  const totalRevenue = overview.totalRevenue || 0
+  const confirmedRevenue = overview.confirmedRevenue || 0
+  const totalBookings = overview.totalBookings || 0
+  const confirmedBookings = overview.confirmedBookings || 0
 
-  const totalCustomers = customers?.length || 0
-  const activeCustomers = customers?.filter(c => c.status === 'active').length || 0
-  const customerGrowth = analytics?.customerGrowth || 0
+  const totalCustomers = overview.totalCustomers || 0
+  const totalInstructors = overview.totalInstructors || 0
+  const totalClasses = overview.totalClasses || 0
 
-  const totalInstructors = instructors?.length || 0
-  const activeInstructors = instructors?.filter(i => i.status === 'active').length || 0
-
-  const fillRate = analytics?.averageFillRate || 0
-  const noShowRate = analytics?.noShowRate || 0
+  // Calculate fill rate based on real data
+  const fillRate = totalClasses > 0 ? Math.round((confirmedBookings / totalBookings) * 100) : 0
+  const noShowRate = totalBookings > 0 ? Math.round(((totalBookings - confirmedBookings) / totalBookings) * 100) : 0
 
   // ✅ QUICK ACTIONS
   const quickActions = [
@@ -90,10 +92,10 @@ export default function MerchantOverview() {
             </div>
             <div>
               <h1 className="text-2xl font-bold">
-                {studio?.name || 'Your Studio'}
+                {studioData?.name || 'Your Studio'}
               </h1>
               <p className="text-blue-100">
-                {studio?.type || 'Fitness Studio'} • {studio?.location || 'Location'}
+                {studioData?.type || 'Fitness Studio'} • {studioData?.location || 'Location'}
               </p>
             </div>
           </div>
@@ -121,43 +123,39 @@ export default function MerchantOverview() {
         ) : (
           <>
             <MetricCard
-              title="Monthly Revenue"
-              value={monthlyRevenue}
+              title="Total Revenue"
+              value={totalRevenue}
               format="currency"
               icon={DollarSign}
               color="green"
-              trend={revenueGrowth}
-              trendDirection={revenueGrowth >= 0 ? 'up' : 'down'}
-              subtitle="This month"
+              subtitle="All time"
             />
             
             <MetricCard
-              title="Active Customers"
-              value={activeCustomers}
+              title="Total Customers"
+              value={totalCustomers}
               format="number"
               icon={Users}
               color="blue"
-              trend={customerGrowth}
-              trendDirection={customerGrowth >= 0 ? 'up' : 'down'}
-              subtitle={`${totalCustomers} total`}
+              subtitle="Active customers"
             />
             
             <MetricCard
-              title="Average Fill Rate"
+              title="Fill Rate"
               value={fillRate}
               format="percentage"
               icon={TrendingUp}
               color="purple"
-              subtitle="Last 30 days"
+              subtitle="Booking success rate"
             />
             
             <MetricCard
-              title="Today's Bookings"
-              value={todayBookings.length}
+              title="Total Classes"
+              value={totalClasses}
               format="number"
               icon={Calendar}
               color="orange"
-              subtitle="Scheduled today"
+              subtitle="Classes created"
             />
           </>
         )}
@@ -197,12 +195,13 @@ export default function MerchantOverview() {
               <div className="text-center py-8 text-gray-500">
                 <Calendar className="h-12 w-12 mx-auto mb-3 text-gray-300" />
                 <p>No classes scheduled for today</p>
+                <p className="text-sm text-gray-400 mt-1">You haven't created any classes yet</p>
                 <Button 
                   variant="link" 
                   className="text-[#1E90FF]"
                   onClick={() => updateSection('classes')}
                 >
-                  Create a class
+                  Create your first class
                 </Button>
               </div>
             ) : (
@@ -307,8 +306,8 @@ export default function MerchantOverview() {
             </div>
             
             <div className="flex items-center justify-between">
-              <span className="text-sm text-gray-600">Active Instructors</span>
-              <span className="font-semibold">{activeInstructors}/{totalInstructors}</span>
+              <span className="text-sm text-gray-600">Total Instructors</span>
+              <span className="font-semibold">{totalInstructors}</span>
             </div>
           </CardContent>
         </Card>
@@ -320,41 +319,21 @@ export default function MerchantOverview() {
             <Zap className="h-5 w-5 text-orange-500" />
           </CardHeader>
           <CardContent>
-            {xPassData?.enabled ? (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Monthly Bookings</span>
-                  <span className="font-semibold">{xPassData.monthlyBookings || 0}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Revenue Share</span>
-                  <span className="font-semibold text-green-600">
-                    ${xPassData.monthlyRevenue || 0}
-                  </span>
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="w-full"
-                  onClick={() => updateSection('xpass')}
-                >
-                  Manage X Pass
-                </Button>
+            <div className="text-center py-4">
+              <div className="text-gray-500 mb-3">
+                X Pass not configured yet
               </div>
-            ) : (
-              <div className="text-center py-4">
-                <div className="text-gray-500 mb-3">
-                  X Pass not enabled
-                </div>
-                <Button 
-                  size="sm" 
-                  className="bg-orange-500 hover:bg-orange-600"
-                  onClick={() => updateSection('xpass')}
-                >
-                  Enable X Pass
-                </Button>
-              </div>
-            )}
+              <p className="text-sm text-gray-400 mb-3">
+                Enable X Pass to increase your studio's visibility
+              </p>
+              <Button 
+                size="sm" 
+                className="bg-orange-500 hover:bg-orange-600"
+                onClick={() => updateSection('xpass')}
+              >
+                Set up X Pass
+              </Button>
+            </div>
           </CardContent>
         </Card>
 
@@ -364,38 +343,31 @@ export default function MerchantOverview() {
             <CardTitle className="text-lg font-semibold">Recent Activity</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {/* Mock recent activities */}
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
-                </div>
-                <div className="flex-1">
-                  <div className="text-sm font-medium">New booking</div>
-                  <div className="text-xs text-gray-500">Yoga class - 2 min ago</div>
-                </div>
+            {bookings && bookings.length > 0 ? (
+              <div className="space-y-3">
+                {bookings.slice(0, 3).map((booking, index) => (
+                  <div key={index} className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-sm font-medium">
+                        {booking.status === 'confirmed' ? 'Booking confirmed' : 'New booking'}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {booking.className || 'Class'} - {format(new Date(booking.createdAt), 'MMM dd, h:mm a')}
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-              
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                  <Users className="h-4 w-4 text-blue-600" />
-                </div>
-                <div className="flex-1">
-                  <div className="text-sm font-medium">Instructor joined</div>
-                  <div className="text-xs text-gray-500">Sarah M. - 1 hour ago</div>
-                </div>
+            ) : (
+              <div className="text-center py-4 text-gray-500">
+                <Activity className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                <p className="text-sm">No recent activity</p>
+                <p className="text-xs text-gray-400">Bookings will appear here</p>
               </div>
-              
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-                  <AlertCircle className="h-4 w-4 text-orange-600" />
-                </div>
-                <div className="flex-1">
-                  <div className="text-sm font-medium">Class cancelled</div>
-                  <div className="text-xs text-gray-500">HIIT class - 3 hours ago</div>
-                </div>
-              </div>
-            </div>
+            )}
           </CardContent>
         </Card>
       </div>

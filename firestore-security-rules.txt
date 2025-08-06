@@ -1,0 +1,86 @@
+// Firestore Security Rules for Thryve Fitness Platform
+// Copy and paste these rules into Firebase Console > Firestore > Rules
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if user owns the document
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    // Helper function to check if user is the creator of a document
+    function isCreator() {
+      return request.auth.uid == resource.data.createdBy;
+    }
+
+    // Users collection - users can read/write their own data
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId);
+    }
+    
+    // Studios collection - anyone can read, only creator can write
+    match /studios/{studioId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isCreator();
+    }
+    
+    // Classes collection - anyone can read, studio owner or instructor can write
+    match /classes/{classId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && (
+        request.auth.uid == resource.data.instructorId ||
+        request.auth.uid == get(/databases/$(database)/documents/studios/$(resource.data.studioId)).data.createdBy
+      );
+    }
+    
+    // Bookings collection - users can only access their own bookings
+    match /bookings/{bookingId} {
+      allow read, write: if isAuthenticated() && (
+        request.auth.uid == resource.data.userId ||
+        request.auth.uid == resource.data.instructorId ||
+        request.auth.uid == get(/databases/$(database)/documents/studios/$(resource.data.studioId)).data.createdBy
+      );
+      allow create: if isAuthenticated();
+    }
+    
+    // Instructors collection - instructors can only access their own profile
+    match /instructors/{instructorId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(instructorId);
+    }
+    
+    // Customers collection - customers can only access their own profile
+    match /customers/{customerId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(customerId);
+    }
+    
+    // Reviews collection - users can read all, write their own
+    match /reviews/{reviewId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated() && request.auth.uid == resource.data.customerId;
+    }
+    
+    // Favorites collection - users can only access their own favorites
+    match /favorites/{favoriteId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == resource.data.userId;
+      allow create: if isAuthenticated();
+    }
+  }
+}
+
+// Instructions:
+// 1. Go to Firebase Console > Firestore Database > Rules
+// 2. Replace the existing rules with the content above
+// 3. Click "Publish" to deploy the rules
+// 4. Test the rules using the Rules Playground in the Firebase Console

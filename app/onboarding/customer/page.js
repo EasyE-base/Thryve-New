@@ -159,23 +159,62 @@ export default function CustomerOnboarding() {
 
     setLoading(true)
     try {
-      const allData = {
-        profile: profileData,
-        goals: goalsData,
-        health: healthData,
-        setup: setupData
+      // Import Firebase functions dynamically
+      const { doc, setDoc } = await import('firebase/firestore')
+      const { db } = await import('@/lib/firebase')
+
+      if (!user) {
+        throw new Error('User not authenticated')
       }
 
-      const response = await fetch('/api/onboarding/customer', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(allData)
+      // Combine all form data
+      const completeFormData = {
+        // User profile data
+        ...profileData,
+        // Customer-specific data
+        fitnessGoals: goalsData.fitnessGoals,
+        experienceLevel: goalsData.experienceLevel,
+        preferredActivities: goalsData.preferredActivities,
+        workoutFrequency: goalsData.workoutFrequency[0],
+        budgetRange: goalsData.budgetRange[0],
+        medicalConditions: healthData.medicalConditions,
+        fitnessRestrictions: healthData.fitnessRestrictions,
+        preferredTimes: healthData.preferredTimes,
+        preferredLocations: healthData.preferredLocations,
+        emergencyContact: setupData.emergencyContact,
+        paymentMethod: setupData.paymentMethod,
+        notifications: setupData.notifications,
+        // System fields
+        role: 'customer',
+        profileComplete: true,
+        onboardingCompletedAt: new Date(),
+        email: user.email,
+        createdAt: new Date()
+      }
+
+      // Save to users collection
+      await setDoc(doc(db, 'users', user.uid), completeFormData, { merge: true })
+
+      // Create customer-specific profile
+      await setDoc(doc(db, 'customers', user.uid), {
+        name: `${profileData.firstName} ${profileData.lastName}`,
+        goals: goalsData.fitnessGoals,
+        preferences: goalsData.preferredActivities,
+        experienceLevel: goalsData.experienceLevel,
+        workoutFrequency: goalsData.workoutFrequency[0],
+        budgetRange: goalsData.budgetRange[0],
+        preferredTimes: healthData.preferredTimes,
+        preferredLocations: healthData.preferredLocations,
+        createdBy: user.uid,
+        createdAt: new Date()
       })
 
-      if (response.ok) {
-        await completeOnboarding()
-        await markOnboardingComplete()
-        router.push('/dashboard/customer')
+      toast.success('Profile completed successfully!')
+      
+      // Use the OnboardingProvider's completeOnboarding function
+      const result = await completeOnboarding(completeFormData)
+      if (result.success) {
+        // The OnboardingProvider will handle the redirect to dashboard
       } else {
         throw new Error('Failed to complete onboarding')
       }
