@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import OnboardingSteps from '@/components/onboarding/OnboardingSteps'
 import { User, Award, Calendar, CheckCircle, Settings } from 'lucide-react'
 import { toast } from 'sonner'
+import { doc, setDoc } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
 
 export default function InstructorOnboarding() {
   const { user, role, loading: authLoading, completeOnboarding: markOnboardingComplete } = useAuth()
@@ -148,7 +150,7 @@ export default function InstructorOnboarding() {
   }, [currentStep])
 
   const handleComplete = async () => {
-    if (!canAdvanceStep || loading) return
+    if (!canAdvanceStep || loading || !user) return
 
     setLoading(true)
     try {
@@ -160,19 +162,49 @@ export default function InstructorOnboarding() {
         setup: setupData
       }
 
-      const response = await fetch('/api/onboarding/instructor', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(allData)
+      // Save to users collection
+      await setDoc(doc(db, 'users', user.uid), {
+        ...user,
+        role: 'instructor',
+        profileComplete: true,
+        instructorData: allData,
+        updatedAt: new Date()
+      }, { merge: true })
+
+      // Save to instructors collection
+      await setDoc(doc(db, 'instructors', user.uid), {
+        userId: user.uid,
+        email: user.email,
+        displayName: `${profileData.firstName} ${profileData.lastName}`,
+        firstName: profileData.firstName,
+        lastName: profileData.lastName,
+        phone: profileData.phone,
+        profilePhoto: profileData.profilePhoto,
+        bio: profileData.bio,
+        certifications: credentialsData.certifications,
+        specialties: credentialsData.specialties,
+        experience: credentialsData.experience,
+        education: credentialsData.education,
+        languages: credentialsData.languages,
+        availability: teachingData.availability,
+        teachingStyle: teachingData.teachingStyle,
+        maxClassSize: teachingData.maxClassSize[0],
+        ratePerHour: teachingData.ratePerHour[0],
+        insurance: verificationData.insurance,
+        backgroundCheck: verificationData.backgroundCheck,
+        socialMedia: verificationData.socialMedia,
+        taxId: setupData.taxId,
+        paymentDetails: setupData.paymentDetails,
+        termsAccepted: setupData.termsAccepted,
+        liabilityWaiver: setupData.liabilityWaiver,
+        createdAt: new Date(),
+        updatedAt: new Date()
       })
 
-      if (response.ok) {
-        await completeOnboarding()
-        await markOnboardingComplete()
-        router.push('/dashboard/instructor')
-      } else {
-        throw new Error('Failed to complete onboarding')
-      }
+      await completeOnboarding()
+      await markOnboardingComplete()
+      toast.success('Instructor profile completed successfully!')
+      router.push('/dashboard/instructor')
     } catch (error) {
       console.error('Onboarding error:', error)
       toast.error('Error completing onboarding. Please try again.')
