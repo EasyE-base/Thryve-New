@@ -9,6 +9,7 @@ import MerchantClasses from '@/components/dashboard/merchant/MerchantClasses'
 import MerchantInstructors from '@/components/dashboard/merchant/MerchantInstructors'
 import MerchantCustomers from '@/components/dashboard/merchant/MerchantCustomers'
 import MerchantAnalytics from '@/components/dashboard/merchant/MerchantAnalytics'
+import InvitationAnalytics from '@/components/dashboard/merchant/InvitationAnalytics'
 import MerchantXPass from '@/components/dashboard/merchant/MerchantXPass'
 import MerchantCalendar from '@/components/dashboard/merchant/MerchantCalendar'
 import MerchantMessages from '@/components/dashboard/merchant/MerchantMessages'
@@ -34,6 +35,8 @@ function MerchantDashboardContent() {
         return <MerchantCustomers />
       case 'analytics':
         return <MerchantAnalytics />
+      case 'invitation-analytics':
+        return <InvitationAnalytics />
       case 'xpass':
         return <MerchantXPass />
       case 'calendar':

@@ -38,6 +38,7 @@ export default function DashboardLayout({ children, role }) {
           { id: 'instructors', label: 'Instructors', icon: Users },
           { id: 'customers', label: 'Customers', icon: Users },
           { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+          { id: 'invitation-analytics', label: 'Invitation Analytics', icon: BarChart3 },
           { id: 'xpass', label: 'X Pass', icon: Zap },
           { id: 'settings', label: 'Settings', icon: Settings },
         ]

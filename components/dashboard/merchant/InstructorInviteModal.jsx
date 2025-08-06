@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/auth-provider'
 import { collection, query, where, getDocs, addDoc, serverTimestamp, limit, startAfter, orderBy } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
@@ -14,10 +14,13 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
+import { Slider } from '@/components/ui/slider'
+import { Checkbox } from '@/components/ui/checkbox'
 import { 
   Search, Users, MapPin, Star, Clock, DollarSign, 
   Calendar, Award, Mail, MessageSquare, Send, X,
-  ChevronLeft, ChevronRight, Loader2
+  ChevronLeft, ChevronRight, Loader2, Filter, 
+  MapPin as LocationIcon, Zap, TrendingUp
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -36,6 +39,25 @@ export default function InstructorInviteModal({ open, onOpenChange }) {
   const [hasMore, setHasMore] = useState(true)
   const [lastDoc, setLastDoc] = useState(null)
   
+  // Phase 2: Advanced filters
+  const [showFilters, setShowFilters] = useState(false)
+  const [filters, setFilters] = useState({
+    locationRadius: 50, // miles
+    minRating: 0,
+    maxRate: 200,
+    specialties: [],
+    certifications: [],
+    availability: []
+  })
+  
+  // Phase 2: Counter-offer state
+  const [showCounterOffer, setShowCounterOffer] = useState(false)
+  const [counterOffer, setCounterOffer] = useState({
+    proposedRate: '',
+    proposedSchedule: '',
+    message: ''
+  })
+  
   // Invitation form state
   const [inviteForm, setInviteForm] = useState({
     type: 'contract',
@@ -45,9 +67,30 @@ export default function InstructorInviteModal({ open, onOpenChange }) {
     templateId: null
   })
 
-  // Search instructors with pagination
-  const searchInstructors = async (reset = false) => {
-    if (!searchQuery.trim()) return
+  // Phase 2: Debounced search
+  const debouncedSearch = useCallback(
+    debounce((query, filters) => {
+      searchInstructors(true, query, filters)
+    }, 500),
+    []
+  )
+
+  // Debounce helper function
+  function debounce(func, wait) {
+    let timeout
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout)
+        func(...args)
+      }
+      clearTimeout(timeout)
+      timeout = setTimeout(later, wait)
+    }
+  }
+
+  // Phase 2: Enhanced search with filters
+  const searchInstructors = async (reset = false, query = searchQuery, appliedFilters = filters) => {
+    if (!query.trim() && !appliedFilters.specialties.length && !appliedFilters.certifications.length) return
     
     setSearching(true)
     try {
@@ -60,13 +103,12 @@ export default function InstructorInviteModal({ open, onOpenChange }) {
       )
 
       // Add search filter if query exists
-      if (searchQuery.trim()) {
-        // For now, we'll search by name - in Phase 2 we'll add full-text search
+      if (query.trim()) {
         q = query(
           instructorsRef,
           where('verified', '==', true),
-          where('name', '>=', searchQuery),
-          where('name', '<=', searchQuery + '\uf8ff'),
+          where('name', '>=', query),
+          where('name', '<=', query + '\uf8ff'),
           orderBy('name'),
           limit(ITEMS_PER_PAGE)
         )
@@ -78,10 +120,41 @@ export default function InstructorInviteModal({ open, onOpenChange }) {
       }
 
       const snapshot = await getDocs(q)
-      const newInstructors = snapshot.docs.map(doc => ({
+      let newInstructors = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }))
+
+      // Phase 2: Apply client-side filters
+      newInstructors = newInstructors.filter(instructor => {
+        // Rating filter
+        if (appliedFilters.minRating > 0 && instructor.rating < appliedFilters.minRating) {
+          return false
+        }
+        
+        // Rate filter
+        if (appliedFilters.maxRate < 200 && instructor.hourlyRate > appliedFilters.maxRate) {
+          return false
+        }
+        
+        // Specialties filter
+        if (appliedFilters.specialties.length > 0) {
+          const hasSpecialty = appliedFilters.specialties.some(specialty => 
+            instructor.specialties?.includes(specialty)
+          )
+          if (!hasSpecialty) return false
+        }
+        
+        // Certifications filter
+        if (appliedFilters.certifications.length > 0) {
+          const hasCertification = appliedFilters.certifications.some(cert => 
+            instructor.certifications?.includes(cert)
+          )
+          if (!hasCertification) return false
+        }
+        
+        return true
+      })
 
       if (reset) {
         setInstructors(newInstructors)
@@ -103,6 +176,15 @@ export default function InstructorInviteModal({ open, onOpenChange }) {
     }
   }
 
+  // Phase 2: Handle real-time search
+  useEffect(() => {
+    if (searchQuery.trim() || filters.specialties.length > 0 || filters.certifications.length > 0) {
+      debouncedSearch(searchQuery, filters)
+    } else {
+      setInstructors([])
+    }
+  }, [searchQuery, filters, debouncedSearch])
+
   // Load more results
   const loadMore = () => {
     if (!searching && hasMore) {
@@ -110,13 +192,29 @@ export default function InstructorInviteModal({ open, onOpenChange }) {
     }
   }
 
-  // Handle search
-  const handleSearch = () => {
-    setInstructors([])
-    setPage(1)
-    setLastDoc(null)
-    setHasMore(true)
-    searchInstructors(true)
+  // Phase 2: Handle filter changes
+  const handleFilterChange = (key, value) => {
+    setFilters(prev => ({ ...prev, [key]: value }))
+  }
+
+  // Phase 2: Toggle specialty filter
+  const toggleSpecialty = (specialty) => {
+    setFilters(prev => ({
+      ...prev,
+      specialties: prev.specialties.includes(specialty)
+        ? prev.specialties.filter(s => s !== specialty)
+        : [...prev.specialties, specialty]
+    }))
+  }
+
+  // Phase 2: Toggle certification filter
+  const toggleCertification = (certification) => {
+    setFilters(prev => ({
+      ...prev,
+      certifications: prev.certifications.includes(certification)
+        ? prev.certifications.filter(c => c !== certification)
+        : [...prev.certifications, certification]
+    }))
   }
 
   // Send invitation
@@ -152,6 +250,36 @@ export default function InstructorInviteModal({ open, onOpenChange }) {
     }
   }
 
+  // Phase 2: Send counter-offer
+  const sendCounterOffer = async () => {
+    if (!selectedInstructor || !user) return
+
+    setLoading(true)
+    try {
+      const counterOfferData = {
+        proposedRate: parseFloat(counterOffer.proposedRate),
+        proposedSchedule: counterOffer.proposedSchedule,
+        message: counterOffer.message,
+        createdAt: serverTimestamp()
+      }
+
+      // Add counter-offer to invitation
+      await addDoc(
+        collection(db, `studioInvites/${user.uid}/invites/${selectedInstructor.id}/counterOffer`), 
+        counterOfferData
+      )
+
+      toast.success('Counter-offer sent successfully!')
+      setShowCounterOffer(false)
+      setCounterOffer({ proposedRate: '', proposedSchedule: '', message: '' })
+    } catch (error) {
+      console.error('Send counter-offer error:', error)
+      toast.error('Failed to send counter-offer')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   // Reset form
   const resetForm = () => {
     setSelectedInstructor(null)
@@ -168,12 +296,141 @@ export default function InstructorInviteModal({ open, onOpenChange }) {
     setPage(1)
     setHasMore(true)
     setLastDoc(null)
+    setFilters({
+      locationRadius: 50,
+      minRating: 0,
+      maxRate: 200,
+      specialties: [],
+      certifications: [],
+      availability: []
+    })
+    setShowFilters(false)
   }
 
   // Handle modal close
   const handleClose = () => {
     resetForm()
     onOpenChange(false)
+  }
+
+  // Phase 2: Available specialties and certifications
+  const availableSpecialties = [
+    'Yoga', 'Pilates', 'CrossFit', 'Strength Training', 'HIIT', 'Cardio',
+    'Dance', 'Martial Arts', 'Senior Fitness', 'Rehabilitation', 'Nutrition',
+    'Meditation', 'Flexibility', 'Sports Performance', 'Functional Fitness'
+  ]
+
+  const availableCertifications = [
+    'Yoga Alliance RYT-200', 'Yoga Alliance RYT-500', 'NASM Certified Personal Trainer',
+    'ACE Certified Personal Trainer', 'CrossFit Level 1', 'CrossFit Level 2',
+    'Pilates Instructor Certification', 'Dance Teacher Certification',
+    'Senior Fitness Specialist', 'Nutrition Coach', 'Rehabilitation Specialist'
+  ]
+
+  // Render advanced filters
+  const renderAdvancedFilters = () => {
+    return (
+      <Card className="mb-4">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center">
+              <Filter className="h-4 w-4 mr-2" />
+              Advanced Filters
+            </CardTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              {showFilters ? 'Hide' : 'Show'} Filters
+            </Button>
+          </div>
+        </CardHeader>
+        
+        {showFilters && (
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label>Minimum Rating</Label>
+                <div className="flex items-center space-x-2">
+                  <Slider
+                    value={[filters.minRating]}
+                    onValueChange={([value]) => handleFilterChange('minRating', value)}
+                    max={5}
+                    min={0}
+                    step={0.1}
+                    className="flex-1"
+                  />
+                  <span className="text-sm w-12">{filters.minRating}</span>
+                </div>
+              </div>
+              
+              <div>
+                <Label>Max Hourly Rate</Label>
+                <div className="flex items-center space-x-2">
+                  <Slider
+                    value={[filters.maxRate]}
+                    onValueChange={([value]) => handleFilterChange('maxRate', value)}
+                    max={200}
+                    min={20}
+                    step={5}
+                    className="flex-1"
+                  />
+                  <span className="text-sm w-12">${filters.maxRate}</span>
+                </div>
+              </div>
+              
+              <div>
+                <Label>Location Radius (miles)</Label>
+                <div className="flex items-center space-x-2">
+                  <Slider
+                    value={[filters.locationRadius]}
+                    onValueChange={([value]) => handleFilterChange('locationRadius', value)}
+                    max={100}
+                    min={5}
+                    step={5}
+                    className="flex-1"
+                  />
+                  <span className="text-sm w-12">{filters.locationRadius}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="space-y-3">
+              <Label>Specialties</Label>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                {availableSpecialties.map((specialty) => (
+                  <div key={specialty} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={specialty}
+                      checked={filters.specialties.includes(specialty)}
+                      onCheckedChange={() => toggleSpecialty(specialty)}
+                    />
+                    <Label htmlFor={specialty} className="text-sm">{specialty}</Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="space-y-3">
+              <Label>Certifications</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {availableCertifications.map((certification) => (
+                  <div key={certification} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={certification}
+                      checked={filters.certifications.includes(certification)}
+                      onCheckedChange={() => toggleCertification(certification)}
+                    />
+                    <Label htmlFor={certification} className="text-sm">{certification}</Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        )}
+      </Card>
+    )
   }
 
   // Render search results
@@ -193,7 +450,7 @@ export default function InstructorInviteModal({ open, onOpenChange }) {
           <Users className="h-12 w-12 mx-auto mb-3 text-gray-300" />
           <p>No instructors found</p>
           <p className="text-sm text-gray-400 mt-1">
-            {searchQuery ? 'Try adjusting your search terms' : 'Start searching to find instructors'}
+            {searchQuery ? 'Try adjusting your search terms or filters' : 'Start searching to find instructors'}
           </p>
         </div>
       )
@@ -232,7 +489,7 @@ export default function InstructorInviteModal({ open, onOpenChange }) {
                   
                   <div className="flex items-center space-x-4 text-sm text-gray-600 mt-1">
                     <div className="flex items-center">
-                      <MapPin className="h-3 w-3 mr-1" />
+                      <LocationIcon className="h-3 w-3 mr-1" />
                       {instructor.location?.city}, {instructor.location?.state}
                     </div>
                     <div className="flex items-center">
@@ -380,7 +637,7 @@ export default function InstructorInviteModal({ open, onOpenChange }) {
                   <div>
                     <h4 className="font-semibold mb-2">Location</h4>
                     <div className="flex items-center text-gray-600">
-                      <MapPin className="h-4 w-4 mr-2" />
+                      <LocationIcon className="h-4 w-4 mr-2" />
                       {selectedInstructor.location?.city}, {selectedInstructor.location?.state}
                     </div>
                   </div>
@@ -491,68 +748,144 @@ export default function InstructorInviteModal({ open, onOpenChange }) {
     )
   }
 
-  return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center space-x-2">
-            <Users className="h-5 w-5" />
-            <span>Invite Instructor</span>
-          </DialogTitle>
-        </DialogHeader>
+  // Phase 2: Render counter-offer modal
+  const renderCounterOfferModal = () => {
+    if (!showCounterOffer) return null
 
-        {inviteStep === 1 && (
-          <div className="space-y-6">
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="employees">Search Employees</TabsTrigger>
-                <TabsTrigger value="marketplace">Browse Marketplace</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="employees" className="space-y-4">
-                <div className="flex space-x-2">
-                  <div className="flex-1">
-                    <Input
-                      placeholder="Search by name, specialty, or location..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                    />
-                  </div>
-                  <Button onClick={handleSearch} disabled={!searchQuery.trim()}>
-                    <Search className="h-4 w-4 mr-2" />
-                    Search
-                  </Button>
-                </div>
-                
-                {renderSearchResults()}
-              </TabsContent>
-              
-              <TabsContent value="marketplace" className="space-y-4">
-                <div className="flex space-x-2">
-                  <div className="flex-1">
-                    <Input
-                      placeholder="Search marketplace instructors..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                    />
-                  </div>
-                  <Button onClick={handleSearch} disabled={!searchQuery.trim()}>
-                    <Search className="h-4 w-4 mr-2" />
-                    Search
-                  </Button>
-                </div>
-                
-                {renderSearchResults()}
-              </TabsContent>
-            </Tabs>
+    return (
+      <Dialog open={showCounterOffer} onOpenChange={setShowCounterOffer}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Send Counter-Offer</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="counterRate">Your Proposed Rate</Label>
+              <div className="relative">
+                <DollarSign className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  id="counterRate"
+                  type="number"
+                  placeholder="0.00"
+                  value={counterOffer.proposedRate}
+                  onChange={(e) => setCounterOffer(prev => ({ ...prev, proposedRate: e.target.value }))}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="counterSchedule">Proposed Schedule</Label>
+              <Textarea
+                id="counterSchedule"
+                placeholder="Describe your proposed schedule..."
+                value={counterOffer.proposedSchedule}
+                onChange={(e) => setCounterOffer(prev => ({ ...prev, proposedSchedule: e.target.value }))}
+                rows={3}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="counterMessage">Message</Label>
+              <Textarea
+                id="counterMessage"
+                placeholder="Explain your counter-offer..."
+                value={counterOffer.message}
+                onChange={(e) => setCounterOffer(prev => ({ ...prev, message: e.target.value }))}
+                rows={4}
+              />
+            </div>
+            
+            <div className="flex justify-end space-x-3">
+              <Button variant="outline" onClick={() => setShowCounterOffer(false)}>
+                Cancel
+              </Button>
+              <Button onClick={sendCounterOffer} disabled={loading}>
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <TrendingUp className="h-4 w-4 mr-2" />
+                    Send Counter-Offer
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
-        )}
+        </DialogContent>
+      </Dialog>
+    )
+  }
 
-        {inviteStep === 2 && renderProfilePreview()}
-        {inviteStep === 3 && renderInvitationForm()}
-      </DialogContent>
-    </Dialog>
+  return (
+    <>
+      <Dialog open={open} onOpenChange={handleClose}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Users className="h-5 w-5" />
+              <span>Invite Instructor</span>
+            </DialogTitle>
+          </DialogHeader>
+
+          {inviteStep === 1 && (
+            <div className="space-y-6">
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="employees">Search Employees</TabsTrigger>
+                  <TabsTrigger value="marketplace">Browse Marketplace</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="employees" className="space-y-4">
+                  <div className="flex space-x-2">
+                    <div className="flex-1">
+                      <Input
+                        placeholder="Search by name, specialty, or location..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                      />
+                    </div>
+                    <Button onClick={() => searchInstructors(true)} disabled={!searchQuery.trim()}>
+                      <Search className="h-4 w-4 mr-2" />
+                      Search
+                    </Button>
+                  </div>
+                  
+                  {renderSearchResults()}
+                </TabsContent>
+                
+                <TabsContent value="marketplace" className="space-y-4">
+                  <div className="flex space-x-2">
+                    <div className="flex-1">
+                      <Input
+                        placeholder="Search marketplace instructors..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                      />
+                    </div>
+                    <Button onClick={() => searchInstructors(true)} disabled={!searchQuery.trim()}>
+                      <Search className="h-4 w-4 mr-2" />
+                      Search
+                    </Button>
+                  </div>
+                  
+                  {renderAdvancedFilters()}
+                  {renderSearchResults()}
+                </TabsContent>
+              </Tabs>
+            </div>
+          )}
+
+          {inviteStep === 2 && renderProfilePreview()}
+          {inviteStep === 3 && renderInvitationForm()}
+        </DialogContent>
+      </Dialog>
+      
+      {renderCounterOfferModal()}
+    </>
   )
 } 
