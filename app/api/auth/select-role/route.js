@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server'
-import { auth } from 'firebase-admin'
-import { getFirestore, doc, updateDoc, serverTimestamp } from 'firebase/firestore'
-import { initAdmin } from '@/lib/firebase-admin'
+import { auth, db } from '@/lib/firebase-admin'
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore'
 
 export async function POST(request) {
-  await initAdmin()
   const { role } = await request.json()
   const idToken = request.headers.get('authorization')?.split('Bearer ')[1]
 
@@ -13,12 +11,11 @@ export async function POST(request) {
   }
 
   try {
-    const decodedToken = await auth().verifyIdToken(idToken)
+    const decodedToken = await auth.verifyIdToken(idToken)
     const userId = decodedToken.uid
 
     console.log(`[API/select-role] Received request for user: ${userId} with role: ${role}`)
 
-    const db = getFirestore()
     const userRef = doc(db, 'users', userId)
 
     await updateDoc(userRef, {
@@ -28,7 +25,7 @@ export async function POST(request) {
     })
 
     // Set a custom claim. This is the key to making middleware aware instantly.
-    await auth().setCustomUserClaims(userId, { role: role })
+    await auth.setCustomUserClaims(userId, { role: role })
 
     console.log(`[API/select-role] Successfully updated role and set custom claim for user: ${userId}`)
 
