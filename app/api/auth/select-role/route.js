@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { auth, db } from '@/lib/firebase-admin'
+import { initAdmin } from '@/lib/firebase-admin'
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore'
 
 export async function POST(request) {
@@ -11,6 +11,7 @@ export async function POST(request) {
   }
 
   try {
+    const { auth, db } = initAdmin()
     const decodedToken = await auth.verifyIdToken(idToken)
     const userId = decodedToken.uid
 
