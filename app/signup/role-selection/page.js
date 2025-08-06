@@ -15,10 +15,8 @@ export default function RoleSelectionPage() {
 
   useEffect(() => {
     console.log('🎉 Enhanced Role Selection Page Loaded!');
-    // Redirect to login if not authenticated
-    if (!user) {
-      router.push('/login');
-    }
+    // Don't redirect immediately - let the auth state settle
+    // The user might be in the process of being authenticated after signup
   }, [user, router]);
 
   const handleRoleSelection = async () => {

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 const publicPaths = ['/login', '/signup', '/forgot-password'];
-const onboardingPaths = ['/select-role', '/onboarding/customer', '/onboarding/business'];
+const onboardingPaths = ['/select-role', '/signup/role-selection', '/onboarding/customer', '/onboarding/business'];
 
 export async function middleware(request) {
   const { pathname, origin } = request.nextUrl;
