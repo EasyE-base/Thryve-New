@@ -24,11 +24,22 @@ export function AuthProvider({ children }) {
           const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
           const userData = userDoc.exists() ? userDoc.data() : null;
           
+          // Map role from Firestore to expected dashboard role
+          const mapRole = (firestoreRole) => {
+            const roleMap = {
+              'studio': 'merchant',
+              'merchant': 'merchant',
+              'instructor': 'instructor',
+              'customer': 'customer'
+            };
+            return roleMap[firestoreRole] || firestoreRole;
+          };
+
           const fullUser = {
             uid: firebaseUser.uid,
             email: firebaseUser.email,
             displayName: firebaseUser.displayName || userData?.displayName,
-            role: userData?.role || null,
+            role: mapRole(userData?.role) || null,
             profileComplete: userData?.profileComplete || false,
             // Include Firebase user methods
             getIdToken: firebaseUser.getIdToken.bind(firebaseUser)
@@ -44,20 +55,22 @@ export function AuthProvider({ children }) {
               router.push('/signup/role-selection');
             } else if (!userData?.profileComplete) {
               console.log('🔥 AuthProvider: Role selected but profile incomplete, redirecting to profile builder');
+              const mappedRole = mapRole(userData.role);
               const onboardingPaths = {
                 customer: '/onboarding/customer',
                 instructor: '/onboarding/instructor',
                 merchant: '/onboarding/merchant'
               };
-              router.push(onboardingPaths[userData.role]);
+              router.push(onboardingPaths[mappedRole]);
             } else {
               console.log('🔥 AuthProvider: Profile complete, redirecting to dashboard');
+              const mappedRole = mapRole(userData.role);
               const dashboardPaths = {
                 customer: '/dashboard/customer',
                 instructor: '/dashboard/instructor',
                 merchant: '/dashboard/merchant'
               };
-              router.push(dashboardPaths[userData.role]);
+              router.push(dashboardPaths[mappedRole]);
             }
           } else if (pathname === '/signup/role-selection' && !userData?.role) {
             // User is on role selection page and has no role - this is correct, don't redirect
