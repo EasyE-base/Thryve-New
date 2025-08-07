@@ -183,6 +183,12 @@ export const DashboardProvider = ({ children, role }) => {
 
     const connectWebSocket = async () => {
       try {
+        // Only connect if user and user.uid are available
+        if (!user || !user.uid) {
+          console.log('⚠️ WebSocket: User not ready, skipping connection')
+          return
+        }
+        
         const token = await user.getIdToken()
         ws = new WebSocket(`${process.env.NEXT_PUBLIC_WS_URL}/dashboard/${user.uid}?token=${token}`)
         
