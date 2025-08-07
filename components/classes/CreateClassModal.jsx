@@ -87,7 +87,7 @@ export default function CreateClassModal({ isOpen, onClose, classData, onSuccess
           startTime: classData.startTime || '09:00',
           scheduleDays: classData.scheduleDays || [],
           recurrencePattern: classData.recurrencePattern || 'weekly',
-          defaultInstructorId: classData.defaultInstructorId || '',
+          defaultInstructorId: classData.defaultInstructorId || 'none',
           tags: classData.tags || [],
           memberPlusOnly: classData.memberPlusOnly || false,
           xPassEligible: classData.xPassEligible !== false
@@ -106,7 +106,7 @@ export default function CreateClassModal({ isOpen, onClose, classData, onSuccess
           startTime: '09:00',
           scheduleDays: [],
           recurrencePattern: 'weekly',
-          defaultInstructorId: '',
+          defaultInstructorId: 'none',
           tags: [],
           memberPlusOnly: false,
           xPassEligible: true
@@ -240,7 +240,7 @@ export default function CreateClassModal({ isOpen, onClose, classData, onSuccess
           maxStudents: formData.capacity,
           price: formData.price,
           skillLevel: formData.level,
-          instructorId: formData.defaultInstructorId,
+          instructorId: formData.defaultInstructorId === 'none' ? null : formData.defaultInstructorId,
           recurring: formData.recurrencePattern !== 'none',
           endDate: formData.endDate,
           recurrencePattern: {
@@ -444,7 +444,7 @@ export default function CreateClassModal({ isOpen, onClose, classData, onSuccess
                       <SelectValue placeholder="Select instructor (optional)" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No default instructor</SelectItem>
+                      <SelectItem value="none">No default instructor</SelectItem>
                       {instructors.map(instructor => (
                         <SelectItem key={instructor.userId} value={instructor.userId}>
                           {instructor.firstName} {instructor.lastName}
