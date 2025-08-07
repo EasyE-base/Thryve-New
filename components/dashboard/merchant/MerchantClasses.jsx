@@ -8,10 +8,12 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Plus, Search, Filter, Edit, Trash2, Users, Clock, Calendar } from 'lucide-react'
 import { TableLoading } from '@/components/dashboard/LoadingStates'
+import CreateClassModal from '@/components/classes/CreateClassModal'
 
 export default function MerchantClasses() {
-  const { classes, loading, createClass } = useDashboard()
+  const { classes, loading } = useDashboard()
   const [searchTerm, setSearchTerm] = useState('')
+  const [showCreateModal, setShowCreateModal] = useState(false)
 
   if (loading) return <TableLoading title="Loading classes..." />
 
@@ -22,7 +24,7 @@ export default function MerchantClasses() {
           <h1 className="text-2xl font-bold">Class Management</h1>
           <p className="text-gray-600">Manage your studio's class schedule</p>
         </div>
-        <Button onClick={() => createClass({})}>
+        <Button onClick={() => setShowCreateModal(true)}>
           <Plus className="h-4 w-4 mr-2" />
           Create Class
         </Button>
@@ -79,6 +81,17 @@ export default function MerchantClasses() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Create Class Modal */}
+      <CreateClassModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={() => {
+          setShowCreateModal(false)
+          // Refresh the classes list
+          window.location.reload()
+        }}
+      />
     </div>
   )
 }
