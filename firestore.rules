@@ -1,48 +1,170 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow users to read/write their own user document
+    
+    // Users can read and write their own profile
     match /users/{userId} {
-      allow read: if request.auth != null && request.auth.uid == userId;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // Allow reading basic profile info for other users (for instructor/studio discovery)
+      allow read: if request.auth != null && 
+        resource.data.keys().hasOnly(['name', 'role', 'profileCompleted']);
     }
     
-    // Allow authenticated users to read all users (for discovery)
-    match /users/{userId} {
-      allow read: if request.auth != null;
+    // Studios collection - studio owners can manage their own studio
+    match /studios/{studioId} {
+      allow read: if request.auth != null && resource.data.isActive == true;
+      allow write: if request.auth != null && 
+        (resource.data.ownerId == request.auth.uid || 
+         request.auth.uid in resource.data.get('instructors', []));
+      
+      // Studio owners can create new studios
+      allow create: if request.auth != null && 
+        request.auth.token.role == 'studio_owner' &&
+        request.resource.data.ownerId == request.auth.uid;
     }
     
-    // Classes collection rules
+    // Classes collection - public read, restricted write
     match /classes/{classId} {
       allow read: if request.auth != null;
-      allow create: if request.auth != null && 
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'instructor' ||
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'merchant');
+      allow write: if request.auth != null && 
+        (resource.data.instructorId == request.auth.uid ||
+         resource.data.studioOwnerId == request.auth.uid);
+    }
+    
+    // Bookings collection - users can manage their own bookings
+    match /bookings/{bookingId} {
+      allow read, write: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+      
+      // Studio owners and instructors can read bookings for their classes
+      allow read: if request.auth != null && 
+        (resource.data.instructorId == request.auth.uid ||
+         resource.data.studioOwnerId == request.auth.uid);
+    }
+    
+    // Instructor marketplace profiles (read by all authenticated users)
+    match /instructors/{instructorId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth.uid == instructorId;
+    }
+    
+    // Studio booking requests
+    match /studios/{studioId}/bookingRequests/{requestId} {
+      allow read: if request.auth.uid == resource.data.instructorId
+                   || request.auth.uid in get(/databases/$(database)/documents/studios/$(studioId)).data.admins;
+      allow create: if request.auth.uid in get(/databases/$(database)/documents/studios/$(studioId)).data.admins;
+      allow update: if request.auth.uid == resource.data.instructorId  // For accepting/declining
+                    || request.auth.uid in get(/databases/$(database)/documents/studios/$(studioId)).data.admins;
+    }
+    
+    // Instructor's view of booking requests
+    match /users/{userId}/bookingRequests/{requestId} {
+      allow read: if request.auth.uid == userId;
+      allow write: if false;  // Only written by Cloud Functions
+    }
+    
+    // Reviews (studios can write, everyone can read)
+    match /instructors/{instructorId}/reviews/{reviewId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth.uid in get(/databases/$(database)/documents/studios/$(resource.data.studioId)).data.admins;
+      allow update, delete: if false;  // Reviews are immutable
+    }
+    
+    // Reviews collection - users can write reviews for classes they've taken
+    match /reviews/{reviewId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
       allow update, delete: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+    }
+    
+    // Payment transactions (restricted access)
+    match /payments/{transactionId} {
+      allow read: if request.auth.uid == resource.data.instructorId
+                   || request.auth.uid in get(/databases/$(database)/documents/studios/$(resource.data.studioId)).data.admins;
+      allow write: if false;  // Only Cloud Functions can write payments
+    }
+    
+    // Payments collection - users can read their own payment history
+    match /payments/{paymentId} {
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      allow write: if false; // Payments should only be written by Cloud Functions
+    }
+    
+    // Instructor verification (instructor and admin only)
+    match /instructors/{instructorId}/verification {
+      allow read, write: if request.auth.uid == instructorId;
+      allow read: if request.auth.token.admin == true;  // Thryve admins
+    }
+    
+    // Marketplace stats (read by all authenticated users)
+    match /marketplace/stats {
+      allow read: if request.auth != null;
+      allow write: if false;  // Only Cloud Functions can update stats
+    }
+    
+    // Messages collection - users can read/write their own conversations
+    match /messages/{messageId} {
+      allow read, write: if request.auth != null && 
+        (request.auth.uid in resource.data.participants);
+    }
+    
+    // Admin-only collections
+    match /admin/{document=**} {
+      allow read, write: if request.auth != null && 
+        request.auth.token.admin == true;
+    }
+    
+    // Analytics collection - read-only for authenticated users
+    match /analytics/{document=**} {
+      allow read: if request.auth != null;
+      allow write: if false; // Only Cloud Functions should write analytics
+    }
+    
+    // Studio staff management
+    match /studio_staff/{staffId} {
+      allow read: if request.auth != null && 
+        (request.auth.uid == resource.data.studioId || 
+         request.auth.uid == resource.data.userId);
+      allow write: if request.auth != null && 
+        request.auth.uid == resource.data.studioId;
+    }
+    
+    // Instructor payouts
+    match /instructor_payouts/{payoutId} {
+      allow read: if request.auth != null && 
+        (request.auth.uid == resource.data.instructorId ||
+         request.auth.uid == resource.data.studioId);
+      allow write: if request.auth != null && 
+        request.auth.uid == resource.data.studioId;
+    }
+    
+    // Instructor payout transactions
+    match /instructor_payout_transactions/{transactionId} {
+      allow read: if request.auth != null && 
+        (request.auth.uid == resource.data.instructorId ||
+         request.auth.uid == resource.data.studioId);
+      allow write: if false; // Only Cloud Functions can write transactions
+    }
+    
+    // Class schedules
+    match /class_schedules/{scheduleId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && 
         (request.auth.uid == resource.data.instructorId ||
          request.auth.uid == resource.data.studioId);
     }
     
-    // Bookings collection rules
-    match /bookings/{bookingId} {
-      allow read: if request.auth != null && 
-        (request.auth.uid == resource.data.customerId ||
-         request.auth.uid == resource.data.instructorId ||
-         request.auth.uid == resource.data.studioId);
-      allow create: if request.auth != null && 
-        request.auth.uid == request.resource.data.customerId;
-      allow update: if request.auth != null && 
-        (request.auth.uid == resource.data.customerId ||
-         request.auth.uid == resource.data.instructorId);
+    // User profiles (for marketplace and discovery)
+    match /profiles/{profileId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == profileId;
     }
     
-    // Reviews collection rules
-    match /reviews/{reviewId} {
-      allow read: if true; // Public reviews
-      allow create: if request.auth != null && 
-        request.auth.uid == request.resource.data.customerId;
-      allow update, delete: if request.auth != null && 
-        request.auth.uid == resource.data.customerId;
+    // Default deny for any other collections
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 } 

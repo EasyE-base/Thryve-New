@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server'
+import { getFirebaseUser } from '@/lib/firebase-admin'
 
 export async function GET(request) {
   try {
-    // Verify authentication header exists
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'No valid authorization header' }, { status: 401 })
+    // Verify Firebase authentication
+    const firebaseUser = await getFirebaseUser(request)
+    if (!firebaseUser) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
     // For now, return empty dashboard data structure
@@ -25,7 +26,7 @@ export async function GET(request) {
         bio: 'Bio not set',
         specialties: [],
         experience: 'Experience not set',
-        createdBy: 'user-id'
+        createdBy: firebaseUser.uid
       },
       classes: [],
       upcomingClasses: [],
