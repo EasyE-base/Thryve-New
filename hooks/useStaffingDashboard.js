@@ -38,7 +38,7 @@ export function useStaffingDashboard() {
       })
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BASE_URL}/server-api/staffing/dashboard?${params}`,
+        `${process.env.NEXT_PUBLIC_BASE_URL}/api/dashboard/merchant`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -139,7 +139,7 @@ export function useStaffingDashboard() {
     try {
       const token = await user.getIdToken()
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BASE_URL}/server-api/staffing/settings`,
+        `${process.env.NEXT_PUBLIC_BASE_URL}/api/staffing/settings`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -223,7 +223,7 @@ export function useStaffingDashboard() {
     try {
       const token = await user.getIdToken()
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BASE_URL}/server-api/staffing/settings`,
+        `${process.env.NEXT_PUBLIC_BASE_URL}/api/staffing/settings`,
         {
           method: 'POST',
           headers: {
