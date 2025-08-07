@@ -1,151 +1,52 @@
-// Firestore Security Rules for Thryve Fitness Platform
-// Updated to work with current system and include all collections
-// Copy and paste these rules into Firebase Console > Firestore > Rules
-
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper function to check if user is authenticated
-    function isAuthenticated() {
-      return request.auth != null;
-    }
     
-    // Helper function to check if user owns the document
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-    
-    // Helper function to check if user is the creator of a document
-    function isCreator() {
-      return request.auth.uid == resource.data.createdBy;
-    }
-
-    // Users collection - users can read all (for discovery), write their own
-    match /users/{userId} {
-      allow read: if isAuthenticated();
-      allow write: if isOwner(userId);
-    }
-    
-    // Studios collection - anyone can read, only creator can write
-    match /studios/{studioId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update, delete: if isCreator();
-    }
-    
-    // Classes collection - anyone can read, studio owner or instructor can write
-    match /classes/{classId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated();
-      allow update, delete: if isAuthenticated() && (
-        request.auth.uid == resource.data.instructorId || 
-        request.auth.uid == resource.data.studioId
-      );
-    }
-    
-    // Bookings collection - users can access relevant bookings
-    match /bookings/{bookingId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && 
-        request.auth.uid == request.resource.data.userId;
-      allow update: if isAuthenticated() && 
-        (request.auth.uid == resource.data.userId || 
-         request.auth.uid == resource.data.instructorId ||
-         request.auth.uid == resource.data.studioId);
-    }
-    
-    // Instructors collection - instructors can access their own profile
+    // Instructor marketplace profiles (read by all authenticated users)
     match /instructors/{instructorId} {
-      allow read: if isAuthenticated();
-      allow write: if isOwner(instructorId);
+      allow read: if request.auth != null;
+      allow write: if request.auth.uid == instructorId;
     }
     
-    // Customers collection - customers can access their own profile
-    match /customers/{customerId} {
-      allow read: if isAuthenticated();
-      allow write: if isOwner(customerId);
+    // Studio booking requests
+    match /studios/{studioId}/bookingRequests/{requestId} {
+      allow read: if request.auth.uid == resource.data.instructorId
+                   || request.auth.uid in get(/databases/$(database)/documents/studios/$(studioId)).data.admins;
+      allow create: if request.auth.uid in get(/databases/$(database)/documents/studios/$(studioId)).data.admins;
+      allow update: if request.auth.uid == resource.data.instructorId  // For accepting/declining
+                    || request.auth.uid in get(/databases/$(database)/documents/studios/$(studioId)).data.admins;
     }
     
-    // Reviews collection - users can read all, write their own
-    match /reviews/{reviewId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && 
-        request.auth.uid == request.resource.data.customerId;
-      allow update, delete: if isAuthenticated() && 
-        request.auth.uid == resource.data.customerId;
+    // Instructor's view of booking requests
+    match /users/{userId}/bookingRequests/{requestId} {
+      allow read: if request.auth.uid == userId;
+      allow write: if false;  // Only written by Cloud Functions
     }
     
-    // Favorites collection - users can only access their own favorites
-    match /favorites/{favoriteId} {
-      allow read, write: if isAuthenticated() && 
-        request.auth.uid == resource.data.userId;
-      allow create: if isAuthenticated();
+    // Reviews (studios can write, everyone can read)
+    match /instructors/{instructorId}/reviews/{reviewId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth.uid in get(/databases/$(database)/documents/studios/$(resource.data.studioId)).data.admins;
+      allow update, delete: if false;  // Reviews are immutable
+    }
+    
+    // Payment transactions (restricted access)
+    match /payments/{transactionId} {
+      allow read: if request.auth.uid == resource.data.instructorId
+                   || request.auth.uid in get(/databases/$(database)/documents/studios/$(resource.data.studioId)).data.admins;
+      allow write: if false;  // Only Cloud Functions can write payments
+    }
+    
+    // Instructor verification (instructor and admin only)
+    match /instructors/{instructorId}/verification {
+      allow read, write: if request.auth.uid == instructorId;
+      allow read: if request.auth.token.admin == true;  // Thryve admins
+    }
+    
+    // Marketplace stats (read by all authenticated users)
+    match /marketplace/stats {
+      allow read: if request.auth != null;
+      allow write: if false;  // Only Cloud Functions can update stats
     }
   }
-}
-
-// Instructions:
-// 1. Go to Firebase Console > Firestore Database > Rules
-// 2. Replace the existing rules with the content above
-// 3. Click "Publish" to deploy the rules
-// 4. Test the rules using the Rules Playground in the Firebase Console
-
-// Key Changes from Current Rules:
-// - Added missing collections: studios, instructors, customers, favorites
-// - Simplified studio/class relationship (using studioId instead of complex gets)
-// - Better permission structure for bookings
-// - Maintained user discovery while protecting write access
-
-// ============================================
-// INSTRUCTOR INVITATION SYSTEM RULES
-// ============================================
-
-// Studio invitations
-match /studioInvites/{studioId}/invites/{inviteId} {
-  allow read: if request.auth.uid == resource.data.instructorId
-               || request.auth.uid in get(/databases/$(database)/documents/studios/$(studioId)).data.admins;
-  allow create: if request.auth.uid in get(/databases/$(database)/documents/studios/$(studioId)).data.admins;
-  allow update: if request.auth.uid == resource.data.instructorId  // For accepting/declining
-                || request.auth.uid in get(/databases/$(database)/documents/studios/$(studioId)).data.admins;  // For withdrawing
-}
-
-// Instructor's view of invitations
-match /users/{userId}/studioInvitations/{inviteId} {
-  allow read: if request.auth.uid == userId;
-  allow write: if false;  // Only written by Cloud Functions
-}
-
-// Notifications
-match /users/{userId}/notifications/{notificationId} {
-  allow read, update: if request.auth.uid == userId;
-  allow create: if false;  // Only created by Cloud Functions
-  allow delete: if request.auth.uid == userId;
-}
-
-// Invitation templates
-match /studios/{studioId}/inviteTemplates/{templateId} {
-  allow read, write: if request.auth.uid in get(/databases/$(database)/documents/studios/$(studioId)).data.admins;
-}
-
-// Instructors marketplace
-match /instructors/{instructorId} {
-  allow read: if request.auth != null;
-  allow write: if request.auth.uid == instructorId;
-}
-
-// Bulk invitations
-match /studioInvites/{studioId}/bulkInvites/{batchId} {
-  allow read, write: if request.auth.uid in get(/databases/$(database)/documents/studios/$(studioId)).data.admins;
-}
-
-// Counter-offers
-match /studioInvites/{studioId}/invites/{inviteId}/counterOffer {
-  allow read: if request.auth.uid == resource.data.instructorId
-               || request.auth.uid in get(/databases/$(database)/documents/studios/$(studioId)).data.admins;
-  allow create, update: if request.auth.uid == resource.data.instructorId;
-}
-
-// Invitation analytics
-match /studios/{studioId}/inviteStats {
-  allow read, write: if request.auth.uid in get(/databases/$(database)/documents/studios/$(studioId)).data.admins;
 }

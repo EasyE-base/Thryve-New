@@ -1,661 +1,586 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/auth-provider'
+import { Search, Filter, MapPin, Star, Clock, DollarSign, Users, Award } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Slider } from '@/components/ui/slider'
-import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { 
-  Search, 
-  Filter, 
-  MapPin, 
-  Star, 
-  DollarSign, 
-  Clock, 
-  Users, 
-  Heart,
-  Play,
-  Award,
-  Zap,
-  Target,
-  ArrowLeft,
-  ChevronLeft,
-  ChevronRight,
-  X,
-  Sparkles,
-  Trophy
-} from 'lucide-react'
-import Link from 'next/link'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
 
 export default function MarketplacePage() {
-  const { user, role, loading } = useAuth()
-  const [searchQuery, setSearchQuery] = useState('')
-  const [showFilters, setShowFilters] = useState(false)
-  const [currentSwipe, setCurrentSwipe] = useState(0)
+  const { user } = useAuth()
   const [instructors, setInstructors] = useState([])
-  const [dataLoading, setDataLoading] = useState(true)
-
-  // ⛔ ACCESS CONTROL: Block access for regular customers
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
-        <div className="max-w-md text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Restricted</h1>
-          <p className="text-gray-600 mb-6">Please sign in to access the instructor marketplace.</p>
-          <Link href="/login?redirect=/marketplace">
-            <Button className="bg-blue-600 hover:bg-blue-700">Sign In</Button>
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
-  if (role !== 'merchant' && role !== 'instructor' && role !== 'studio-owner') {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
-        <div className="max-w-md text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Unauthorized Access</h1>
-          <p className="text-gray-600 mb-6">
-            The instructor marketplace is only available to studio owners and instructors. 
-            Looking for classes? Try our Explore page instead.
-          </p>
-          <div className="space-y-3">
-            <Link href="/explore">
-              <Button className="bg-blue-600 hover:bg-blue-700 w-full">
-                Explore Classes
-              </Button>
-            </Link>
-            <Link href="/">
-              <Button variant="outline" className="w-full">
-                Back to Home
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  const [filters, setFilters] = useState({
-    classType: [],
-    location: '',
-    priceRange: [0, 100],
-    availability: [],
-    certifications: [],
-    rating: 0,
-    languages: []
-  })
+  const [loading, setLoading] = useState(false)
+  const [stats, setStats] = useState(null)
+  const [selectedInstructor, setSelectedInstructor] = useState(null)
+  const [showFilters, setShowFilters] = useState(false)
+  const [showBookingModal, setShowBookingModal] = useState(false)
   
-  const swipeRef = useRef(null)
-  const [touchStart, setTouchStart] = useState(null)
-  const [touchEnd, setTouchEnd] = useState(null)
-
-  // Fetch instructors from API
-  const fetchInstructors = async () => {
-    try {
-      const response = await fetch('/server-api/marketplace/instructors')
-      
-      if (response.ok) {
-        const data = await response.json()
-        setInstructors(data.instructors || [])
-      } else {
-        console.error('Failed to fetch instructors')
-        // Set empty array as fallback
-        setInstructors([])
-      }
-    } catch (error) {
-      console.error('Error fetching instructors:', error)
-      setInstructors([])
-    } finally {
-              setDataLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    fetchInstructors()
-  }, [])
-
-  // Filter instructors based on search and filters
-  const filteredInstructors = instructors.filter(instructor => {
-    const matchesSearch = !searchQuery || 
-      instructor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      instructor.specialties?.some(specialty => 
-        specialty.toLowerCase().includes(searchQuery.toLowerCase())
-      ) ||
-      instructor.location?.toLowerCase().includes(searchQuery.toLowerCase())
-    
-    const matchesFilters = (
-      (filters.classType.length === 0 || 
-       instructor.specialties?.some(specialty => 
-         filters.classType.includes(specialty)
-       )) &&
-      (filters.location === '' || 
-       instructor.location?.toLowerCase().includes(filters.location.toLowerCase())) &&
-      (instructor.hourlyRate || 0) >= filters.priceRange[0] &&
-      (instructor.hourlyRate || 0) <= filters.priceRange[1] &&
-      (instructor.rating || 0) >= filters.rating
-    )
-    
-    return matchesSearch && matchesFilters
+  // Search and filter state
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filters, setFilters] = useState({
+    specialties: [],
+    minRating: 0,
+    maxRate: 200,
+    verified: false,
+    location: '',
+    radius: 25
   })
 
-  // Touch handlers for swipe functionality
-  const minSwipeDistance = 50
+  // Available specialties for filter
+  const availableSpecialties = [
+    'Yoga', 'HIIT', 'Pilates', 'Cycling', 'Zumba', 'Strength Training',
+    'Meditation', 'Flexibility', 'Cardio', 'Weight Loss', 'Core Strength',
+    'Barre', 'Dance Fitness', 'Endurance Training', 'Indoor Cycling'
+  ]
 
-  const onTouchStart = (e) => {
-    setTouchEnd(null)
-    setTouchStart(e.targetTouches[0].clientX)
+  // Search instructors
+  const searchInstructors = async () => {
+    setLoading(true)
+    try {
+      const params = new URLSearchParams({
+        q: searchQuery,
+        specialties: filters.specialties.join(','),
+        minRating: filters.minRating.toString(),
+        maxRate: filters.maxRate.toString(),
+        verified: filters.verified.toString(),
+        location: filters.location,
+        radius: filters.radius.toString(),
+        limit: '20',
+        page: '1'
+      })
+      
+      console.log('Search params:', Object.fromEntries(params.entries()))
+
+      const headers = {}
+      if (user) {
+        try {
+          const token = await user.getIdToken()
+          headers['Authorization'] = `Bearer ${token}`
+        } catch (error) {
+          console.log('No auth token available, proceeding without authentication')
+        }
+      }
+
+      const url = `/api/marketplace/search?${params}`
+      console.log('Calling API URL:', url)
+      const response = await fetch(url, {
+        headers
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to search instructors')
+      }
+
+      const data = await response.json()
+      console.log('Marketplace API response:', data)
+      console.log('Instructors array length:', data.instructors?.length || 0)
+      setInstructors(data.instructors || [])
+      setStats(data.stats)
+    } catch (error) {
+      console.error('Search error:', error)
+      toast.error('Failed to search instructors')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const onTouchMove = (e) => setTouchEnd(e.targetTouches[0].clientX)
-
-  const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return
-    const distance = touchStart - touchEnd
-    const isLeftSwipe = distance > minSwipeDistance
-    const isRightSwipe = distance < -minSwipeDistance
-
-    if (isLeftSwipe) {
-      setCurrentSwipe(prev => Math.min(prev + 1, featuredInstructors.length - 1))
-    }
-    if (isRightSwipe) {
-      setCurrentSwipe(prev => Math.max(prev - 1, 0))
-    }
-  }
-
-  const featuredInstructors = filteredInstructors.filter(i => i.featured)
-
-  // Auto-advance carousel
+  // Load initial data
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentSwipe(prev => (prev + 1) % Math.max(featuredInstructors.length, 1))
-    }, 6000)
-    return () => clearInterval(interval)
-  }, [featuredInstructors.length])
+    if (user) {
+      searchInstructors()
+    }
+  }, [user])
 
-  const goToSlide = (index) => {
-    setCurrentSwipe(index)
+  // Handle specialty filter toggle
+  const toggleSpecialty = (specialty) => {
+    setFilters(prev => ({
+      ...prev,
+      specialties: prev.specialties.includes(specialty)
+        ? prev.specialties.filter(s => s !== specialty)
+        : [...prev.specialties, specialty]
+    }))
   }
 
-  const nextSlide = () => {
-    setCurrentSwipe(prev => (prev + 1) % featuredInstructors.length)
-  }
+  // Send booking request
+  const sendBookingRequest = async (bookingData) => {
+    if (!user) {
+      toast.error('Please log in to send booking requests')
+      return
+    }
 
-  const prevSlide = () => {
-    setCurrentSwipe(prev => (prev - 1 + featuredInstructors.length) % featuredInstructors.length)
+    try {
+      const response = await fetch('/api/bookings/request', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await user.getIdToken()}`
+        },
+        body: JSON.stringify({
+          instructorId: selectedInstructor.id,
+          instructorName: selectedInstructor.name,
+          instructorEmail: selectedInstructor.email,
+          ...bookingData
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to send booking request')
+      }
+
+      const data = await response.json()
+      toast.success('Booking request sent successfully!')
+      setShowBookingModal(false)
+      setSelectedInstructor(null)
+    } catch (error) {
+      console.error('Booking error:', error)
+      toast.error('Failed to send booking request')
+    }
   }
 
   return (
-    <div className="min-h-screen">
-      {/* Modern Header with Gradient */}
-      <header className="bg-black/20 backdrop-blur-xl shadow-modern border-b border-white/10 sticky top-0 z-50">
-        <div className="mobile-container">
-          <div className="flex items-center justify-between py-6">
-            <div className="flex items-center space-x-4">
-              <Link href="/">
-                <Button variant="ghost" className="btn-modern-small text-white hover:bg-white/10 p-3 rounded-full">
-                  <ArrowLeft className="h-5 w-5" />
+    <div className="min-h-screen bg-gray-50">
+      {/* Hero Section */}
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+        <div className="container mx-auto px-4 py-16">
+          <div className="max-w-4xl mx-auto text-center">
+            <h1 className="text-4xl md:text-6xl font-bold mb-6">
+              Find Your Perfect Instructor
+            </h1>
+            <p className="text-xl md:text-2xl mb-8 opacity-90">
+              Connect with verified fitness professionals for your studio
+            </p>
+            
+            {/* Search Bar */}
+            <div className="max-w-2xl mx-auto">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Search by name, specialty, or location..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-12 pr-4 py-4 text-lg bg-white text-gray-900 border-0 rounded-full"
+                  onKeyPress={(e) => e.key === 'Enter' && searchInstructors()}
+                />
+                <Button
+                  onClick={searchInstructors}
+                  disabled={loading}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-full"
+                >
+                  {loading ? 'Searching...' : 'Search'}
                 </Button>
-              </Link>
-              <div className="animate-fadeInLeft">
-                <h1 className="text-3xl font-bold text-gradient">Marketplace</h1>
-                <p className="text-sm text-blue-200">Find your perfect fitness instructor</p>
               </div>
-            </div>
-
-            <div className="flex items-center space-x-3">
-              <Button
-                onClick={() => setShowFilters(!showFilters)}
-                className="btn-modern-small bg-white/10 border border-white/20 md:hidden"
-              >
-                <Filter className="h-4 w-4" />
-              </Button>
-              <div className="hidden md:flex items-center space-x-2 text-blue-200 text-sm">
-                <Sparkles className="h-4 w-4" />
-                <span>{filteredInstructors.length} instructors available</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Enhanced Search Bar */}
-          <div className="relative mb-6 animate-fadeInUp delay-200">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-white/50" />
-            <Input
-              type="text"
-              placeholder="Search by name, specialty, or location..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="input-modern pl-12 text-lg py-4"
-            />
-            <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
-              <Badge className="bg-blue-500/20 text-blue-300 text-xs">
-                {filteredInstructors.length} found
-              </Badge>
             </div>
           </div>
         </div>
-      </header>
+      </div>
 
-      <div className="mobile-container py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Modern Filters Sidebar */}
-          <div className={`space-y-6 ${showFilters ? 'block' : 'hidden'} lg:block animate-slideInLeft`}>
-            <Card className="card-modern p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-white flex items-center">
-                  <Filter className="h-5 w-5 mr-2" />
+      {/* Stats Section */}
+      {stats && (
+        <div className="bg-white border-b">
+          <div className="container mx-auto px-4 py-8">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-6 text-center">
+              <div>
+                <div className="text-2xl font-bold text-blue-600">{stats.totalInstructors}</div>
+                <div className="text-sm text-gray-600">Total Instructors</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-green-600">{stats.verifiedInstructors}</div>
+                <div className="text-sm text-gray-600">Verified</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-purple-600">{stats.averageRating.toFixed(1)}</div>
+                <div className="text-sm text-gray-600">Avg Rating</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-orange-600">{stats.topSpecialties.length}</div>
+                <div className="text-sm text-gray-600">Specialties</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-red-600">{stats.totalResults}</div>
+                <div className="text-sm text-gray-600">Results</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content */}
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Filters Sidebar */}
+          <div className="lg:w-1/4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Filter className="w-5 h-5" />
                   Filters
-                </h3>
-                <Button
-                  onClick={() => setShowFilters(false)}
-                  variant="ghost"
-                  size="sm"
-                  className="text-white hover:bg-white/10 lg:hidden rounded-full"
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-
-              {/* Enhanced Class Type Filter */}
-              <div className="mb-6">
-                <Label className="text-white font-medium mb-4 block flex items-center">
-                  <Target className="h-4 w-4 mr-2" />
-                  Class Type
-                </Label>
-                <div className="space-y-3">
-                  {['🧘 Yoga', '🔥 HIIT', '💪 Pilates', '🏋️ Strength', '💃 Dance', '🥊 Boxing'].map((type) => (
-                    <div key={type} className="flex items-center space-x-3 p-2 rounded-lg hover:bg-white/5 transition-colors">
-                      <Checkbox 
-                        id={type.toLowerCase()}
-                        className="border-white/30 text-blue-500 rounded-md"
-                      />
-                      <Label 
-                        htmlFor={type.toLowerCase()} 
-                        className="text-blue-200 text-sm cursor-pointer flex-1"
-                      >
-                        {type}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Enhanced Price Range */}
-              <div className="mb-6">
-                <Label className="text-white font-medium mb-4 block flex items-center">
-                  <DollarSign className="h-4 w-4 mr-2" />
-                  Price Range
-                </Label>
-                <div className="px-2">
-                  <Slider
-                    value={filters.priceRange}
-                    onValueChange={(value) => setFilters(prev => ({ ...prev, priceRange: value }))}
-                    max={100}
-                    step={5}
-                    className="mb-4"
-                  />
-                  <div className="flex justify-between text-sm">
-                    <Badge className="bg-blue-500/20 text-blue-300">${filters.priceRange[0]}</Badge>
-                    <Badge className="bg-blue-500/20 text-blue-300">${filters.priceRange[1]}</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Location Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Location
+                  </label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <Input
+                      placeholder="City, State, or ZIP"
+                      value={filters.location}
+                      onChange={(e) => setFilters({...filters, location: e.target.value})}
+                      className="pl-10"
+                    />
                   </div>
                 </div>
-              </div>
 
-              {/* Enhanced Availability */}
-              <div className="mb-6">
-                <Label className="text-white font-medium mb-4 block flex items-center">
-                  <Clock className="h-4 w-4 mr-2" />
-                  Availability
-                </Label>
-                <div className="space-y-3">
-                  {['⚡ Available Now', '📅 Today', '🌅 Tomorrow', '📍 This Week'].map((time) => (
-                    <div key={time} className="flex items-center space-x-3 p-2 rounded-lg hover:bg-white/5 transition-colors">
-                      <Checkbox 
-                        id={time.toLowerCase().replace(' ', '-')}
-                        className="border-white/30 text-blue-500 rounded-md"
-                      />
-                      <Label 
-                        htmlFor={time.toLowerCase().replace(' ', '-')} 
-                        className="text-blue-200 text-sm cursor-pointer flex-1"
-                      >
-                        {time}
-                      </Label>
-                    </div>
-                  ))}
+                {/* Specialty Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Specialties
+                  </label>
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {availableSpecialties.map(specialty => (
+                      <div key={specialty} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={specialty}
+                          checked={filters.specialties.includes(specialty)}
+                          onCheckedChange={() => toggleSpecialty(specialty)}
+                        />
+                        <label htmlFor={specialty} className="text-sm text-gray-700">
+                          {specialty}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              {/* Enhanced Rating Filter */}
-              <div>
-                <Label className="text-white font-medium mb-4 block flex items-center">
-                  <Star className="h-4 w-4 mr-2" />
-                  Minimum Rating
-                </Label>
-                <div className="flex items-center space-x-3 px-2">
-                  <Star className="h-5 w-5 text-yellow-400 fill-current" />
+                {/* Rating Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Minimum Rating: {filters.minRating}+
+                  </label>
                   <Slider
-                    value={[filters.rating]}
-                    onValueChange={(value) => setFilters(prev => ({ ...prev, rating: value[0] }))}
+                    value={[filters.minRating]}
+                    onValueChange={([value]) => setFilters({...filters, minRating: value})}
                     max={5}
+                    min={0}
                     step={0.5}
-                    className="flex-1"
+                    className="w-full"
                   />
-                  <Badge className="bg-yellow-500/20 text-yellow-300 w-12 text-center">
-                    {filters.rating}
-                  </Badge>
                 </div>
-              </div>
+
+                {/* Rate Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Max Rate: ${filters.maxRate}/hour
+                  </label>
+                  <Slider
+                    value={[filters.maxRate]}
+                    onValueChange={([value]) => setFilters({...filters, maxRate: value})}
+                    max={200}
+                    min={20}
+                    step={10}
+                    className="w-full"
+                  />
+                </div>
+
+                {/* Verified Filter */}
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="verified"
+                    checked={filters.verified}
+                    onCheckedChange={(checked) => setFilters({...filters, verified: checked})}
+                  />
+                  <label htmlFor="verified" className="text-sm text-gray-700">
+                    Verified instructors only
+                  </label>
+                </div>
+
+                {/* Apply Filters Button */}
+                <Button
+                  onClick={searchInstructors}
+                  disabled={loading}
+                  className="w-full"
+                >
+                  {loading ? 'Searching...' : 'Apply Filters'}
+                </Button>
+              </CardContent>
             </Card>
           </div>
 
-          {/* Main Content */}
-          <div className="lg:col-span-3 space-y-12">
-            {/* Featured Instructors Carousel - Mobile Optimized */}
-            <div className="animate-fadeInUp delay-300">
-              <div className="flex items-center justify-between mb-8">
-                <div>
-                  <h2 className="text-3xl font-bold text-white mb-2">✨ Featured Instructors</h2>
-                  <p className="text-blue-200">Hand-picked top-rated professionals</p>
-                </div>
-                <div className="hidden md:flex items-center space-x-3">
-                  <Button
-                    onClick={prevSlide}
-                    variant="outline"
-                    size="sm"
-                    className="btn-modern-small border-white/20 text-white hover:bg-white/10"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    onClick={nextSlide}
-                    variant="outline"
-                    size="sm"
-                    className="btn-modern-small border-white/20 text-white hover:bg-white/10"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
+          {/* Results Grid */}
+          <div className="lg:w-3/4">
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="mt-4 text-gray-600">Searching instructors...</p>
               </div>
-
-              {/* Swipeable Carousel */}
-              <div 
-                className="relative overflow-hidden rounded-3xl shadow-modern"
-                onTouchStart={onTouchStart}
-                onTouchMove={onTouchMove}
-                onTouchEnd={onTouchEnd}
-              >
-                {loading ? (
-                  <div className="flex justify-center items-center py-20">
-                    <div className="animate-spin rounded-full h-16 w-16 border-4 border-blue-400 border-t-transparent"></div>
-                  </div>
-                ) : featuredInstructors.length > 0 ? (
-                  <>
-                    <div 
-                      ref={swipeRef}
-                      className="flex transition-transform duration-500 ease-out"
-                      style={{ transform: `translateX(-${currentSwipe * 100}%)` }}
-                    >
-                      {featuredInstructors.map((instructor) => (
-                        <div key={instructor.id} className="card-swipe">
-                          <Card className="card-modern overflow-hidden h-[500px]">
-                            <div 
-                              className="relative h-64 bg-cover bg-center"
-                              style={{
-                                backgroundImage: `linear-gradient(135deg, rgba(0,0,0,0.4), rgba(0,0,0,0.7)), url("${instructor.imageUrl}")`,
-                              }}
-                            >
-                              <div className="absolute top-4 left-4 flex space-x-2">
-                                <Badge className="bg-gradient-to-r from-green-500 to-green-600 text-white backdrop-blur-sm animate-pulse-glow">
-                                  {instructor.availability}
-                                </Badge>
-                                {instructor.achievements.map((achievement, index) => (
-                                  <Badge key={index} className="bg-gradient-to-r from-purple-500 to-purple-600 text-white backdrop-blur-sm">
-                                    {achievement}
-                                  </Badge>
-                                ))}
-                              </div>
-                              <div className="absolute top-4 right-4 flex space-x-2">
-                                {instructor.videoIntro && (
-                                  <Badge className="bg-gradient-to-r from-blue-500 to-blue-600 text-white backdrop-blur-sm">
-                                    <Play className="h-3 w-3 mr-1" />
-                                    Video
-                                  </Badge>
-                                )}
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full tap-target"
-                                  onClick={() => toast.success('Added to favorites! ❤️')}
-                                >
-                                  <Heart className="h-4 w-4 text-white" />
-                                </Button>
-                              </div>
-                              <div className="absolute bottom-4 left-4 right-4">
-                                <h3 className="text-3xl font-bold text-white mb-2 animate-fadeInUp">{instructor.name}</h3>
-                                <p className="text-blue-200 text-lg animate-fadeInUp delay-100">{instructor.tagline}</p>
-                              </div>
-                            </div>
-
-                            <CardContent className="p-6 space-y-4">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-4">
-                                  <div className="flex items-center">
-                                    <Star className="h-5 w-5 text-yellow-400 fill-current mr-1" />
-                                    <span className="text-white font-bold text-lg">{instructor.rating}</span>
-                                    <span className="text-blue-200 text-sm ml-1">({instructor.reviewCount} reviews)</span>
-                                  </div>
-                                </div>
-                                <div className="text-right">
-                                  <div className="text-3xl font-bold text-gradient">${instructor.hourlyRate}</div>
-                                  <div className="text-xs text-blue-200">per session</div>
-                                </div>
-                              </div>
-
-                              <div className="text-blue-200 text-sm flex items-center">
-                                <MapPin className="h-4 w-4 mr-1" />
-                                {instructor.location}
-                              </div>
-
-                              <div className="flex flex-wrap gap-2">
-                                {instructor.specialties.map((specialty) => (
-                                  <Badge key={specialty} className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-200 border border-blue-400/30">
-                                    {specialty}
-                                  </Badge>
-                                ))}
-                              </div>
-
-                              <div className="flex space-x-2">
-                                {instructor.videoIntro && (
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="btn-modern-small border-white/20 text-white hover:bg-white/10"
-                                    onClick={() => toast.info('🎬 Video preview coming soon!')}
-                                  >
-                                    <Play className="h-4 w-4 mr-1" />
-                                    Preview
-                                  </Button>
-                                )}
-                                <Link href={`/instructor/${instructor.id}`}>
-                                  <Button
-                                    size="sm"
-                                    className="btn-modern-small bg-gradient-to-r from-blue-500 to-blue-600 hover:scale-105"
-                                  >
-                                    View Profile
-                                  </Button>
-                                </Link>
-                                <Link href={`/class/morning-vinyasa-flow`}>
-                                  <Button
-                                    size="sm"
-                                    className="btn-modern-small bg-gradient-to-r from-purple-500 to-purple-600 hover:scale-105"
-                                  >
-                                    View Classes
-                                  </Button>
-                                </Link>
-                                <Button
-                                  size="sm"
-                                  className="btn-modern-small bg-gradient-to-r from-green-500 to-green-600 hover:scale-105 flex-1"
-                                  onClick={() => toast.success('🎯 Booking request sent!')}
-                                >
-                                  Book Now
-                                </Button>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Swipe Indicators */}
-                    <div className="swipe-indicator mt-6">
-                      {featuredInstructors.map((_, index) => (
-                        <button
-                          key={index}
-                          onClick={() => goToSlide(index)}
-                          className={`swipe-dot tap-target ${index === currentSwipe ? 'active' : ''}`}
-                        />
-                      ))}
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-center py-20">
-                    <p className="text-white/60 text-lg">No featured instructors found matching your criteria</p>
-                    <p className="text-white/40 text-sm mt-2">Try adjusting your search or filters</p>
-                  </div>
-                )}
+            ) : instructors.length === 0 ? (
+              <div className="text-center py-12">
+                <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No instructors found</h3>
+                <p className="text-gray-600">Try adjusting your search terms or filters</p>
               </div>
-            </div>
-
-            {/* All Instructors Grid */}
-            <div className="animate-fadeInUp delay-500">
-              <div className="flex items-center justify-between mb-8">
-                <div>
-                  <h2 className="text-3xl font-bold text-white mb-2">🌟 All Instructors</h2>
-                  <p className="text-blue-200">Discover your perfect fitness match</p>
-                </div>
-                <div className="text-blue-200">
-                  <Trophy className="h-5 w-5 inline mr-2" />
-                  {filteredInstructors.length} professionals available
-                </div>
-              </div>
-
-              <div className="mobile-grid">
-                {filteredInstructors.map((instructor, index) => (
-                  <Card key={instructor.id} className={`card-modern overflow-hidden animate-fadeInUp delay-${(index % 3) * 100}`}>
-                    <div 
-                      className="relative h-48 bg-cover bg-center"
-                      style={{
-                        backgroundImage: `linear-gradient(135deg, rgba(0,0,0,0.4), rgba(0,0,0,0.7)), url("${instructor.imageUrl}")`,
-                      }}
-                    >
-                      <div className="absolute top-3 left-3">
-                        <Badge className="bg-gradient-to-r from-green-500 to-green-600 text-white backdrop-blur-sm text-xs">
-                          {instructor.availability}
-                        </Badge>
-                      </div>
-                      <div className="absolute top-3 right-3">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full w-8 h-8 p-0 tap-target"
-                          onClick={() => toast.success('❤️ Added to favorites!')}
-                        >
-                          <Heart className="h-3 w-3 text-white" />
-                        </Button>
-                      </div>
-                      <div className="absolute bottom-3 left-3 right-3">
-                        <h3 className="text-xl font-bold text-white mb-1">{instructor.name}</h3>
-                      </div>
-                    </div>
-
-                    <CardContent className="p-4 space-y-3">
-                      <p className="text-blue-200 text-sm">{instructor.tagline}</p>
-
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center">
-                          <Star className="h-4 w-4 text-yellow-400 fill-current mr-1" />
-                          <span className="text-white font-medium">{instructor.rating}</span>
-                          <span className="text-blue-200 text-xs ml-1">({instructor.reviewCount})</span>
-                        </div>
-                        <div className="text-xl font-bold text-gradient">${instructor.hourlyRate}</div>
-                      </div>
-
-                      <div className="flex flex-wrap gap-1">
-                        {instructor.specialties.slice(0, 2).map((specialty) => (
-                          <Badge key={specialty} className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-200 text-xs border border-blue-400/30">
-                            {specialty}
-                          </Badge>
-                        ))}
-                        {instructor.specialties.length > 2 && (
-                          <Badge className="bg-white/10 text-blue-300 text-xs">
-                            +{instructor.specialties.length - 2} more
-                          </Badge>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="flex space-x-2">
-                          <Link href={`/instructor/${instructor.id}`} className="flex-1">
-                            <Button
-                              size="sm"
-                              className="btn-modern-small bg-gradient-to-r from-blue-500 to-blue-600 w-full text-xs hover:scale-105"
-                            >
-                              Profile
-                            </Button>
-                          </Link>
-                          <Link href={`/class/morning-vinyasa-flow`} className="flex-1">
-                            <Button
-                              size="sm"
-                              className="btn-modern-small bg-gradient-to-r from-purple-500 to-purple-600 w-full text-xs hover:scale-105"
-                            >
-                              Classes
-                            </Button>
-                          </Link>
-                        </div>
-                        <Button
-                          size="sm"
-                          className="btn-modern-small bg-gradient-to-r from-green-500 to-green-600 w-full text-xs hover:scale-105"
-                          onClick={() => toast.success('🎉 Booking request sent!')}
-                        >
-                          <Zap className="h-3 w-3 mr-1" />
-                          Book Now
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {instructors.map(instructor => (
+                  <InstructorCard
+                    key={instructor.id}
+                    instructor={instructor}
+                    onSelect={setSelectedInstructor}
+                    onBook={() => setShowBookingModal(true)}
+                  />
                 ))}
               </div>
-
-              {/* Load More Button */}
-              <div className="text-center mt-12">
-                <Button
-                  className="btn-modern px-12 py-4 text-lg"
-                  onClick={() => toast.info('🔄 More instructors loading soon!')}
-                >
-                  <Users className="h-5 w-5 mr-2" />
-                  Load More Instructors
-                </Button>
-              </div>
-            </div>
+            )}
           </div>
         </div>
+      </div>
+
+      {/* Booking Modal */}
+      {showBookingModal && selectedInstructor && (
+        <BookingRequestModal
+          instructor={selectedInstructor}
+          onSubmit={sendBookingRequest}
+          onClose={() => setShowBookingModal(false)}
+        />
+      )}
+    </div>
+  )
+}
+
+// Instructor Card Component
+function InstructorCard({ instructor, onSelect, onBook }) {
+  return (
+    <Card className="hover:shadow-lg transition-shadow cursor-pointer group">
+      <div className="relative">
+        <img 
+          src={instructor.photo} 
+          alt={instructor.name}
+          className="w-full h-48 object-cover rounded-t-lg"
+        />
+        {instructor.verified && (
+          <div className="absolute top-4 right-4">
+            <Badge className="bg-green-100 text-green-800 border-green-200">
+              <Award className="w-3 h-3 mr-1" />
+              Verified
+            </Badge>
+          </div>
+        )}
+      </div>
+      
+      <CardContent className="p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+              {instructor.name}
+            </h3>
+            <div className="flex items-center gap-1 mt-1">
+              <Star className="w-4 h-4 text-yellow-400 fill-current" />
+              <span className="text-sm text-gray-600">
+                {instructor.rating} ({instructor.reviewCount} reviews)
+              </span>
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-2xl font-bold text-green-600">
+              ${instructor.hourlyRate}
+            </div>
+            <div className="text-sm text-gray-500">per hour</div>
+          </div>
+        </div>
+        
+        <p className="text-gray-600 text-sm mb-4 line-clamp-2">
+          {instructor.bio}
+        </p>
+        
+        <div className="flex flex-wrap gap-1 mb-4">
+          {instructor.specialties.slice(0, 3).map(specialty => (
+            <Badge key={specialty} variant="secondary" className="text-xs">
+              {specialty}
+            </Badge>
+          ))}
+          {instructor.specialties.length > 3 && (
+            <Badge variant="outline" className="text-xs">
+              +{instructor.specialties.length - 3} more
+            </Badge>
+          )}
+        </div>
+        
+        <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
+          <div className="flex items-center gap-1">
+            <MapPin className="w-4 h-4" />
+            <span>{instructor.location.city}, {instructor.location.state}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Clock className="w-4 h-4" />
+            <span>Available</span>
+          </div>
+        </div>
+        
+        <Button
+          onClick={() => {
+            onSelect(instructor)
+            onBook()
+          }}
+          className="w-full bg-blue-600 hover:bg-blue-700"
+        >
+          Book Now
+        </Button>
+      </CardContent>
+    </Card>
+  )
+}
+
+// Booking Request Modal Component
+function BookingRequestModal({ instructor, onSubmit, onClose }) {
+  const [bookingForm, setBookingForm] = useState({
+    classType: instructor.specialties[0] || '',
+    scheduledTime: '',
+    duration: 60,
+    maxStudents: 20,
+    proposedRate: instructor.hourlyRate,
+    specialRequirements: '',
+    location: ''
+  })
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    onSubmit({
+      ...bookingForm,
+      scheduledTime: new Date(bookingForm.scheduledTime)
+    })
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center gap-4 mb-6">
+          <Avatar className="w-12 h-12">
+            <AvatarImage src={instructor.photo} />
+            <AvatarFallback>{instructor.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+          </Avatar>
+          <div>
+            <h2 className="text-xl font-semibold">{instructor.name}</h2>
+            <p className="text-gray-600">{instructor.specialties.join(', ')}</p>
+          </div>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Class Type
+            </label>
+            <Select
+              value={bookingForm.classType}
+              onValueChange={(value) => setBookingForm({...bookingForm, classType: value})}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select class type" />
+              </SelectTrigger>
+              <SelectContent>
+                {instructor.specialties.map(specialty => (
+                  <SelectItem key={specialty} value={specialty}>
+                    {specialty}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Date & Time
+            </label>
+            <Input
+              type="datetime-local"
+              value={bookingForm.scheduledTime}
+              onChange={(e) => setBookingForm({...bookingForm, scheduledTime: e.target.value})}
+              required
+            />
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Duration (minutes)
+              </label>
+              <Input
+                type="number"
+                value={bookingForm.duration}
+                onChange={(e) => setBookingForm({...bookingForm, duration: parseInt(e.target.value)})}
+                min="30"
+                max="180"
+                step="15"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Max Students
+              </label>
+              <Input
+                type="number"
+                value={bookingForm.maxStudents}
+                onChange={(e) => setBookingForm({...bookingForm, maxStudents: parseInt(e.target.value)})}
+                min="1"
+                max="50"
+                required
+              />
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Proposed Rate ($/hour)
+            </label>
+            <Input
+              type="number"
+              value={bookingForm.proposedRate}
+              onChange={(e) => setBookingForm({...bookingForm, proposedRate: parseInt(e.target.value)})}
+              min="20"
+              max="500"
+              required
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Special Requirements (Optional)
+            </label>
+            <textarea
+              value={bookingForm.specialRequirements}
+              onChange={(e) => setBookingForm({...bookingForm, specialRequirements: e.target.value})}
+              className="w-full border border-gray-300 rounded-md px-3 py-2 h-20 resize-none"
+              placeholder="Any special equipment, music preferences, etc."
+            />
+          </div>
+          
+          <div className="flex gap-3 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              className="flex-1 bg-blue-600 hover:bg-blue-700"
+            >
+              Send Request
+            </Button>
+          </div>
+        </form>
       </div>
     </div>
   )
