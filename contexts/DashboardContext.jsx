@@ -274,7 +274,7 @@ export const DashboardProvider = ({ children, role }) => {
   const createClass = useCallback(async (classData) => {
     try {
       const token = await user.getIdToken()
-      const response = await fetch('/api/classes', {
+      const response = await fetch('/api/classes/create', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

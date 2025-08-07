@@ -220,7 +220,7 @@ export default function CreateClassModal({ isOpen, onClose, classData, onSuccess
     try {
       const url = classData 
         ? `/server-api/classes/${classData.id}`
-        : '/server-api/classes'
+        : '/api/classes/create'
       
       const method = classData ? 'PATCH' : 'POST'
 
@@ -230,7 +230,30 @@ export default function CreateClassModal({ isOpen, onClose, classData, onSuccess
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${await user.getIdToken()}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          className: formData.name,
+          classType: formData.category,
+          description: formData.description,
+          startDate: formData.startDate || new Date().toISOString().split('T')[0],
+          startTime: formData.startTime,
+          duration: formData.duration,
+          maxStudents: formData.capacity,
+          price: formData.price,
+          skillLevel: formData.level,
+          instructorId: formData.defaultInstructorId,
+          recurring: formData.recurrencePattern !== 'none',
+          endDate: formData.endDate,
+          recurrencePattern: {
+            frequency: formData.recurrencePattern,
+            daysOfWeek: formData.scheduleDays
+          },
+          equipmentRequired: formData.requirements ? formData.requirements.split(',').map(r => r.trim()) : [],
+          tags: formData.tags,
+          classNotes: formData.description,
+          isPublic: true,
+          waitlistEnabled: true,
+          autoConfirm: true
+        })
       })
 
       if (response.ok) {
