@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/auth-provider'
-import { collection, query, where, getDocs, addDoc, serverTimestamp, limit, startAfter, orderBy } from 'firebase/firestore'
+import { addDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -37,7 +37,6 @@ export default function InstructorInviteModal({ open, onOpenChange }) {
   const [instructors, setInstructors] = useState([])
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
-  const [lastDoc, setLastDoc] = useState(null)
   
   // Phase 2: Advanced filters
   const [showFilters, setShowFilters] = useState(false)
@@ -94,36 +93,24 @@ export default function InstructorInviteModal({ open, onOpenChange }) {
     
     setSearching(true)
     try {
-      const instructorsRef = collection(db, 'instructors')
-      let q = query(
-        instructorsRef,
-        where('verified', '==', true),
-        orderBy('name'),
-        limit(ITEMS_PER_PAGE)
-      )
+      // Use our new search API instead of direct Firestore query
+      const params = new URLSearchParams({
+        q: query.trim(),
+        limit: ITEMS_PER_PAGE.toString()
+      })
+      
+      const response = await fetch(`/api/search/instructors?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${await user.getIdToken()}`
+        }
+      })
 
-      // Add search filter if query exists
-      if (query.trim()) {
-        q = query(
-          instructorsRef,
-          where('verified', '==', true),
-          where('name', '>=', query),
-          where('name', '<=', query + '\uf8ff'),
-          orderBy('name'),
-          limit(ITEMS_PER_PAGE)
-        )
+      if (!response.ok) {
+        throw new Error('Failed to fetch instructors')
       }
 
-      // Add pagination
-      if (!reset && lastDoc) {
-        q = query(q, startAfter(lastDoc))
-      }
-
-      const snapshot = await getDocs(q)
-      let newInstructors = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }))
+      const data = await response.json()
+      let newInstructors = data.instructors || []
 
       // Phase 2: Apply client-side filters
       newInstructors = newInstructors.filter(instructor => {
@@ -164,10 +151,7 @@ export default function InstructorInviteModal({ open, onOpenChange }) {
         setPage(prev => prev + 1)
       }
 
-      setHasMore(snapshot.docs.length === ITEMS_PER_PAGE)
-      if (snapshot.docs.length > 0) {
-        setLastDoc(snapshot.docs[snapshot.docs.length - 1])
-      }
+      setHasMore(newInstructors.length === ITEMS_PER_PAGE)
     } catch (error) {
       console.error('Search error:', error)
       toast.error('Failed to search instructors')
