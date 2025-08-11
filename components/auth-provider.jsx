@@ -91,20 +91,41 @@ export function AuthProvider({ children }) {
     return () => unsubscribe();
   }, [pathname, router]);
 
-  const signUp = async (email, password, name) => {
+  const signUp = async (email, password, name, selectedRole = null) => {
     try {
       console.log('🔥 AuthProvider: Creating user with email:', email);
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
       
-      // Create user document in Firestore
+      // Normalize role mapping (studio => merchant)
+      const mapRole = (firestoreRole) => {
+        const roleMap = {
+          'studio': 'merchant',
+          'merchant': 'merchant',
+          'instructor': 'instructor',
+          'customer': 'customer'
+        };
+        return roleMap[firestoreRole] || firestoreRole;
+      };
+
+      const persistedRole = selectedRole ? selectedRole : null;
+      const mappedRole = persistedRole ? mapRole(persistedRole) : null;
+
+      // Create user document in Firestore with immediate role persistence if available
       await setDoc(doc(db, 'users', user.uid), {
         email: user.email,
         displayName: name,
         createdAt: new Date(),
-        role: null,
+        role: persistedRole, // store original selection; mapping used for routing
         profileComplete: false
       });
+
+      // Also persist role to localStorage for guard consistency
+      try {
+        if (mappedRole) {
+          localStorage.setItem('user_role', mappedRole);
+        }
+      } catch (_) {}
       
       console.log('🔥 AuthProvider: User created successfully:', user.uid);
       
@@ -114,9 +135,10 @@ export function AuthProvider({ children }) {
           uid: user.uid,
           email: user.email,
           displayName: name,
-          role: null,
+          role: mappedRole,
           profileComplete: false
-        }
+        },
+        role: mappedRole
       };
     } catch (error) {
       console.error('🔥 AuthProvider: Sign up error:', error);

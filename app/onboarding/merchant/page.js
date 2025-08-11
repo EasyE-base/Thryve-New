@@ -247,25 +247,28 @@ export default function MerchantOnboarding() {
         createdAt: new Date()
       }
 
-      // Save to users collection
-      await setDoc(doc(db, 'users', user.uid), completeFormData, { merge: true })
+      // Save to users collection (ensure no undefined fields that Firestore rejects)
+      const sanitizedUserData = Object.fromEntries(
+        Object.entries(completeFormData).map(([k, v]) => [k, v === undefined ? null : v])
+      )
+      await setDoc(doc(db, 'users', user.uid), sanitizedUserData, { merge: true })
 
-      // Create studio-specific profile
+      // Create studio-specific profile (avoid undefined values)
       await setDoc(doc(db, 'studios', user.uid), {
         name: profileData.businessName,
         type: profileData.businessType,
-        location: locationData.address,
-        city: locationData.city,
-        state: locationData.state,
-        zipCode: locationData.zipCode,
-        amenities: locationData.amenities,
-        description: locationData.description,
-        operatingHours: operationsData.operatingHours,
-        capacity: operationsData.capacity,
-        policies: operationsData.policies,
-        pricing: pricingData,
-        paymentMethods: setupData.paymentMethods,
-        cancellationPolicy: setupData.cancellationPolicy,
+        location: {
+          address: locationData.address,
+          city: locationData.city,
+          state: locationData.state,
+          zipCode: locationData.zipCode
+        },
+        amenities: locationData.amenities || [],
+        description: locationData.description || '',
+        operatingHours: operationsData.operatingHours || {},
+        capacity: Array.isArray(locationData.capacity) ? (locationData.capacity[0] ?? 0) : (locationData.capacity ?? 0),
+        pricing: pricingData || {},
+        cancellationPolicy: operationsData.cancellationPolicy || '24-hour',
         createdBy: user.uid,
         instructors: [],
         classes: [],
