@@ -162,12 +162,28 @@ export default function InstructorOnboarding() {
         setup: setupData
       }
 
-      // Save to users collection
+      const sanitizeForFirestore = (value) => {
+        if (Array.isArray(value)) {
+          return value.map(sanitizeForFirestore).filter((v) => v !== undefined)
+        }
+        if (value && typeof value === 'object') {
+          const out = {}
+          Object.entries(value).forEach(([k, v]) => {
+            const sv = sanitizeForFirestore(v)
+            out[k] = sv === undefined ? null : sv
+          })
+          return out
+        }
+        return value === undefined ? null : value
+      }
+
+      // Save to users collection (avoid spreading user to prevent functions like getIdToken)
       await setDoc(doc(db, 'users', user.uid), {
-        ...user,
+        email: user.email || '',
+        displayName: `${profileData.firstName} ${profileData.lastName}`.trim(),
         role: 'instructor',
         profileComplete: true,
-        instructorData: allData,
+        instructorData: sanitizeForFirestore(allData),
         updatedAt: new Date()
       }, { merge: true })
 
