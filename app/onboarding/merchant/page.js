@@ -257,6 +257,8 @@ export default function MerchantOnboarding() {
       const studioPayload = {
         name: profileData.businessName,
         type: profileData.businessType,
+        ownerId: user.uid,
+        isActive: true,
         location: {
           address: locationData.address,
           city: locationData.city,
