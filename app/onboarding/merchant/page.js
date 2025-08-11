@@ -254,7 +254,7 @@ export default function MerchantOnboarding() {
       await setDoc(doc(db, 'users', user.uid), sanitizedUserData, { merge: true })
 
       // Create studio-specific profile (avoid undefined values)
-      await setDoc(doc(db, 'studios', user.uid), {
+      const studioPayload = {
         name: profileData.businessName,
         type: profileData.businessType,
         location: {
@@ -273,7 +273,24 @@ export default function MerchantOnboarding() {
         instructors: [],
         classes: [],
         createdAt: new Date()
-      })
+      }
+
+      const sanitizeForFirestore = (value) => {
+        if (Array.isArray(value)) {
+          return value.map(sanitizeForFirestore).filter((v) => v !== undefined)
+        }
+        if (value && typeof value === 'object') {
+          const out = {}
+          Object.entries(value).forEach(([k, v]) => {
+            const sv = sanitizeForFirestore(v)
+            out[k] = sv === undefined ? null : sv
+          })
+          return out
+        }
+        return value === undefined ? null : value
+      }
+
+      await setDoc(doc(db, 'studios', user.uid), sanitizeForFirestore(studioPayload))
 
       toast.success('Studio profile completed successfully!')
       
