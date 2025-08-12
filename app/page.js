@@ -188,7 +188,7 @@ export default function HomePage() {
           <source src="/hero.webm" type="video/webm" />
           <source src="/hero.mp4" type="video/mp4" />
         </video>
-        <div className="absolute inset-0 bg-black/55" />
+        <div className="absolute inset-0 bg-black/65" />
         {/* Subtle grid overlay */}
         <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.06] [background-image:linear-gradient(to_right,white_1px,transparent_1px),linear-gradient(to_bottom,white_1px,transparent_1px)] [background-size:56px_56px]" />
         {/* Gradient glows with motion */}
@@ -197,7 +197,9 @@ export default function HomePage() {
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-40">
           <div className="text-center">
-            <h1 className="text-3xl md:text-6xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.15]">{heroCopy[persona].headline}</h1>
+            <div className="min-h-[4.5rem] md:min-h-[6rem] lg:min-h-[6rem] flex items-center justify-center">
+              <h1 className="text-3xl md:text-6xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.15] text-balance">{heroCopy[persona].headline}</h1>
+            </div>
             {/* Persona switcher */}
             <div className="mt-6 inline-flex items-center rounded-full border border-white/20 bg-white/10 backdrop-blur p-1 text-white">
               {[
@@ -208,24 +210,27 @@ export default function HomePage() {
                 <button
                   key={p.id}
                   onClick={() => handlePersonaChange(p.id)}
-                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${persona === p.id ? 'bg-white text-gray-900' : 'text-white'}`}
+                  className={`w-28 px-4 py-1.5 rounded-full text-sm font-medium transition ${persona === p.id ? 'bg-white text-gray-900' : 'text-white'}`}
                 >
                   {p.label}
                 </button>
               ))}
             </div>
-            <p className="mt-6 text-lg md:text-xl text-white/80 max-w-2xl mx-auto">
+            <div className="mt-6 min-h-[2.75rem] md:min-h-[3.25rem] flex items-center justify-center">
+              <p className="text-lg md:text-xl text-white/85 max-w-2xl mx-auto text-pretty">
               {persona === 'studio-owner' && 'Powerful tools to manage classes, payouts via Stripe, and growth analytics.'}
               {persona === 'instructor' && 'Showcase your expertise, set availability, and get hired by vetted studios.'}
               {persona === 'customer' && 'Browse nearby classes, checkout fast, and track your fitness journey.'}
-            </p>
-            <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+              </p>
+            </div>
+            <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center min-h-[48px] md:min-h-[48px]">
               <Link href={heroCopy[persona].cta.href} onClick={() => onCtaClick('hero', heroCopy[persona].cta.href)}>
                 <Button className="bg-white text-gray-900 hover:bg-gray-100 px-8 py-3 text-lg font-semibold rounded-xl shadow-lg shadow-black/20 ring-1 ring-black/5">
                   {heroCopy[persona].cta.label}
                 </Button>
               </Link>
-              {persona === 'studio-owner' && (
+              {/* Secondary slots reserved to avoid layout shifts */}
+              {persona === 'studio-owner' ? (
                 <>
                   <Link href="#pricing" onClick={() => onCtaClick('hero', '#pricing')}>
                     <Button variant="outline" className="border-white/30 text-white hover:bg-white hover:text-gray-900 px-8 py-3 text-lg rounded-xl">
@@ -238,6 +243,11 @@ export default function HomePage() {
                     </Button>
                   </Link>
                 </>
+              ) : (
+                <div className="hidden sm:flex gap-4">
+                  <Button variant="outline" className="px-8 py-3 text-lg rounded-xl opacity-0 pointer-events-none select-none">Placeholder</Button>
+                  <Button variant="outline" className="px-8 py-3 text-lg rounded-xl opacity-0 pointer-events-none select-none">Placeholder</Button>
+                </div>
               )}
             </div>
             <div className="mt-8 flex flex-wrap justify-center gap-4 text-white/70 text-sm">
