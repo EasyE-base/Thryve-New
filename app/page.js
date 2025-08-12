@@ -287,11 +287,8 @@ export default function HomePage() {
         }
         .animate-float-slow { animation: float-slow 10s ease-in-out infinite; }
         .animate-float-slower { animation: float-slower 14s ease-in-out infinite; }
-        .reveal-up { opacity: 0; transform: translateY(14px); transition: opacity .6s ease, transform .6s ease; }
-        .in-view .reveal-up, .reveal-up.in-view { opacity: 1; transform: translateY(0); }
-        @media (prefers-reduced-motion: reduce) {
-          .reveal-up { opacity: 1; transform: none; }
-        }
+        /* Temporarily disable reveal animations to ensure full visibility */
+        .reveal-up { opacity: 1 !important; transform: none !important; }
       `}</style>
 
       {/* Steps (persona-specific) */}
@@ -307,10 +304,10 @@ export default function HomePage() {
               {title:'Customize your journey', desc:'Pick role and complete the guided steps.'},
               {title:'Launch and grow', desc:'Go live with dashboards and real-time data.'}
             ].map((s, i) => (
-              <div key={i} className="bg-white/70 backdrop-blur rounded-2xl border border-gray-100 p-8 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.15)] reveal-up" style={{ transitionDelay: `${i * 60}ms` }}>
-                <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-700 font-semibold mb-4">{i+1}</div>
+              <div key={i} className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm reveal-up" style={{ transitionDelay: `${i * 60}ms` }}>
+                <div className="w-10 h-10 rounded-full bg-gray-900 text-white flex items-center justify-center font-semibold mb-4">{i+1}</div>
                 <h3 className="text-xl font-semibold text-gray-900">{s.title}</h3>
-                <p className="mt-2 text-gray-600">{s.desc}</p>
+                <p className="mt-2 text-gray-700">{s.desc}</p>
               </div>
             ))}
           </div>
@@ -322,7 +319,7 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Why teams choose Thryve</h2>
-            <p className="mt-3 text-gray-600">Conversion-first design with scalable architecture.</p>
+            <p className="mt-3 text-gray-700">Conversion-first design with scalable architecture.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
@@ -333,10 +330,10 @@ export default function HomePage() {
               {icon: <Rocket className="h-6 w-6 text-indigo-600" />, t:'Fast redirects', d:'Robust role persistence and guard logic.'},
               {icon: <CheckCircle2 className="h-6 w-6 text-indigo-600" />, t:'Production-ready', d:'CI-friendly, Vercel-ready, and tested E2E.'}
             ].map((b, i) => (
-              <div key={i} className="rounded-2xl border border-gray-100 p-8 bg-white shadow-sm hover:shadow-md transition-shadow reveal-up" style={{ transitionDelay: `${i * 80}ms` }}>
+              <div key={i} className="rounded-2xl border border-gray-200 p-8 bg-white shadow-sm hover:shadow-md transition-shadow reveal-up" style={{ transitionDelay: `${i * 80}ms` }}>
                 <div className="mb-3 inline-flex items-center justify-center rounded-lg bg-indigo-50 p-2">{b.icon}</div>
                 <h3 className="text-lg font-semibold text-gray-900">{b.t}</h3>
-                <p className="mt-2 text-gray-600">{b.d}</p>
+                <p className="mt-2 text-gray-700">{b.d}</p>
               </div>
             ))}
           </div>
@@ -346,7 +343,7 @@ export default function HomePage() {
       
 
       {/* Pricing */}
-      <section className="py-20 bg-white" data-animate>
+      <section id="pricing" className="py-20 bg-white" data-animate>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Simple pricing</h2>
