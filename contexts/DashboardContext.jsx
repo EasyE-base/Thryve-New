@@ -190,7 +190,12 @@ export const DashboardProvider = ({ children, role }) => {
         }
         
         const token = await user.getIdToken()
-        ws = new WebSocket(`${process.env.NEXT_PUBLIC_WS_URL}/dashboard/${user.uid}?token=${token}`)
+        const baseWs = process.env.NEXT_PUBLIC_WS_URL || (typeof window !== 'undefined' ? `wss://${window.location.host}` : '')
+        if (!baseWs) {
+          console.log('⚠️ WebSocket base URL not configured; skipping WS connection')
+          return
+        }
+        ws = new WebSocket(`${baseWs}/dashboard/${user.uid}?token=${token}`)
         
         ws.onopen = () => {
           console.log('✅ Dashboard WebSocket connected')

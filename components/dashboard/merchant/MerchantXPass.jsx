@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useDashboard } from '@/contexts/DashboardContext'
+import { useAuth } from '@/components/auth-provider'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -22,6 +23,7 @@ import { toast } from 'sonner'
 // ✅ MERCHANT X PASS MANAGEMENT
 export default function MerchantXPass() {
   const { studio, xPassData, loading, refreshData } = useDashboard()
+  const { user } = useAuth()
   const [isEditing, setIsEditing] = useState(false)
   const [settings, setSettings] = useState({
     enabled: xPassData?.enabled || false,
@@ -37,9 +39,14 @@ export default function MerchantXPass() {
   // ✅ TOGGLE X PASS ENABLED
   const handleToggleXPass = async (enabled) => {
     try {
+      if (!user) throw new Error('Not authenticated')
+      const token = await user.getIdToken()
       const response = await fetch('/api/xpass/toggle', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ enabled })
       })
 
@@ -58,9 +65,14 @@ export default function MerchantXPass() {
   // ✅ SAVE X PASS SETTINGS
   const handleSaveSettings = async () => {
     try {
+      if (!user) throw new Error('Not authenticated')
+      const token = await user.getIdToken()
       const response = await fetch('/api/xpass/settings', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(settings)
       })
 
