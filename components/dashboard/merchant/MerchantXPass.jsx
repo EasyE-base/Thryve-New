@@ -41,7 +41,7 @@ export default function MerchantXPass() {
     try {
       if (!user) throw new Error('Not authenticated')
       const token = await user.getIdToken()
-      const response = await fetch('/server-api/studio/xpass-settings', {
+      const response = await fetch('/api/xpass/settings', {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -67,7 +67,7 @@ export default function MerchantXPass() {
     try {
       if (!user) throw new Error('Not authenticated')
       const token = await user.getIdToken()
-      const response = await fetch('/server-api/studio/xpass-settings', {
+      const response = await fetch('/api/xpass/settings', {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -101,7 +101,7 @@ export default function MerchantXPass() {
       try {
         if (!user) return
         const token = await user.getIdToken()
-        const resp = await fetch('/server-api/studio/xpass-settings', {
+        const resp = await fetch('/api/xpass/settings', {
           headers: { 'Authorization': `Bearer ${token}` }
         })
         if (!resp.ok) return
