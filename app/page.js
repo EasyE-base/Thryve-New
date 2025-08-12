@@ -12,6 +12,7 @@ export default function HomePage() {
   const { user, loading } = useAuth()
   const [mounted, setMounted] = useState(false)
   const [showSignInModal, setShowSignInModal] = useState(false)
+  const [showFloatingCta, setShowFloatingCta] = useState(false)
   const phrases = [
     'big thing',
     'store they line up for',
@@ -30,6 +31,17 @@ export default function HomePage() {
       setPhraseIndex((i) => (i + 1) % phrases.length)
     }, 2200)
     return () => clearInterval(id)
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const onScroll = () => {
+      const trigger = Math.min(window.innerHeight * 0.6, 600)
+      setShowFloatingCta(window.scrollY > trigger)
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    onScroll()
+    return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
   if (!mounted || loading) {
@@ -143,6 +155,20 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Floating CTA */}
+      {showFloatingCta && (
+        <div className="fixed inset-x-0 bottom-4 z-[60] flex justify-center px-4">
+          <div className="max-w-3xl w-full rounded-2xl bg-white/85 backdrop-blur border border-gray-200 shadow-lg ring-1 ring-black/5 p-4 flex items-center justify-between gap-3">
+            <div className="text-sm md:text-base text-gray-700">
+              Ready to launch? <span className="font-semibold text-gray-900">Start for free</span> in minutes.
+            </div>
+            <Link href="/signup">
+              <Button className="rounded-xl bg-gray-900 hover:bg-black text-white">Start for free</Button>
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Brands Strip */}
       <section className="bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -190,10 +216,15 @@ export default function HomePage() {
         }
         .animate-float-slow { animation: float-slow 10s ease-in-out infinite; }
         .animate-float-slower { animation: float-slower 14s ease-in-out infinite; }
+        .reveal-up { opacity: 0; transform: translateY(14px); transition: opacity .6s ease, transform .6s ease; }
+        .in-view .reveal-up, .reveal-up.in-view { opacity: 1; transform: translateY(0); }
+        @media (prefers-reduced-motion: reduce) {
+          .reveal-up { opacity: 1; transform: none; }
+        }
       `}</style>
 
       {/* Steps */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-20 bg-gray-50" data-animate>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Get started in minutes</h2>
@@ -205,7 +236,7 @@ export default function HomePage() {
               {title:'Customize your journey', desc:'Pick role and complete the guided steps.'},
               {title:'Launch and grow', desc:'Go live with dashboards and real-time data.'}
             ].map((s, i) => (
-              <div key={i} className="bg-white/70 backdrop-blur rounded-2xl border border-gray-100 p-8 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.15)]">
+              <div key={i} className="bg-white/70 backdrop-blur rounded-2xl border border-gray-100 p-8 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.15)] reveal-up" style={{ transitionDelay: `${i * 60}ms` }}>
                 <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-700 font-semibold mb-4">{i+1}</div>
                 <h3 className="text-xl font-semibold text-gray-900">{s.title}</h3>
                 <p className="mt-2 text-gray-600">{s.desc}</p>
@@ -216,7 +247,7 @@ export default function HomePage() {
       </section>
 
       {/* Benefits */}
-      <section className="py-20 bg-white">
+      <section className="py-20 bg-white" data-animate>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Why teams choose Thryve</h2>
@@ -231,7 +262,7 @@ export default function HomePage() {
               {icon: <Rocket className="h-6 w-6 text-indigo-600" />, t:'Fast redirects', d:'Robust role persistence and guard logic.'},
               {icon: <CheckCircle2 className="h-6 w-6 text-indigo-600" />, t:'Production-ready', d:'CI-friendly, Vercel-ready, and tested E2E.'}
             ].map((b, i) => (
-              <div key={i} className="rounded-2xl border border-gray-100 p-8 bg-white shadow-sm hover:shadow-md transition-shadow">
+              <div key={i} className="rounded-2xl border border-gray-100 p-8 bg-white shadow-sm hover:shadow-md transition-shadow reveal-up" style={{ transitionDelay: `${i * 80}ms` }}>
                 <div className="mb-3 inline-flex items-center justify-center rounded-lg bg-indigo-50 p-2">{b.icon}</div>
                 <h3 className="text-lg font-semibold text-gray-900">{b.t}</h3>
                 <p className="mt-2 text-gray-600">{b.d}</p>
@@ -242,7 +273,7 @@ export default function HomePage() {
       </section>
 
       {/* Testimonials */}
-      <section className="py-20 bg-gray-50">
+      <section className="py-20 bg-gray-50" data-animate>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Loved by studios and instructors</h2>
@@ -254,7 +285,7 @@ export default function HomePage() {
               {q:'“Clean UI, clear steps, less support tickets.”', a:'Instructor'},
               {q:'“Fast signup and I was booking classes instantly.”', a:'Customer'}
             ].map((t, i) => (
-              <div key={i} className="rounded-2xl border border-gray-100 bg-white p-8 shadow-sm">
+              <div key={i} className="rounded-2xl border border-gray-100 bg-white p-8 shadow-sm reveal-up" style={{ transitionDelay: `${i * 100}ms` }}>
                 <div className="flex items-center gap-2 text-yellow-500 mb-4">
                   {Array.from({length:5}).map((_,idx)=> (
                     <Star key={idx} className="h-4 w-4 fill-yellow-500 text-yellow-500" />
@@ -272,7 +303,7 @@ export default function HomePage() {
       </section>
 
       {/* Pricing */}
-      <section className="py-20 bg-white">
+      <section className="py-20 bg-white" data-animate>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Simple pricing</h2>
@@ -284,7 +315,7 @@ export default function HomePage() {
               {name:'Growth', price:'$49/mo', features:['All Starter','Studio tools','Instructor payouts'], cta:'Choose Growth', primary:true},
               {name:'Scale', price:'$149/mo', features:['All Growth','Advanced analytics','Priority support'], cta:'Choose Scale', primary:false}
             ].map((p, i) => (
-              <div key={i} className={`rounded-2xl border ${p.primary ? 'border-indigo-200 shadow-xl ring-1 ring-indigo-100' : 'border-gray-100'} p-8 bg-white` }>
+              <div key={i} className={`rounded-2xl border ${p.primary ? 'border-indigo-200 shadow-xl ring-1 ring-indigo-100' : 'border-gray-100'} p-8 bg-white reveal-up` } style={{ transitionDelay: `${i * 70}ms` }}>
                 <h3 className="text-xl font-bold text-gray-900">{p.name}</h3>
                 <div className="mt-2 text-4xl font-extrabold text-gray-900">{p.price}</div>
                 <ul className="mt-6 space-y-2 text-gray-600">
@@ -310,13 +341,13 @@ export default function HomePage() {
           <div className="text-center mb-10">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Frequently asked questions</h2>
           </div>
-          <Accordion type="single" collapsible className="bg-white rounded-xl border border-gray-100">
+          <Accordion type="single" collapsible className="bg-white rounded-xl border border-gray-100" data-animate>
             {[
               {q:'Can I use a .mov for the hero?', a:'Yes, but for the web we serve MP4 and WEBM with a poster. MOV is not recommended for production.'},
               {q:'Does the dashboard show real data?', a:'Yes. We removed mock data and return Firestore results or empty states.'},
               {q:'Is the onboarding role-aware?', a:'Yes. Role is persisted and redirects are enforced for correct flows.'}
             ].map((f, i) => (
-              <AccordionItem key={i} value={`item-${i}`}>
+              <AccordionItem key={i} value={`item-${i}`} className="reveal-up" style={{ transitionDelay: `${i * 50}ms` }}>
                 <AccordionTrigger className="px-6">{f.q}</AccordionTrigger>
                 <AccordionContent className="px-6 text-gray-600">{f.a}</AccordionContent>
               </AccordionItem>
