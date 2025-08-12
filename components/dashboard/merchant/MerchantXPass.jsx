@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useDashboard } from '@/contexts/DashboardContext'
 import { useAuth } from '@/components/auth-provider'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -41,13 +41,13 @@ export default function MerchantXPass() {
     try {
       if (!user) throw new Error('Not authenticated')
       const token = await user.getIdToken()
-      const response = await fetch('/api/xpass/toggle', {
-        method: 'POST',
+      const response = await fetch('/server-api/studio/xpass-settings', {
+        method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ enabled })
+        body: JSON.stringify({ xpassEnabled: enabled })
       })
 
       if (response.ok) {
@@ -67,13 +67,20 @@ export default function MerchantXPass() {
     try {
       if (!user) throw new Error('Not authenticated')
       const token = await user.getIdToken()
-      const response = await fetch('/api/xpass/settings', {
+      const response = await fetch('/server-api/studio/xpass-settings', {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(settings)
+        body: JSON.stringify({
+          xpassEnabled: settings.enabled,
+          // Optionally map more fields when backend supports them in UI
+          // acceptedClassTypes: settings.availability === 'all_classes' ? [] : ['specific'],
+          // cancellationWindow: 2,
+          // noShowFee: 15,
+          // lateCancelFee: 10
+        })
       })
 
       if (response.ok) {
@@ -87,6 +94,29 @@ export default function MerchantXPass() {
       toast.error('Failed to save X Pass settings')
     }
   }
+
+  // Fetch current X Pass settings from server on mount
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        if (!user) return
+        const token = await user.getIdToken()
+        const resp = await fetch('/server-api/studio/xpass-settings', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        if (!resp.ok) return
+        const data = await resp.json()
+        setSettings(prev => ({
+          ...prev,
+          enabled: !!data.xpassEnabled
+        }))
+      } catch (e) {
+        // Silent fail; UI shows defaults
+      }
+    }
+    fetchSettings()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user])
 
   // ✅ MOCK DATA FOR DEMONSTRATION
   const xPassStats = {
