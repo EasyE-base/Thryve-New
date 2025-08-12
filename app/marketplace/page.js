@@ -93,10 +93,11 @@ export default function MarketplacePage() {
     }
   }
 
-  // Access control: B2B only (studio owners)
+  // Access control: B2B only (studio owners/merchants)
   useEffect(() => {
     if (!user) return
-    if (role !== 'studio-owner') {
+    // Allow roles: 'studio' or 'merchant'
+    if (role !== 'studio' && role !== 'merchant') {
       router.replace('/marketplace/gate')
       return
     }
