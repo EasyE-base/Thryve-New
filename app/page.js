@@ -244,9 +244,9 @@ export default function HomePage() {
                   </Link>
                 </>
               ) : (
-                <div className="hidden sm:flex gap-4">
-                  <Button variant="outline" className="px-8 py-3 text-lg rounded-xl opacity-0 pointer-events-none select-none">Placeholder</Button>
-                  <Button variant="outline" className="px-8 py-3 text-lg rounded-xl opacity-0 pointer-events-none select-none">Placeholder</Button>
+                <div className="flex gap-4">
+                  <Button variant="outline" className="px-8 py-3 text-lg rounded-xl invisible select-none">Placeholder</Button>
+                  <Button variant="outline" className="px-8 py-3 text-lg rounded-xl invisible select-none">Placeholder</Button>
                 </div>
               )}
             </div>
