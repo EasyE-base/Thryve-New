@@ -20,23 +20,53 @@ service cloud.firestore {
         request.resource.data.ownerId == request.auth.uid;
     }
     
-    // Classes collection - public read, restricted write
+    // Classes collection - merchant CRUD, instructor limited updates
     match /classes/{classId} {
+      function classStudioOwnerId(data) {
+        return get(/databases/$(database)/documents/studios/$(data.studioId)).data.ownerId;
+      }
+
       allow read: if request.auth != null;
-      allow write: if request.auth != null && 
-        (resource.data.instructorId == request.auth.uid ||
-         resource.data.studioOwnerId == request.auth.uid);
+
+      // Create: only studio owner of the referenced studio
+      allow create: if request.auth != null &&
+        classStudioOwnerId(request.resource.data) == request.auth.uid;
+
+      // Update:
+      // - Studio owner: full update (studioId cannot change)
+      // - Assigned instructor: only startTime, endTime, notes
+      allow update: if request.auth != null && (
+        (
+          classStudioOwnerId(resource.data) == request.auth.uid &&
+          request.resource.data.studioId == resource.data.studioId
+        ) || (
+          resource.data.instructorId == request.auth.uid &&
+          request.resource.data.diff(resource.data).changedKeys().hasOnly(['startTime','endTime','notes']) &&
+          request.resource.data.studioId == resource.data.studioId &&
+          request.resource.data.instructorId == resource.data.instructorId
+        )
+      );
+
+      // Delete: only studio owner
+      allow delete: if request.auth != null &&
+        classStudioOwnerId(resource.data) == request.auth.uid;
     }
     
-    // Bookings collection - users can manage their own bookings
+    // Bookings collection - customers manage their own
     match /bookings/{bookingId} {
-      allow read, write: if request.auth != null && 
-        resource.data.userId == request.auth.uid;
-      
-      // Studio owners and instructors can read bookings for their classes
-      allow read: if request.auth != null && 
-        (resource.data.instructorId == request.auth.uid ||
-         resource.data.studioOwnerId == request.auth.uid);
+      allow read: if request.auth != null;
+
+      // Create: user books for self
+      allow create: if request.auth != null &&
+        request.resource.data.userId == request.auth.uid;
+
+      // Update (cancel): user can update own booking only (status change)
+      allow update: if request.auth != null &&
+        resource.data.userId == request.auth.uid &&
+        request.resource.data.userId == resource.data.userId;
+
+      // Delete: disallow deletes; perform logical cancel via update
+      allow delete: if false;
     }
     
     // Instructor marketplace profiles (read by all authenticated users)
