@@ -12,9 +12,25 @@ export default function HomePage() {
   const { user, loading } = useAuth()
   const [mounted, setMounted] = useState(false)
   const [showSignInModal, setShowSignInModal] = useState(false)
+  const phrases = [
+    'big thing',
+    'store they line up for',
+    'one to watch',
+    'category creator',
+    'household name',
+    'global empire'
+  ]
+  const [phraseIndex, setPhraseIndex] = useState(0)
 
   // Client-only mounting to prevent SSR/hydration mismatch
   useEffect(() => setMounted(true), [])
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setPhraseIndex((i) => (i + 1) % phrases.length)
+    }, 2200)
+    return () => clearInterval(id)
+  }, [])
 
   if (!mounted || loading) {
     return (
@@ -85,13 +101,15 @@ export default function HomePage() {
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-40">
           <div className="text-center">
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-white leading-tight">
-              Build your
-              <span className="mx-2 bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white"> signup journey</span>
-              with clarity and speed
+            <div className="text-white/80 text-lg font-medium">Be the next</div>
+            <h1 className="mt-2 text-4xl md:text-7xl lg:text-8xl font-extrabold tracking-tight text-white leading-[1.05]">
+              <span className="sr-only">Be the next</span>
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white">
+                {phrases[phraseIndex]}
+              </span>
             </h1>
-            <p className="mt-5 text-lg md:text-xl text-white/80 max-w-2xl mx-auto">
-              Modern onboarding that converts, scales, and looks amazing.
+            <p className="mt-6 text-lg md:text-xl text-white/80 max-w-2xl mx-auto">
+              Dream big, build fast, and grow far with role-based onboarding and world-class dashboards.
             </p>
             <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/signup">
@@ -105,6 +123,20 @@ export default function HomePage() {
                 </Button>
               </Link>
             </div>
+            <div className="mt-8 flex flex-wrap justify-center gap-4 text-white/70 text-sm">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 backdrop-blur">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                Fast setup
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 backdrop-blur">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                Secure by default
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 backdrop-blur">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                Live data
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -112,13 +144,11 @@ export default function HomePage() {
       {/* Brands Strip */}
       <section className="bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="text-center mb-6">
-            <p className="text-sm uppercase tracking-wider text-gray-500">Trusted by modern teams</p>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-8 items-center opacity-70">
+          <p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-gray-500 mb-6">Trusted by modern teams</p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-8 items-center">
             {['Arcadia','Summit','Pulse','Northstar','Cascade','Vertex'].map((logo) => (
-              <div key={logo} className="text-center text-gray-400 font-semibold text-sm">
-                {logo}
+              <div key={logo} className="flex items-center justify-center">
+                <div className="h-6 w-28 rounded bg-gray-200/70" aria-label={`${logo} logo`} />
               </div>
             ))}
           </div>
