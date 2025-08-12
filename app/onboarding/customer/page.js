@@ -192,8 +192,24 @@ export default function CustomerOnboarding() {
         createdAt: new Date()
       }
 
+      // Sanitize to avoid undefined
+      const sanitizeForFirestore = (value) => {
+        if (Array.isArray(value)) {
+          return value.map(sanitizeForFirestore).filter((v) => v !== undefined)
+        }
+        if (value && typeof value === 'object') {
+          const out = {}
+          Object.entries(value).forEach(([k, v]) => {
+            const sv = sanitizeForFirestore(v)
+            out[k] = sv === undefined ? null : sv
+          })
+          return out
+        }
+        return value === undefined ? null : value
+      }
+
       // Save to users collection
-      await setDoc(doc(db, 'users', user.uid), completeFormData, { merge: true })
+      await setDoc(doc(db, 'users', user.uid), sanitizeForFirestore(completeFormData), { merge: true })
 
       // Create customer-specific profile
       await setDoc(doc(db, 'customers', user.uid), {
