@@ -18,10 +18,14 @@ export default function MarketplaceGatePage() {
         const ref = doc(db, 'users', user.uid)
         const snap = await getDoc(ref)
         const currentRole = snap.exists() ? snap.data().role : null
-        if (currentRole !== 'studio' && currentRole !== 'merchant') {
+        if (currentRole === 'studio' || currentRole === 'merchant') {
+          // Already a studio/merchant – send straight to marketplace
+          router.push('/marketplace')
+        } else {
+          // First-time selection – mark as studio owner and go to onboarding to complete profile
           await updateDoc(ref, { role: 'studio', roleSelectedAt: new Date(), onboardingStatus: 'started' })
+          router.push('/onboarding/merchant')
         }
-        router.push('/onboarding/merchant')
       } else {
         // Not logged in: take them to signup prefilled as studio owner
         router.push('/signup?role=studio&next=/marketplace')
