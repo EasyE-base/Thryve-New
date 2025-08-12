@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/auth-provider'
+import { useRouter } from 'next/navigation'
 import { Search, Filter, MapPin, Star, Clock, DollarSign, Users, Award } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,7 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner'
 
 export default function MarketplacePage() {
-  const { user } = useAuth()
+  const { user, role } = useAuth()
+  const router = useRouter()
   const [instructors, setInstructors] = useState([])
   const [loading, setLoading] = useState(false)
   const [stats, setStats] = useState(null)
@@ -91,12 +93,15 @@ export default function MarketplacePage() {
     }
   }
 
-  // Load initial data
+  // Access control: B2B only (studio owners)
   useEffect(() => {
-    if (user) {
-      searchInstructors()
+    if (!user) return
+    if (role !== 'studio-owner') {
+      router.replace('/marketplace/gate')
+      return
     }
-  }, [user])
+    searchInstructors()
+  }, [user, role])
 
   // Handle specialty filter toggle
   const toggleSpecialty = (specialty) => {
@@ -146,15 +151,15 @@ export default function MarketplacePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero Section */}
+      {/* Hero Section (B2B only) */}
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
         <div className="container mx-auto px-4 py-16">
           <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-4xl md:text-6xl font-bold mb-6">
-              Find Your Perfect Instructor
+              Find Qualified Instructors for Your Studio
             </h1>
             <p className="text-xl md:text-2xl mb-8 opacity-90">
-              Connect with verified fitness professionals for your studio
+              A hiring network between studios and instructors. Not for consumer bookings.
             </p>
             
             {/* Search Bar */}
@@ -214,6 +219,9 @@ export default function MarketplacePage() {
 
       {/* Main Content */}
       <div className="container mx-auto px-4 py-8">
+        <div className="mb-6 rounded-lg border border-blue-100 bg-blue-50 text-blue-900 px-4 py-3 text-sm">
+          Studios can browse opted-in instructors, send invitations, and track responses. Instructors manage visibility and invites in their dashboard.
+        </div>
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Filters Sidebar */}
           <div className="lg:w-1/4">
@@ -433,7 +441,7 @@ function InstructorCard({ instructor, onSelect, onBook }) {
           }}
           className="w-full bg-blue-600 hover:bg-blue-700"
         >
-          Book Now
+          Send Invitation
         </Button>
       </CardContent>
     </Card>
