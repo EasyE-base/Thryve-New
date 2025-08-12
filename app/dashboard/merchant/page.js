@@ -14,6 +14,7 @@ import MerchantXPass from '@/components/dashboard/merchant/MerchantXPass'
 import MerchantCalendar from '@/components/dashboard/merchant/MerchantCalendar'
 import MerchantMessages from '@/components/dashboard/merchant/MerchantMessages'
 import MerchantSettings from '@/components/dashboard/merchant/MerchantSettings'
+import MerchantMarketplace from '@/components/dashboard/merchant/MerchantMarketplace'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import { toast } from 'sonner'
@@ -43,6 +44,8 @@ function MerchantDashboardContent() {
         return <MerchantCalendar />
       case 'messages':
         return <MerchantMessages />
+      case 'marketplace':
+        return <MerchantMarketplace />
       case 'settings':
         return <MerchantSettings />
       default:

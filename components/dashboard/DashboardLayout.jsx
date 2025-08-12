@@ -34,6 +34,7 @@ export default function DashboardLayout({ children, role }) {
       case 'merchant':
         return [
           ...baseItems,
+          { id: 'marketplace', label: 'Marketplace', icon: Search },
           { id: 'classes', label: 'Classes', icon: Dumbbell },
           { id: 'instructors', label: 'Instructors', icon: Users },
           { id: 'customers', label: 'Customers', icon: Users },
