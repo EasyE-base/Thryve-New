@@ -4,15 +4,17 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/auth-provider'
 import { Button } from '@/components/ui/button'
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion'
-import { Shield, Rocket, BarChart3, Layers, Zap, CheckCircle2, Star } from 'lucide-react'
+import { Shield, Rocket, BarChart3, Layers, Zap, CheckCircle2 } from 'lucide-react'
 import Link from 'next/link'
 import SignInModal from '@/components/landing/SignInModal'
 
 export default function HomePage() {
-  const { user, loading } = useAuth()
+  const { user, loading, role } = useAuth()
   const [mounted, setMounted] = useState(false)
   const [showSignInModal, setShowSignInModal] = useState(false)
   const [showFloatingCta, setShowFloatingCta] = useState(false)
+  // Persona state: 'studio-owner' | 'instructor' | 'customer'
+  const [persona, setPersona] = useState('studio-owner')
   const phrases = [
     'big thing',
     'store they line up for',
@@ -43,6 +45,86 @@ export default function HomePage() {
     onScroll()
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
+
+  // Initialize persona from query or localStorage
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    const roleParam = params.get('role')
+    const stored = window.localStorage.getItem('thryve.persona')
+    let initial = 'studio-owner'
+    if (roleParam === 'merchant') initial = 'studio-owner'
+    else if (roleParam === 'instructor') initial = 'instructor'
+    else if (roleParam === 'customer') initial = 'customer'
+    else if (stored) initial = stored
+    setPersona(initial)
+  }, [])
+
+  // dataLayer stub
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    window.dataLayer = window.dataLayer || []
+  }, [])
+
+  const trackEvent = (event, payload) => {
+    if (typeof window === 'undefined') return
+    window.dataLayer = window.dataLayer || []
+    window.dataLayer.push({ event, ...payload })
+  }
+
+  const handlePersonaChange = (next) => {
+    setPersona(next)
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('thryve.persona', next)
+      const url = new URL(window.location.href)
+      url.searchParams.set('role', next === 'studio-owner' ? 'merchant' : next)
+      window.history.replaceState({}, '', url.toString())
+    }
+    trackEvent('persona_select', { persona: next })
+  }
+
+  const onCtaClick = (location, dest) => {
+    trackEvent('cta_click', { persona, location, dest })
+  }
+
+  const heroCopy = {
+    'studio-owner': {
+      headline: 'Launch and grow your studio. Bookings, payouts, analytics—done.',
+      cta: { label: 'Start your studio', href: '/signup?role=merchant' },
+    },
+    instructor: {
+      headline: 'Fill your schedule and get paid on time.',
+      cta: { label: 'Earn with classes', href: '/signup?role=instructor' },
+    },
+    customer: {
+      headline: 'Discover classes near you. Book in seconds.',
+      cta: { label: 'Get started', href: '/signup?role=customer' },
+    },
+  }
+
+  const benefitsByPersona = {
+    'studio-owner': [
+      'Automated payouts via Stripe',
+      'Real-time capacity & bookings',
+      'Hire and schedule instructors fast',
+    ],
+    instructor: [
+      'Set rates & availability',
+      'Get hired by vetted studios',
+      'Guaranteed payouts after sessions',
+    ],
+    customer: [
+      'Nearby classes that fit your schedule',
+      'One-tap checkout',
+      'Track favorites & history',
+    ],
+  }
+
+  const stepsByPersona = {
+    'studio-owner': ['Create studio', 'Publish classes', 'Get paid (Stripe)'],
+    instructor: ['Create profile', 'Set availability', 'Accept bookings'],
+    customer: ['Pick class', 'Pay / Use X Pass', 'Check-in'],
+  }
 
   if (!mounted || loading) {
     return (
@@ -115,41 +197,53 @@ export default function HomePage() {
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-40">
           <div className="text-center">
-            <div className="text-white/80 text-lg font-medium">Be the next</div>
-            <h1 className="mt-2 text-4xl md:text-7xl lg:text-8xl font-extrabold tracking-tight text-white leading-[1.05]">
-              <span className="sr-only">Be the next</span>
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white">
-                {phrases[phraseIndex]}
-              </span>
-            </h1>
+            <h1 className="text-3xl md:text-6xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.15]">{heroCopy[persona].headline}</h1>
+            {/* Persona switcher */}
+            <div className="mt-6 inline-flex items-center rounded-full border border-white/20 bg-white/10 backdrop-blur p-1 text-white">
+              {[
+                { id: 'studio-owner', label: 'Studios' },
+                { id: 'instructor', label: 'Instructors' },
+                { id: 'customer', label: 'Enthusiasts' },
+              ].map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => handlePersonaChange(p.id)}
+                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${persona === p.id ? 'bg-white text-gray-900' : 'text-white'}`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
             <p className="mt-6 text-lg md:text-xl text-white/80 max-w-2xl mx-auto">
-              Dream big, build fast, and grow far with role-based onboarding and world-class dashboards.
+              {persona === 'studio-owner' && 'Powerful tools to manage classes, payouts via Stripe, and growth analytics.'}
+              {persona === 'instructor' && 'Showcase your expertise, set availability, and get hired by vetted studios.'}
+              {persona === 'customer' && 'Browse nearby classes, checkout fast, and track your fitness journey.'}
             </p>
             <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/signup">
+              <Link href={heroCopy[persona].cta.href} onClick={() => onCtaClick('hero', heroCopy[persona].cta.href)}>
                 <Button className="bg-white text-gray-900 hover:bg-gray-100 px-8 py-3 text-lg font-semibold rounded-xl shadow-lg shadow-black/20 ring-1 ring-black/5">
-                  Start for free
+                  {heroCopy[persona].cta.label}
                 </Button>
               </Link>
-              <Link href="/pricing">
-                <Button variant="outline" className="border-white/30 text-white hover:bg-white hover:text-gray-900 px-8 py-3 text-lg rounded-xl">
-                  See pricing
-                </Button>
-              </Link>
+              {persona === 'studio-owner' && (
+                <>
+                  <Link href="#pricing" onClick={() => onCtaClick('hero', '#pricing')}>
+                    <Button variant="outline" className="border-white/30 text-white hover:bg-white hover:text-gray-900 px-8 py-3 text-lg rounded-xl">
+                      See pricing
+                    </Button>
+                  </Link>
+                  <Link href={user ? (role === 'studio-owner' ? '/marketplace' : '/marketplace/gate') : '/signup?role=merchant&next=/marketplace'} onClick={() => onCtaClick('hero', user ? (role === 'studio-owner' ? '/marketplace' : '/marketplace/gate') : '/signup?role=merchant&next=/marketplace')}>
+                    <Button variant="outline" className="border-white/30 text-white hover:bg-white hover:text-gray-900 px-8 py-3 text-lg rounded-xl">
+                      Find instructors
+                    </Button>
+                  </Link>
+                </>
+              )}
             </div>
             <div className="mt-8 flex flex-wrap justify-center gap-4 text-white/70 text-sm">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 backdrop-blur">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                Fast setup
-              </div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 backdrop-blur">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                Secure by default
-              </div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 backdrop-blur">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                Live data
-              </div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 backdrop-blur"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Fast setup</div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 backdrop-blur"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Secure by default</div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 backdrop-blur"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Payouts via Stripe</div>
             </div>
           </div>
         </div>
@@ -223,7 +317,7 @@ export default function HomePage() {
         }
       `}</style>
 
-      {/* Steps */}
+      {/* Steps (persona-specific) */}
       <section className="py-20 bg-gray-50" data-animate>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
@@ -246,7 +340,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Benefits */}
+      {/* Benefits (persona-specific) */}
       <section className="py-20 bg-white" data-animate>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
