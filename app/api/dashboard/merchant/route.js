@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getFirebaseUser, adminDb } from '@/lib/firebase-admin'
+import { getFirebaseUser, initAdmin } from '@/lib/firebase-admin'
 
 export async function GET(request) {
   try {
@@ -10,24 +10,25 @@ export async function GET(request) {
     }
 
     // Fetch real data from Firestore with safe defaults
-    const studioRef = adminDb.collection('studios').doc(firebaseUser.uid)
+    const { db } = initAdmin()
+    const studioRef = db.collection('studios').doc(firebaseUser.uid)
     const studioSnap = await studioRef.get()
     const studio = studioSnap.exists ? studioSnap.data() : null
 
     // Avoid composite index requirement: fetch by studioId and sort in memory
-    const classesSnap = await adminDb.collection('classes')
+    const classesSnap = await db.collection('classes')
       .where('studioId', '==', firebaseUser.uid)
       .limit(50).get()
     const classes = classesSnap.docs.map(d => ({ id: d.id, ...d.data() }))
       .sort((a, b) => (new Date(b.startTime || 0)) - (new Date(a.startTime || 0)))
 
-    const bookingsSnap = await adminDb.collection('bookings')
+    const bookingsSnap = await db.collection('bookings')
       .where('studioId', '==', firebaseUser.uid)
       .limit(50).get()
     const bookings = bookingsSnap.docs.map(d => ({ id: d.id, ...d.data() }))
       .sort((a, b) => (new Date(b.createdAt || 0)) - (new Date(a.createdAt || 0)))
 
-    const instructorsSnap = await adminDb.collection('studio_staff')
+    const instructorsSnap = await db.collection('studio_staff')
       .where('studioId', '==', firebaseUser.uid).get()
     const instructors = instructorsSnap.docs.map(d => ({ id: d.id, ...d.data() }))
 
