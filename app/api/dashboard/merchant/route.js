@@ -14,15 +14,18 @@ export async function GET(request) {
     const studioSnap = await studioRef.get()
     const studio = studioSnap.exists ? studioSnap.data() : null
 
+    // Avoid composite index requirement: fetch by studioId and sort in memory
     const classesSnap = await adminDb.collection('classes')
       .where('studioId', '==', firebaseUser.uid)
-      .orderBy('startTime', 'desc').limit(50).get()
+      .limit(50).get()
     const classes = classesSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (new Date(b.startTime || 0)) - (new Date(a.startTime || 0)))
 
     const bookingsSnap = await adminDb.collection('bookings')
       .where('studioId', '==', firebaseUser.uid)
-      .orderBy('createdAt', 'desc').limit(50).get()
+      .limit(50).get()
     const bookings = bookingsSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (new Date(b.createdAt || 0)) - (new Date(a.createdAt || 0)))
 
     const instructorsSnap = await adminDb.collection('studio_staff')
       .where('studioId', '==', firebaseUser.uid).get()

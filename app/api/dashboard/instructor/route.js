@@ -10,20 +10,24 @@ export async function GET(request) {
     }
 
     // Fetch instructor profile and related data
-    const profileSnap = await (await import('firebase-admin/firestore')).getFirestore().collection('instructors').doc(firebaseUser.uid).get()
+    const { getFirestore } = await import('firebase-admin/firestore')
+    const db = getFirestore()
+    const profileSnap = await db.collection('instructors').doc(firebaseUser.uid).get()
     const profile = profileSnap.exists ? profileSnap.data() : null
 
-    const classesSnap = await (await import('firebase-admin/firestore')).getFirestore().collection('classes')
+    const classesSnap = await db.collection('classes')
       .where('instructorId', '==', firebaseUser.uid)
-      .orderBy('startTime', 'desc').limit(50).get()
+      .limit(50).get()
     const classes = classesSnap.docs.map(d => ({ id: d.id, ...d.data() }))
 
-    const bookingsSnap = await (await import('firebase-admin/firestore')).getFirestore().collection('bookings')
+    const bookingsSnap = await db.collection('bookings')
       .where('instructorId', '==', firebaseUser.uid)
-      .orderBy('createdAt', 'desc').limit(50).get()
+      .limit(50).get()
     const bookings = bookingsSnap.docs.map(d => ({ id: d.id, ...d.data() }))
 
-    const upcoming = classes.filter(c => c.startTime && Date.now() <= new Date(c.startTime).getTime())
+    const upcoming = classes
+      .sort((a,b) => (new Date(a.startTime || 0)) - (new Date(b.startTime || 0)))
+      .filter(c => c.startTime && Date.now() <= new Date(c.startTime).getTime())
     const overview = {
       totalClasses: classes.length,
       upcomingClasses: upcoming.length,
