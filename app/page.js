@@ -366,35 +366,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="py-20 bg-gray-50" data-animate>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Loved by studios and instructors</h2>
-            <p className="mt-3 text-gray-600">Real teams shipping better onboarding experiences.</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {q:'“The merchant flow finally just works. We launched in a day.”', a:'Studio Owner'},
-              {q:'“Clean UI, clear steps, less support tickets.”', a:'Instructor'},
-              {q:'“Fast signup and I was booking classes instantly.”', a:'Customer'}
-            ].map((t, i) => (
-              <div key={i} className="rounded-2xl border border-gray-100 bg-white p-8 shadow-sm reveal-up" style={{ transitionDelay: `${i * 100}ms` }}>
-                <div className="flex items-center gap-2 text-yellow-500 mb-4">
-                  {Array.from({length:5}).map((_,idx)=> (
-                    <Star key={idx} className="h-4 w-4 fill-yellow-500 text-yellow-500" />
-                  ))}
-                </div>
-                <p className="text-gray-900 text-lg leading-relaxed">{t.q}</p>
-                <div className="mt-6 flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-full bg-gray-200" />
-                  <p className="text-gray-500 text-sm">{t.a}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      
 
       {/* Pricing */}
       <section className="py-20 bg-white" data-animate>
