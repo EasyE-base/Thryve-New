@@ -128,6 +128,7 @@ export default function ThryveCalendar({ role, adapter, timezone, colorStrategy 
         dayMaxEvents={true}
         eventOverlap={true}
         events={events}
+        eventTimeFormat={{ hour: 'numeric', minute: '2-digit', meridiem: 'short' }}
         datesSet={handleDatesSet}
         dateClick={role === 'merchant' ? handleDateClick : undefined}
         eventDrop={handleEventDrop}
