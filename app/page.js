@@ -230,24 +230,12 @@ export default function HomePage() {
                 </Button>
               </Link>
               {/* Secondary slots reserved to avoid layout shifts */}
-              {persona === 'studio-owner' ? (
-                <>
-                  <Link href="#pricing" onClick={() => onCtaClick('hero', '#pricing')}>
-                    <Button variant="outline" className="border-white/30 text-white hover:bg-white hover:text-gray-900 px-8 py-3 text-lg rounded-xl">
-                      See pricing
-                    </Button>
-                  </Link>
-                  <Link href={user ? (role === 'studio-owner' ? '/marketplace' : '/marketplace/gate') : '/signup?role=merchant&next=/marketplace'} onClick={() => onCtaClick('hero', user ? (role === 'studio-owner' ? '/marketplace' : '/marketplace/gate') : '/signup?role=merchant&next=/marketplace')}>
-                    <Button variant="outline" className="border-white/30 text-white hover:bg-white hover:text-gray-900 px-8 py-3 text-lg rounded-xl">
-                      Find instructors
-                    </Button>
-                  </Link>
-                </>
-              ) : (
-                <div className="flex gap-4">
-                  <Button variant="outline" className="px-8 py-3 text-lg rounded-xl invisible select-none">Placeholder</Button>
-                  <Button variant="outline" className="px-8 py-3 text-lg rounded-xl invisible select-none">Placeholder</Button>
-                </div>
+              {persona === 'studio-owner' && (
+                <Link href="#pricing" onClick={() => onCtaClick('hero', '#pricing')}>
+                  <Button className="bg-white text-gray-900 hover:bg-gray-100 px-8 py-3 text-lg rounded-xl">
+                    See pricing
+                  </Button>
+                </Link>
               )}
             </div>
             <div className="mt-8 flex flex-wrap justify-center gap-4 text-white/70 text-sm">
@@ -273,28 +261,7 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Brands Strip */}
-      <section className="bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-gray-500 mb-6">Trusted by modern teams</p>
-          {/* Auto-scrolling brands strip */}
-          <div className="relative overflow-hidden">
-            <div className="pointer-events-none absolute left-0 top-0 h-full w-24 bg-gradient-to-r from-white to-transparent" />
-            <div className="pointer-events-none absolute right-0 top-0 h-full w-24 bg-gradient-to-l from-white to-transparent" />
-            <div className="flex items-center gap-12 whitespace-nowrap motion-safe:animate-marquee will-change-transform">
-              {Array.from({length:2}).map((_, dupIdx) => (
-                <div key={dupIdx} className="flex items-center gap-12">
-                  {['Arcadia','Summit','Pulse','Northstar','Cascade','Vertex','Harbor','Nimbus'].map((logo) => (
-                    <div key={`${logo}-${dupIdx}`} className="flex items-center justify-center">
-                      <div className="h-6 w-28 rounded bg-gray-200" aria-label={`${logo} logo`} />
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Removed brands strip per policy */}
 
       {/* Global animation helpers (scoped here) */}
       <style jsx global>{`
