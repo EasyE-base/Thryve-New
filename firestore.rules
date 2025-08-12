@@ -187,6 +187,40 @@ service cloud.firestore {
       allow read: if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == profileId;
     }
+
+    // Instructors marketplace profile (public-safe, owned by instructor)
+    match /instructors/{instructorId} {
+      // Read: authenticated merchants and the instructor
+      allow read: if request.auth != null;
+      // Write: instructor (owner) only
+      allow create, update, delete: if request.auth != null && request.auth.uid == instructorId;
+
+      // Weekly availability subcollection
+      match /availability/{docId} {
+        allow read: if request.auth != null;
+        allow write: if request.auth != null && request.auth.uid == instructorId;
+      }
+    }
+
+    // Studio ↔ Instructor links (invites / active relationships)
+    match /studio_instructor_links/{linkId} {
+      // linkId format recommended: "{studioId}_{instructorId}"
+      function parts() {
+        return linkId.split('_');
+      }
+      function linkStudio() { return parts()[0]; }
+      function linkInstructor() { return parts()[1]; }
+
+      // Read: studio owner (their links) or instructor (their invites)
+      allow read: if request.auth != null && (request.auth.uid == linkStudio() || request.auth.uid == linkInstructor());
+
+      // Create/Update/Delete: studio owner can manage their own invites/links
+      allow create, update, delete: if request.auth != null && request.auth.uid == linkStudio();
+
+      // Respond (accept/reject): instructor can update status field only
+      allow update: if request.auth != null && request.auth.uid == linkInstructor() &&
+        request.resource.data.diff(resource.data).changedKeys().hasOnly(['status','updatedAt']);
+    }
     
     // Default deny for any other collections
     match /{document=**} {
