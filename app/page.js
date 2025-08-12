@@ -342,33 +342,82 @@ export default function HomePage() {
 
       
 
-      {/* Pricing */}
+      {/* Pricing (per role) */}
       <section id="pricing" className="py-20 bg-white" data-animate>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Simple pricing</h2>
-            <p className="mt-3 text-gray-600">Start free. Upgrade when you grow.</p>
+            <p className="mt-3 text-gray-700">Pricing for each role — Studios, Instructors, and Members (X Pass).</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+
+          {/* Studios */}
+          <h3 className="text-xl font-bold text-gray-900 text-center mb-6">Studios</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-4">
             {[
-              {name:'Starter', price:'Free', features:['Email signup','Role selection','Basic dashboards'], cta:'Start for free', primary:false},
-              {name:'Growth', price:'$49/mo', features:['All Starter','Studio tools','Instructor payouts'], cta:'Choose Growth', primary:true},
-              {name:'Scale', price:'$149/mo', features:['All Growth','Advanced analytics','Priority support'], cta:'Choose Scale', primary:false}
+              {name:'Starter', price:'$29/mo', features:['Bookings & schedule','Stripe payouts','Basic analytics'], primary:false},
+              {name:'Business+', price:'$59/mo', features:['Everything in Starter','Hiring & scheduling','Advanced analytics'], primary:true},
+              {name:'Enterprise', price:'Custom', features:['Custom SLAs','Dedicated support','Advanced controls'], primary:false}
             ].map((p, i) => (
-              <div key={i} className={`rounded-2xl border ${p.primary ? 'border-indigo-200 shadow-xl ring-1 ring-indigo-100' : 'border-gray-100'} p-8 bg-white reveal-up` } style={{ transitionDelay: `${i * 70}ms` }}>
-                <h3 className="text-xl font-bold text-gray-900">{p.name}</h3>
+              <div key={i} className={`rounded-2xl border ${p.primary ? 'border-indigo-200 shadow-xl ring-1 ring-indigo-100' : 'border-gray-200'} p-8 bg-white`}>
+                <h4 className="text-xl font-bold text-gray-900">{p.name}</h4>
                 <div className="mt-2 text-4xl font-extrabold text-gray-900">{p.price}</div>
-                <ul className="mt-6 space-y-2 text-gray-600">
+                <ul className="mt-6 space-y-2 text-gray-700">
                   {p.features.map((f, idx) => (
-                    <li key={idx} className="flex items-start gap-2">
-                      <span className="mt-1 inline-block h-2 w-2 rounded-full bg-green-500" />
-                      <span>{f}</span>
-                    </li>
+                    <li key={idx} className="flex items-start gap-2"><span className="mt-1 inline-block h-2 w-2 rounded-full bg-green-500" />{f}</li>
                   ))}
                 </ul>
-                <Link href="/pricing">
-                  <Button className={`mt-8 w-full rounded-xl ${p.primary ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : ''}`}>{p.cta}</Button>
+                <Link href="/signup?role=merchant">
+                  <Button className={`mt-8 w-full rounded-xl ${p.primary ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'bg-gray-900 hover:bg-black text-white'}`}>Start free</Button>
                 </Link>
+              </div>
+            ))}
+          </div>
+          <p className="text-center text-sm text-gray-700 mb-10">+ 3.75% platform fee per customer transaction.</p>
+
+          {/* Programs subsection */}
+          <div className="rounded-2xl border border-gray-200 p-6 md:p-8 bg-gray-50 mb-16">
+            <h4 className="text-lg font-semibold text-gray-900 mb-4">Optional programs</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-gray-800">
+              <div>
+                <div className="font-semibold">Member Plus</div>
+                <p>Cross-studio class packs, 5% per booking (only when redeemed).</p>
+              </div>
+              <div>
+                <div className="font-semibold">Thryve X Pass</div>
+                <p>Monthly credits across studios, 8% per redemption by default (configurable 5–10%).</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Instructors */}
+          <h3 className="text-xl font-bold text-gray-900 text-center mb-6">Instructors</h3>
+          <div className="rounded-2xl border border-gray-200 p-8 bg-white text-center mb-16">
+            <p className="text-gray-800">Free to join. Marketplace (optional): 7% per marketplace-sourced session, capped at $12. $0 for home-studio/direct assignments.</p>
+            <div className="mt-6">
+              <Link href="/signup?role=instructor">
+                <Button className="rounded-xl bg-gray-900 hover:bg-black text-white">Join as instructor</Button>
+              </Link>
+            </div>
+          </div>
+
+          {/* Members (X Pass) */}
+          <h3 className="text-xl font-bold text-gray-900 text-center mb-6">Members (X Pass)</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {[
+              {name:'Lite', price:'$39/mo', credits:'4 credits'},
+              {name:'Core', price:'$79/mo', credits:'8 credits'},
+              {name:'Pro', price:'$119/mo', credits:'12 credits'},
+            ].map((p, i) => (
+              <div key={i} className="rounded-2xl border border-gray-200 p-8 bg-white text-center">
+                <h4 className="text-xl font-bold text-gray-900">{p.name}</h4>
+                <div className="mt-2 text-3xl font-extrabold text-gray-900">{p.price}</div>
+                <p className="mt-2 text-gray-800">{p.credits}</p>
+                <p className="mt-4 text-sm text-gray-700">Rollover up to one month’s worth; cancel anytime; no-show/late cancel forfeits credit (studio fee may apply).</p>
+                <div className="mt-6">
+                  <Link href="/signup?role=customer">
+                    <Button className="rounded-xl bg-gray-900 hover:bg-black text-white">Get started</Button>
+                  </Link>
+                </div>
               </div>
             ))}
           </div>
