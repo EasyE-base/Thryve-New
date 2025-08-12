@@ -94,10 +94,12 @@ export default function HomePage() {
           <source src="/hero.webm" type="video/webm" />
           <source src="/hero.mp4" type="video/mp4" />
         </video>
-        <div className="absolute inset-0 bg-black/50" />
-        {/* Gradient glows */}
-        <div className="pointer-events-none absolute -top-32 left-1/2 h-[60vh] w-[60vh] -translate-x-1/2 rounded-full bg-gradient-to-tr from-indigo-500/30 via-fuchsia-500/20 to-cyan-500/10 blur-3xl" />
-        <div className="pointer-events-none absolute bottom-[-20%] right-[-10%] h-[50vh] w-[50vh] rounded-full bg-gradient-to-tr from-cyan-500/20 to-blue-500/10 blur-3xl" />
+        <div className="absolute inset-0 bg-black/55" />
+        {/* Subtle grid overlay */}
+        <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.06] [background-image:linear-gradient(to_right,white_1px,transparent_1px),linear-gradient(to_bottom,white_1px,transparent_1px)] [background-size:56px_56px]" />
+        {/* Gradient glows with motion */}
+        <div aria-hidden className="pointer-events-none absolute -top-32 left-1/2 h-[60vh] w-[60vh] -translate-x-1/2 rounded-full bg-gradient-to-tr from-indigo-500/30 via-fuchsia-500/20 to-cyan-500/10 blur-3xl animate-float-slow" />
+        <div aria-hidden className="pointer-events-none absolute bottom-[-20%] right-[-10%] h-[50vh] w-[50vh] rounded-full bg-gradient-to-tr from-cyan-500/20 to-blue-500/10 blur-3xl animate-float-slower" />
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-40">
           <div className="text-center">
@@ -145,15 +147,50 @@ export default function HomePage() {
       <section className="bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-gray-500 mb-6">Trusted by modern teams</p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-8 items-center">
-            {['Arcadia','Summit','Pulse','Northstar','Cascade','Vertex'].map((logo) => (
-              <div key={logo} className="flex items-center justify-center">
-                <div className="h-6 w-28 rounded bg-gray-200/70" aria-label={`${logo} logo`} />
-              </div>
-            ))}
+          {/* Auto-scrolling brands strip */}
+          <div className="relative overflow-hidden">
+            <div className="pointer-events-none absolute left-0 top-0 h-full w-24 bg-gradient-to-r from-white to-transparent" />
+            <div className="pointer-events-none absolute right-0 top-0 h-full w-24 bg-gradient-to-l from-white to-transparent" />
+            <div className="flex items-center gap-12 whitespace-nowrap motion-safe:animate-marquee will-change-transform">
+              {Array.from({length:2}).map((_, dupIdx) => (
+                <div key={dupIdx} className="flex items-center gap-12">
+                  {['Arcadia','Summit','Pulse','Northstar','Cascade','Vertex','Harbor','Nimbus'].map((logo) => (
+                    <div key={`${logo}-${dupIdx}`} className="flex items-center justify-center">
+                      <div className="h-6 w-28 rounded bg-gray-200" aria-label={`${logo} logo`} />
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
+
+      {/* Global animation helpers (scoped here) */}
+      <style jsx global>{`
+        @keyframes marquee {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .animate-marquee {
+          animation: marquee 30s linear infinite;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .animate-marquee { animation: none; }
+        }
+        @keyframes float-slow {
+          0% { transform: translate(-50%, 0) scale(1); }
+          50% { transform: translate(-50%, -10px) scale(1.02); }
+          100% { transform: translate(-50%, 0) scale(1); }
+        }
+        @keyframes float-slower {
+          0% { transform: translate(0, 0) scale(1); }
+          50% { transform: translate(0, -8px) scale(1.015); }
+          100% { transform: translate(0, 0) scale(1); }
+        }
+        .animate-float-slow { animation: float-slow 10s ease-in-out infinite; }
+        .animate-float-slower { animation: float-slower 14s ease-in-out infinite; }
+      `}</style>
 
       {/* Steps */}
       <section className="py-20 bg-gray-50">
