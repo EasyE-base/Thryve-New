@@ -1,170 +1,215 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Users can read and write their own profile
+
+    // ---------- Helpers ----------
+    function isAuthed() { return request.auth != null; }
+    function uid() { return request.auth.uid; }
+    function isOwner(userId) { return isAuthed() && uid() == userId; }
+
+    // Resolve a studio's ownerId
+    function studioOwnerUid(studioId) {
+      return get(/databases/$(database)/documents/studios/$(studioId)).data.ownerId;
+    }
+    function isStudioOwner(studioId) {
+      return isAuthed() && studioOwnerUid(studioId) == uid();
+    }
+
+    // ---------- Users ----------
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-      
-      // Allow reading basic profile info for other users (for instructor/studio discovery)
-      allow read: if request.auth != null && 
-        resource.data.keys().hasOnly(['name', 'role', 'profileCompleted']);
+      allow read, write: if isOwner(userId);
     }
-    
-    // Studios collection - studio owners can manage their own studio
+
+    // ---------- Studios ----------
     match /studios/{studioId} {
-      allow read: if request.auth != null && resource.data.isActive == true;
-      allow write: if request.auth != null && 
-        (resource.data.ownerId == request.auth.uid || 
-         request.auth.uid in resource.data.get('instructors', []));
-      
-      // Studio owners can create new studios
-      allow create: if request.auth != null && 
-        request.auth.token.role == 'studio_owner' &&
-        request.resource.data.ownerId == request.auth.uid;
+      // Owner can always read; others only if active
+      allow read: if isAuthed() && (resource.data.ownerId == uid() || resource.data.isActive == true);
+      // Create: caller must set themselves as owner
+      allow create: if isAuthed() && request.resource.data.ownerId == uid();
+      // Update/Delete: owner only; ownerId immutable
+      allow update, delete: if isAuthed() &&
+        resource.data.ownerId == uid() &&
+        request.resource.data.ownerId == resource.data.ownerId;
     }
-    
-    // Classes collection - public read, restricted write
+
+    // ---------- Classes ----------
     match /classes/{classId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && 
-        (resource.data.instructorId == request.auth.uid ||
-         resource.data.studioOwnerId == request.auth.uid);
+      function classStudioOwnerId(data) { return studioOwnerUid(data.studioId); }
+
+      allow read: if isAuthed();
+
+      // Create: only studio owner of referenced studio
+      allow create: if isAuthed() && classStudioOwnerId(request.resource.data) == uid();
+
+      // Update:
+      // - Studio owner: full update (studioId immutable)
+      // - Assigned instructor: only startTime, endTime, notes; ids immutable
+      allow update: if isAuthed() && (
+        (
+          classStudioOwnerId(resource.data) == uid() &&
+          request.resource.data.studioId == resource.data.studioId
+        ) || (
+          resource.data.instructorId == uid() &&
+          request.resource.data.studioId == resource.data.studioId &&
+          request.resource.data.instructorId == resource.data.instructorId &&
+          request.resource.data.diff(resource.data).changedKeys().hasOnly(['startTime','endTime','notes'])
+        )
+      );
+
+      // Delete: only studio owner
+      allow delete: if isAuthed() && classStudioOwnerId(resource.data) == uid();
     }
-    
-    // Bookings collection - users can manage their own bookings
+
+    // ---------- Bookings ----------
     match /bookings/{bookingId} {
-      allow read, write: if request.auth != null && 
-        resource.data.userId == request.auth.uid;
-      
-      // Studio owners and instructors can read bookings for their classes
-      allow read: if request.auth != null && 
-        (resource.data.instructorId == request.auth.uid ||
-         resource.data.studioOwnerId == request.auth.uid);
+      // Read: booking user, assigned instructor, or the studio owner
+      allow read: if isAuthed() && (
+        resource.data.userId == uid() ||
+        resource.data.instructorId == uid() ||
+        (resource.data.studioId != null && isStudioOwner(resource.data.studioId))
+      );
+
+      // Create: user books for self
+      allow create: if isAuthed() && request.resource.data.userId == uid();
+
+      // Update (e.g., cancel): user can update own booking; userId immutable
+      allow update: if isAuthed() &&
+        resource.data.userId == uid() &&
+        request.resource.data.userId == resource.data.userId;
+
+      // Hard deletes disabled — use CF to set status=cancelled & adjust counts
+      allow delete: if false;
     }
-    
-    // Instructor marketplace profiles (read by all authenticated users)
+
+    // ---------- Instructors (marketplace profiles) ----------
     match /instructors/{instructorId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth.uid == instructorId;
+      allow read: if isAuthed();
+      allow write: if uid() == instructorId;
+
+      // Weekly availability subcollection
+      match /availability/{docId} {
+        allow read: if isAuthed();
+        allow write: if isAuthed() && uid() == instructorId;
+      }
+
+      // (Optional) Reviews under instructor — immutable; studio owner only
+      match /reviews/{reviewId} {
+        allow read: if isAuthed();
+        allow create: if isAuthed() && isStudioOwner(request.resource.data.studioId);
+        allow update, delete: if false;
+      }
     }
-    
-    // Studio booking requests
+
+    // ---------- Studio booking requests (no reliance on studios.admins) ----------
     match /studios/{studioId}/bookingRequests/{requestId} {
-      allow read: if request.auth.uid == resource.data.instructorId
-                   || request.auth.uid in get(/databases/$(database)/documents/studios/$(studioId)).data.admins;
-      allow create: if request.auth.uid in get(/databases/$(database)/documents/studios/$(studioId)).data.admins;
-      allow update: if request.auth.uid == resource.data.instructorId  // For accepting/declining
-                    || request.auth.uid in get(/databases/$(database)/documents/studios/$(studioId)).data.admins;
+      // Read by the targeted instructor OR the studio owner
+      allow read: if isAuthed() && (
+        resource.data.instructorId == uid() || isStudioOwner(studioId)
+      );
+      // Create/update by studio owner; instructor may accept/decline (status only)
+      allow create: if isAuthed() && isStudioOwner(studioId);
+      allow update: if isAuthed() && (
+        isStudioOwner(studioId) ||
+        (resource.data.instructorId == uid() &&
+          request.resource.data.diff(resource.data).changedKeys().hasOnly(['status','updatedAt']))
+      );
     }
-    
-    // Instructor's view of booking requests
+
+    // ---------- Instructor's view of booking requests (mirror) ----------
     match /users/{userId}/bookingRequests/{requestId} {
-      allow read: if request.auth.uid == userId;
-      allow write: if false;  // Only written by Cloud Functions
+      allow read: if uid() == userId;
+      allow write: if false;  // Cloud Functions only
     }
-    
-    // Reviews (studios can write, everyone can read)
-    match /instructors/{instructorId}/reviews/{reviewId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth.uid in get(/databases/$(database)/documents/studios/$(resource.data.studioId)).data.admins;
-      allow update, delete: if false;  // Reviews are immutable
-    }
-    
-    // Reviews collection - users can write reviews for classes they've taken
+
+    // ---------- Global Reviews (immutable) ----------
     match /reviews/{reviewId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-      allow update, delete: if request.auth != null && 
-        resource.data.userId == request.auth.uid;
+      allow read: if isAuthed();
+      allow create: if isAuthed() && request.resource.data.userId == uid();
+      allow update, delete: if isAuthed() && resource.data.userId == uid();
     }
-    
-    // Payment transactions (restricted access)
-    match /payments/{transactionId} {
-      allow read: if request.auth.uid == resource.data.instructorId
-                   || request.auth.uid in get(/databases/$(database)/documents/studios/$(resource.data.studioId)).data.admins;
-      allow write: if false;  // Only Cloud Functions can write payments
-    }
-    
-    // Payments collection - users can read their own payment history
+
+    // ---------- Payments (client read only; CF writes) ----------
     match /payments/{paymentId} {
-      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
-      allow write: if false; // Payments should only be written by Cloud Functions
+      allow read: if isAuthed() && (
+        (resource.data.userId != null && resource.data.userId == uid()) ||
+        (resource.data.instructorId != null && resource.data.instructorId == uid()) ||
+        (resource.data.studioId != null && isStudioOwner(resource.data.studioId))
+      );
+      allow create, update, delete: if false;
     }
-    
-    // Instructor verification (instructor and admin only)
+
+    // ---------- Instructor verification (doc under instructor) ----------
     match /instructors/{instructorId}/verification {
-      allow read, write: if request.auth.uid == instructorId;
-      allow read: if request.auth.token.admin == true;  // Thryve admins
+      // Owner full access; admins read
+      allow read, write: if uid() == instructorId;
+      allow read: if isAuthed() && request.auth.token.admin == true;
     }
-    
-    // Marketplace stats (read by all authenticated users)
-    match /marketplace/stats {
-      allow read: if request.auth != null;
-      allow write: if false;  // Only Cloud Functions can update stats
-    }
-    
-    // Messages collection - users can read/write their own conversations
+
+    // ---------- Marketplace stats / Analytics ----------
+    match /marketplace/stats { allow read: if isAuthed(); allow write: if false; }
+    match /analytics/{document=**} { allow read: if isAuthed(); allow write: if false; }
+
+    // ---------- Messages ----------
     match /messages/{messageId} {
-      allow read, write: if request.auth != null && 
-        (request.auth.uid in resource.data.participants);
+      // Create must use request.resource
+      allow create: if isAuthed() && (uid() in request.resource.data.participants);
+      // Read/update/delete permitted to participants only; participants cannot change on update
+      allow read: if isAuthed() && (uid() in resource.data.participants);
+      allow update: if isAuthed() && (uid() in resource.data.participants) &&
+        request.resource.data.participants == resource.data.participants;
+      allow delete: if isAuthed() && (uid() in resource.data.participants);
     }
-    
-    // Admin-only collections
-    match /admin/{document=**} {
-      allow read, write: if request.auth != null && 
-        request.auth.token.admin == true;
-    }
-    
-    // Analytics collection - read-only for authenticated users
-    match /analytics/{document=**} {
-      allow read: if request.auth != null;
-      allow write: if false; // Only Cloud Functions should write analytics
-    }
-    
-    // Studio staff management
+
+    // ---------- Studio staff management ----------
     match /studio_staff/{staffId} {
-      allow read: if request.auth != null && 
-        (request.auth.uid == resource.data.studioId || 
-         request.auth.uid == resource.data.userId);
-      allow write: if request.auth != null && 
-        request.auth.uid == resource.data.studioId;
+      allow read: if isAuthed() &&
+        (uid() == resource.data.studioId || uid() == resource.data.userId);
+      allow write: if isAuthed() && uid() == resource.data.studioId;
     }
-    
-    // Instructor payouts
+
+    // ---------- Payouts ----------
     match /instructor_payouts/{payoutId} {
-      allow read: if request.auth != null && 
-        (request.auth.uid == resource.data.instructorId ||
-         request.auth.uid == resource.data.studioId);
-      allow write: if request.auth != null && 
-        request.auth.uid == resource.data.studioId;
+      allow read: if isAuthed() &&
+        (uid() == resource.data.instructorId || isStudioOwner(resource.data.studioId));
+      allow write: if isAuthed() && isStudioOwner(resource.data.studioId);
     }
-    
-    // Instructor payout transactions
     match /instructor_payout_transactions/{transactionId} {
-      allow read: if request.auth != null && 
-        (request.auth.uid == resource.data.instructorId ||
-         request.auth.uid == resource.data.studioId);
-      allow write: if false; // Only Cloud Functions can write transactions
+      allow read: if isAuthed() &&
+        (uid() == resource.data.instructorId || isStudioOwner(resource.data.studioId));
+      allow write: if false;
     }
-    
-    // Class schedules
+
+    // ---------- Studio ↔ Instructor links (owner-aware) ----------
+    match /studio_instructor_links/{linkId} {
+      // Read: studio owner (their links) or instructor (their invites)
+      allow read: if isAuthed() && (
+        uid() == resource.data.instructorId || isStudioOwner(resource.data.studioId)
+      );
+
+      // Create: studio owner creates for their own studio
+      allow create: if isAuthed() && isStudioOwner(request.resource.data.studioId);
+
+      // Update: studio can manage; instructor can only change status and updatedAt
+      allow update: if isAuthed() && (
+        isStudioOwner(resource.data.studioId) ||
+        (uid() == resource.data.instructorId &&
+         request.resource.data.diff(resource.data).changedKeys().hasOnly(['status','updatedAt']))
+      );
+
+      // Delete: studio owner only
+      allow delete: if isAuthed() && isStudioOwner(resource.data.studioId);
+    }
+
+    // ---------- Class schedules (aux/legacy) ----------
     match /class_schedules/{scheduleId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && 
-        (request.auth.uid == resource.data.instructorId ||
-         request.auth.uid == resource.data.studioId);
+      allow read: if isAuthed();
+      allow write: if isAuthed() &&
+        (uid() == resource.data.instructorId || uid() == resource.data.studioId);
     }
-    
-    // User profiles (for marketplace and discovery)
-    match /profiles/{profileId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == profileId;
-    }
-    
-    // Default deny for any other collections
-    match /{document=**} {
-      allow read, write: if false;
-    }
+
+    // ---------- Default deny ----------
+    match /{document=**} { allow read, write: if false; }
   }
 }
+
+

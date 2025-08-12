@@ -9,6 +9,9 @@
       "npm --prefix \"$RESOURCE_DIR\" run lint"
     ]
   },
+  "storage": {
+    "rules": "storage.rules"
+  },
   "hosting": {
     "public": "out",
     "ignore": [

@@ -1,0 +1,114 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() { return request.auth != null }
+    function isOwner(uid) { return isSignedIn() && request.auth.uid == uid }
+
+    // MIME helpers
+    function isAllowedImage() {
+      return request.resource.contentType.matches('image/(png|jpeg|webp)');
+    }
+    function isAllowedVideo() {
+      return request.resource.contentType.matches('video/(mp4|quicktime|webm)');
+    }
+    function isPdf() {
+      return request.resource.contentType == 'application/pdf';
+    }
+
+    // Size limits (bytes)
+    function maxAvatarSize() { return 1 * 1024 * 1024 }           // 1 MB
+    function maxImageSize() { return 5 * 1024 * 1024 }            // 5 MB
+    function maxVideoSize() { return 100 * 1024 * 1024 }          // 100 MB
+    function maxDocSize() { return 20 * 1024 * 1024 }             // 20 MB
+    function maxAttachmentSize() { return 25 * 1024 * 1024 }      // 25 MB
+
+    // Avatars (users + studios)
+    match /avatars/users/{uid}/{file} {
+      allow read: if true; // public avatars
+      allow write: if isOwner(uid)
+                    && isAllowedImage()
+                    && request.resource.size <= maxAvatarSize();
+    }
+
+    match /avatars/studios/{uid}/{file} {
+      // Convention: folder keyed by studio owner uid
+      allow read: if true;
+      allow write: if isOwner(uid)
+                    && isAllowedImage()
+                    && request.resource.size <= maxAvatarSize();
+    }
+
+    // Instructor media (restrict writes to media subfolder)
+    match /instructors/{uid}/{allPaths=**} {
+      allow read: if isSignedIn();
+    }
+    match /instructors/{uid}/media/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(uid) && (
+        (isAllowedImage() && request.resource.size <= maxImageSize()) ||
+        (isAllowedVideo() && request.resource.size <= maxVideoSize())
+      );
+    }
+
+    // Studio media (general + class media)
+    match /studios/{uid}/general/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(uid) && (
+        (isAllowedImage() && request.resource.size <= maxImageSize()) ||
+        (isAllowedVideo() && request.resource.size <= maxVideoSize())
+      );
+    }
+    match /studios/{uid}/classes/{classId}/{allPaths=**} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(uid) && (
+        (isAllowedImage() && request.resource.size <= maxImageSize()) ||
+        (isAllowedVideo() && request.resource.size <= maxVideoSize())
+      );
+    }
+
+    // Verification docs (private)
+    match /verification/{uid}/{allPaths=**} {
+      // Read: owner or admin custom-claim
+      allow read: if isOwner(uid) || (isSignedIn() && request.auth.token.admin == true);
+      // Write: owner only; restrict to PDF or image
+      allow write: if isOwner(uid) && (
+        (isPdf() && request.resource.size <= maxDocSize()) ||
+        (isAllowedImage() && request.resource.size <= maxImageSize())
+      );
+    }
+
+    // Message attachments (secure-by-default)
+    // Convention: path keyed by uploader uid. Others must use signed URLs.
+    match /messages/{uploaderUid}/{messageId}/{filename} {
+      allow read: if isOwner(uploaderUid); // only uploader by default
+      allow write: if isOwner(uploaderUid) && (
+        (isAllowedImage() && request.resource.size <= maxAttachmentSize()) ||
+        (isPdf() && request.resource.size <= maxAttachmentSize())
+      );
+    }
+
+    // Exports / reports (client read-only; backend writes via Admin SDK)
+    match /exports/{uid}/{allPaths=**} {
+      allow read: if isOwner(uid);
+      allow write: if false; // backend/Admin SDK bypasses rules
+    }
+    match /reports/{uid}/{allPaths=**} {
+      allow read: if isOwner(uid);
+      allow write: if false; // backend/Admin SDK bypasses rules
+    }
+
+    // Public assets (marketing)
+    match /public/{allPaths=**} {
+      allow read: if true;
+      allow write: if false; // prevent client writes; deploy via CI or server
+    }
+
+    // Default deny for everything else
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}
+
+

@@ -106,6 +106,50 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "marketplaceVisible", "order": "ASCENDING" },
+        { "fieldPath": "verified", "order": "ASCENDING" },
+        { "fieldPath": "hourlyRate", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "instructors",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "marketplaceVisible", "order": "ASCENDING" },
+        { "fieldPath": "remoteAvailable", "order": "ASCENDING" },
+        { "fieldPath": "hourlyRate", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "instructors",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "marketplaceVisible", "order": "ASCENDING" },
+        { "fieldPath": "verified", "order": "ASCENDING" },
+        { "fieldPath": "remoteAvailable", "order": "ASCENDING" },
+        { "fieldPath": "hourlyRate", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "instructors",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "marketplaceVisible", "order": "ASCENDING" },
+        { "fieldPath": "verified", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "instructors",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "marketplaceVisible", "order": "ASCENDING" },
+        { "fieldPath": "remoteAvailable", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "instructors",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "marketplaceVisible", "order": "ASCENDING" },
         { "fieldPath": "lastActiveAt", "order": "DESCENDING" }
       ]
     },
@@ -123,6 +167,22 @@
       "fields": [
         { "fieldPath": "marketplaceVisible", "order": "ASCENDING" },
         { "fieldPath": "lng", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "studio_instructor_links",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "studioId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "studio_instructor_links",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "instructorId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
       ]
     }
   ],
