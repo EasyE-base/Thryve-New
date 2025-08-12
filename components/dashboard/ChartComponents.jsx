@@ -52,6 +52,18 @@ const CustomTooltip = ({ active, payload, label, formatValue, formatLabel }) => 
 
 // ✅ REVENUE CHART COMPONENT
 export function RevenueChart({ data, title = "Revenue Overview", loading = false }) {
+  if (!loading && (!data || data.length === 0)) {
+    return (
+      <Card className="border-0 shadow-sm">
+        <CardHeader>
+          <CardTitle>{title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-32 flex items-center justify-center text-gray-500">No data at this time</div>
+        </CardContent>
+      </Card>
+    )
+  }
   if (loading) {
     return (
       <Card className="border-0 shadow-sm">
@@ -110,6 +122,18 @@ export function RevenueChart({ data, title = "Revenue Overview", loading = false
 
 // ✅ BOOKINGS CHART COMPONENT
 export function BookingsChart({ data, title = "Bookings Overview", loading = false }) {
+  if (!loading && (!data || data.length === 0)) {
+    return (
+      <Card className="border-0 shadow-sm">
+        <CardHeader>
+          <CardTitle>{title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-32 flex items-center justify-center text-gray-500">No data at this time</div>
+        </CardContent>
+      </Card>
+    )
+  }
   if (loading) {
     return (
       <Card className="border-0 shadow-sm">
@@ -163,6 +187,18 @@ export function BookingsChart({ data, title = "Bookings Overview", loading = fal
 
 // ✅ CLASS PERFORMANCE CHART
 export function ClassPerformanceChart({ data, title = "Class Performance", loading = false }) {
+  if (!loading && (!data || data.length === 0)) {
+    return (
+      <Card className="border-0 shadow-sm">
+        <CardHeader>
+          <CardTitle>{title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-32 flex items-center justify-center text-gray-500">No data at this time</div>
+        </CardContent>
+      </Card>
+    )
+  }
   if (loading) {
     return (
       <Card className="border-0 shadow-sm">
@@ -209,6 +245,18 @@ export function ClassPerformanceChart({ data, title = "Class Performance", loadi
 
 // ✅ EARNINGS CHART (FOR INSTRUCTORS)
 export function EarningsChart({ data, title = "Earnings Breakdown", loading = false }) {
+  if (!loading && (!data || data.length === 0)) {
+    return (
+      <Card className="border-0 shadow-sm">
+        <CardHeader>
+          <CardTitle>{title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-32 flex items-center justify-center text-gray-500">No data at this time</div>
+        </CardContent>
+      </Card>
+    )
+  }
   if (loading) {
     return (
       <Card className="border-0 shadow-sm">
@@ -261,6 +309,18 @@ export function EarningsChart({ data, title = "Earnings Breakdown", loading = fa
 
 // ✅ ACTIVITY CHART (FOR CUSTOMERS)
 export function ActivityChart({ data, title = "Activity Overview", loading = false }) {
+  if (!loading && (!data || data.length === 0)) {
+    return (
+      <Card className="border-0 shadow-sm">
+        <CardHeader>
+          <CardTitle>{title}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-32 flex items-center justify-center text-gray-500">No data at this time</div>
+        </CardContent>
+      </Card>
+    )
+  }
   if (loading) {
     return (
       <Card className="border-0 shadow-sm">

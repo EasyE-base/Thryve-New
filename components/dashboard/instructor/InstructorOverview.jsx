@@ -74,27 +74,27 @@ export default function InstructorOverview() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
           title="This Month's Earnings"
-          value={earnings?.thisMonth || 2400}
+          value={earnings?.thisMonth ?? null}
           format="currency"
           icon={DollarSign}
           color="green"
-          trend={earnings?.growth || 8}
-          trendDirection="up"
+          trend={earnings?.growth ?? null}
+          trendDirection={earnings?.growth ? (earnings.growth >= 0 ? 'up' : 'down') : null}
           subtitle="vs last month"
         />
         
         <MetricCard
           title="Classes This Month"
-          value={performance?.classesThisMonth || 24}
+          value={performance?.classesThisMonth ?? null}
           format="number"
           icon={Calendar}
           color="blue"
-          subtitle={`${assignedClasses?.length || 8} upcoming`}
+          subtitle={`${assignedClasses?.length ?? 0} upcoming`}
         />
         
         <MetricCard
           title="Average Rating"
-          value={performance?.avgRating || 4.8}
+          value={performance?.avgRating ?? null}
           format="decimal"
           icon={Star}
           color="orange"
@@ -103,7 +103,7 @@ export default function InstructorOverview() {
         
         <MetricCard
           title="Fill Rate"
-          value={performance?.fillRate || 85}
+          value={performance?.fillRate ?? null}
           format="percentage"
           icon={Users}
           color="purple"
@@ -179,21 +179,21 @@ export default function InstructorOverview() {
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">This Week</span>
                 <span className="text-2xl font-bold text-green-600">
-                  ${earnings?.thisWeek || 600}
+                  {earnings?.thisWeek != null ? `$${earnings.thisWeek}` : '—'}
                 </span>
               </div>
               
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">This Month</span>
                 <span className="text-lg font-semibold">
-                  ${earnings?.thisMonth || 2400}
+                  {earnings?.thisMonth != null ? `$${earnings.thisMonth}` : '—'}
                 </span>
               </div>
               
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">Total Earned</span>
                 <span className="text-lg font-semibold">
-                  ${earnings?.total || 18500}
+                  {earnings?.total != null ? `$${earnings.total}` : '—'}
                 </span>
               </div>
 

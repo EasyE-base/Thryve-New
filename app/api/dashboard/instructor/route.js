@@ -9,31 +9,45 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
-    // For now, return empty dashboard data structure
-    // This will show proper empty states in the UI
+    // Fetch instructor profile and related data
+    const profileSnap = await (await import('firebase-admin/firestore')).getFirestore().collection('instructors').doc(firebaseUser.uid).get()
+    const profile = profileSnap.exists ? profileSnap.data() : null
+
+    const classesSnap = await (await import('firebase-admin/firestore')).getFirestore().collection('classes')
+      .where('instructorId', '==', firebaseUser.uid)
+      .orderBy('startTime', 'desc').limit(50).get()
+    const classes = classesSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+
+    const bookingsSnap = await (await import('firebase-admin/firestore')).getFirestore().collection('bookings')
+      .where('instructorId', '==', firebaseUser.uid)
+      .orderBy('createdAt', 'desc').limit(50).get()
+    const bookings = bookingsSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+
+    const upcoming = classes.filter(c => c.startTime && Date.now() <= new Date(c.startTime).getTime())
+    const overview = {
+      totalClasses: classes.length,
+      upcomingClasses: upcoming.length,
+      totalStudents: null,
+      totalEarnings: null,
+      weeklyEarnings: null,
+      averageRating: null,
+      totalReviews: null
+    }
+
     const dashboardData = {
-      overview: {
-        totalClasses: 0,
-        upcomingClasses: 0,
-        totalStudents: 0,
-        totalEarnings: 0,
-        weeklyEarnings: 0,
-        averageRating: 0,
-        totalReviews: 0
-      },
-      instructor: {
-        name: 'Instructor',
-        bio: 'Bio not set',
-        specialties: [],
-        experience: 'Experience not set',
-        createdBy: firebaseUser.uid
-      },
-      classes: [],
-      upcomingClasses: [],
+      overview,
+      instructor: profile ? {
+        name: profile.displayName ?? null,
+        bio: profile.bio ?? null,
+        specialties: profile.specialties ?? [],
+        experience: profile.experience ?? null
+      } : null,
+      classes,
+      upcomingClasses: upcoming,
       students: [],
-      bookings: [],
+      bookings,
       reviews: [],
-      recentActivity: []
+      recentActivity: bookings
     }
 
     return NextResponse.json(dashboardData)

@@ -15,12 +15,13 @@ export default function MetricCard({
   color = 'blue',
   format = 'number',
   loading = false,
-  className = ''
+  className = '',
+  emptyText = 'No data at this time'
 }) {
 
   // ✅ FORMAT VALUE BASED ON TYPE
   const formatValue = (val, format) => {
-    if (loading || val === null || val === undefined) return '---'
+    if (loading || val === null || val === undefined) return '—'
     
     switch (format) {
       case 'currency':
@@ -91,6 +92,9 @@ export default function MetricCard({
               <p className="text-xs text-gray-500">
                 {subtitle}
               </p>
+            )}
+            {!loading && (value === null || value === undefined) && (
+              <p className="text-xs text-gray-400">{emptyText}</p>
             )}
             
             {trend && trendDirection && (

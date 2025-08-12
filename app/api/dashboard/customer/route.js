@@ -8,23 +8,17 @@ export async function GET(request) {
       return NextResponse.json({ error: 'No valid authorization header' }, { status: 401 })
     }
 
-    // For now, return empty dashboard data structure
-    // This will show proper empty states in the UI
+    // Return normalized empty-safe data (no mocks)
     const dashboardData = {
       overview: {
         totalBookings: 0,
         upcomingBookings: 0,
         pastBookings: 0,
-        totalSpent: 0,
+        totalSpent: null,
         favoriteStudios: 0,
         totalClasses: 0
       },
-      customer: {
-        name: 'Customer',
-        goals: [],
-        preferences: [],
-        createdBy: 'user-id'
-      },
+      customer: null,
       bookings: [],
       upcomingBookings: [],
       pastBookings: [],

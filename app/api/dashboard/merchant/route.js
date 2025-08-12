@@ -9,27 +9,48 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
-    // For now, return empty dashboard data structure
-    // This will show proper empty states in the UI
+    // Fetch real data from Firestore with safe defaults
+    const studioRef = adminDb.collection('studios').doc(firebaseUser.uid)
+    const studioSnap = await studioRef.get()
+    const studio = studioSnap.exists ? studioSnap.data() : null
+
+    const classesSnap = await adminDb.collection('classes')
+      .where('studioId', '==', firebaseUser.uid)
+      .orderBy('startTime', 'desc').limit(50).get()
+    const classes = classesSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+
+    const bookingsSnap = await adminDb.collection('bookings')
+      .where('studioId', '==', firebaseUser.uid)
+      .orderBy('createdAt', 'desc').limit(50).get()
+    const bookings = bookingsSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+
+    const instructorsSnap = await adminDb.collection('studio_staff')
+      .where('studioId', '==', firebaseUser.uid).get()
+    const instructors = instructorsSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+
+    const totalBookings = bookings.length
+    const confirmedBookings = bookings.filter(b => b.status === 'confirmed').length
+    const overview = {
+      totalClasses: classes.length,
+      totalInstructors: instructors.length,
+      totalRevenue: null, // compute via payments if available
+      monthlyRevenue: null,
+      totalBookings,
+      averageRating: null
+    }
+
     const dashboardData = {
-      overview: {
-        totalClasses: 0,
-        totalInstructors: 0,
-        totalRevenue: 0,
-        monthlyRevenue: 0,
-        totalBookings: 0,
-        averageRating: 0
-      },
-      merchant: {
-        name: 'Studio Owner',
-        studioName: 'Studio Name',
-        createdBy: firebaseUser.uid
-      },
-      classes: [],
-      instructors: [],
-      bookings: [],
+      overview,
+      studio: studio ? {
+        name: studio.name ?? null,
+        type: studio.type ?? null,
+        location: studio.location ?? null
+      } : null,
+      classes,
+      instructors,
+      bookings,
       revenue: [],
-      recentActivity: []
+      recentActivity: bookings
     }
 
     return NextResponse.json(dashboardData)
