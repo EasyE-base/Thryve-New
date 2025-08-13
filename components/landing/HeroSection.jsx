@@ -5,7 +5,16 @@ import { useState, useEffect, useRef } from 'react'
 // ✅ EXTRACTED: Hero section with video backgrounds
 const BADGES = ['5 Min Setup','Sync From Other Platforms','Payouts Daily']
 
-const normalize = r => (r === 'studio-owner' || r === 'studio' || r === 'merchant') ? 'merchant' : r
+const normalize = r => {
+  const v = (r || '').toLowerCase()
+  return (v === 'studio-owner' || v === 'studio' || v === 'merchant') ? 'merchant' : v
+}
+const PERSONAS = [
+  { label: 'Studios', value: 'merchant' },     // studio-owner/merchant/studio → merchant
+  { label: 'Instructors', value: 'instructor' },
+  { label: 'Members', value: 'customer' },     // display "Members", keep role 'customer'
+]
+const SUBHEAD = 'Powerful tools to help manage your business, easy 5-minute sync from other platforms, growth analytics, and community-driven.'
 const HERO_VIDEOS = [
   "https://customer-assets.emergentagent.com/job_fitness-hub-28/artifacts/9acvnc7j_social_based.him_A_vibrant_dynamic_photograph_captures_a_full_body_y_6b0e1611-f8ba-498d-82cb-f11a897e2e3c_1.mp4",
   "https://customer-assets.emergentagent.com/job_fitness-hub-28/artifacts/ecnrqgwm_social_based.him_A_vibrant_dynamic_photograph_captures_a_young_man_r_b5e14506-2983-42c6-8ad5-d9fd686f8466_3.mp4",
@@ -91,16 +100,28 @@ export default function HeroSection() {
           </span>
         </div>
         
-        <h1 className="text-5xl md:text-7xl font-bold text-white mb-6 leading-tight">
+        <h1 className="text-5xl md:text-7xl font-bold text-white mb-4 leading-tight">
           Train. Book.{' '}
           <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
             Thryve.
           </span>
         </h1>
         
-        <p className="text-xl md:text-2xl text-white/90 mb-8 max-w-2xl mx-auto leading-relaxed">
-          The future of fitness is here. Book classes, manage your studio, and connect with your community — all in one stunning platform.
-        </p>
+        <p className="mt-6 text-lg/7 opacity-90 text-white mb-6 max-w-2xl mx-auto leading-relaxed">{SUBHEAD}</p>
+
+        {/* Persona pills */}
+        <div className="mt-6 inline-flex rounded-full bg-white/10 p-1 ring-1 ring-white/30 backdrop-blur">
+          {PERSONAS.map(p => (
+            <button
+              key={p.value}
+              onClick={() => setPersona(p.value)}
+              className={`px-4 py-2 rounded-full text-sm font-medium ${persona === p.value ? 'bg-white text-gray-900' : 'text-white/90 hover:bg-white/10'}`}
+              aria-pressed={persona === p.value}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
         
         {/* CTAs */}
         <div className="mt-8 flex items-center justify-center gap-4">
