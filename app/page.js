@@ -109,6 +109,7 @@ export default function HomePage() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       window.__isAuthed = !!user
+      window.__role = role || null
     }
   }, [user])
 
