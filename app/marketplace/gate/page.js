@@ -2,12 +2,21 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/components/auth-provider'
 
 export default function MarketplaceGatePage() {
   const router = useRouter()
-  const { user } = useAuth()
+  const { user, role } = useAuth()
+
+  // Auto-bypass gate for studio/merchant
+  useEffect(() => {
+    if (!user) return
+    if (role === 'studio' || role === 'merchant') {
+      router.replace('/marketplace')
+    }
+  }, [user, role, router])
 
   const handleStudioOwner = async () => {
     try {
