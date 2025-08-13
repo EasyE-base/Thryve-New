@@ -26,13 +26,30 @@ export default function ClassesFeed({ lat, lng, radius = 25, segment = 'members'
       const res = await fetch(`/api/feeds/classes?${params.toString()}`)
       if (!res.ok) { setLoading(false); return }
       const data = await res.json()
-      setItems((prev) => [...prev, ...data.items])
-      setCursor(data.nextCursor || null)
-      setDone(!data.nextCursor)
+      const live = Array.isArray(data.items) ? data.items : []
+      if (live.length === 0 && Array.isArray(mockItems) && mockItems.length > 0) {
+        setItems(mockItems)
+        if (typeof window !== 'undefined') {
+          try { window.dataLayer?.push({ event: 'feed_fallback_to_mock', segment }) } catch {}
+        }
+        setDone(true)
+      } else {
+        setItems((prev) => [...prev, ...live])
+        setCursor(data.nextCursor || null)
+        setDone(!data.nextCursor)
+      }
       setLoading(false)
       setLoadedOnce(true)
     }
-    load()
+    load().catch(() => {
+      if (Array.isArray(mockItems) && mockItems.length > 0) {
+        setItems(mockItems)
+        if (typeof window !== 'undefined') {
+          try { window.dataLayer?.push({ event: 'feed_fallback_to_mock', segment }) } catch {}
+        }
+        setDone(true)
+      }
+    })
   }, [lat, lng, radius, cursor])
 
   useEffect(() => {
