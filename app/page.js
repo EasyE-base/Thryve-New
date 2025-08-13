@@ -305,7 +305,7 @@ export default function HomePage() {
 
       {/* ZIP toolbar and feeds for instructors/members */}
       {(segment === 'instructors' || segment === 'members') && (
-        <section ref={zipToolbarRef} className="bg-gray-900 text-white py-8">
+        <section ref={zipToolbarRef} className="bg-gray-900 text-white py-10">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <ZipSearchBar
               onSubmit={async (zip) => {
@@ -332,8 +332,12 @@ export default function HomePage() {
       {segment === 'members' && location && (
         <section id="classes" className="py-12 bg-white">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 className="text-2xl font-bold text-gray-900">Classes near you</h2>
-            <ClassesFeed lat={location.lat} lng={location.lng} radius={25} />
+            <h2 className="text-2xl font-bold text-gray-900 text-center">Classes near you</h2>
+            <div className="mt-6 flex justify-center">
+              <div className="w-full">
+                <ClassesFeed lat={location.lat} lng={location.lng} radius={25} />
+              </div>
+            </div>
           </div>
         </section>
       )}

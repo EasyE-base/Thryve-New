@@ -17,7 +17,7 @@ export default function ZipSearchBar({ onSubmit, onUseLocation, disabled = false
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex w-full max-w-xl gap-2 items-center justify-center">
+    <form onSubmit={handleSubmit} className="flex w-full max-w-xl flex-wrap gap-2 items-center justify-center mx-auto">
       <input
         type="text"
         inputMode="numeric"
@@ -36,7 +36,7 @@ export default function ZipSearchBar({ onSubmit, onUseLocation, disabled = false
       <button type="button" className="rounded-md bg-white/10 px-4 py-2 font-semibold text-white ring-1 ring-white/40 hover:bg-white/20 disabled:opacity-60" onClick={onUseLocation} disabled={disabled}>
         Use my location
       </button>
-      {error && <div className="mt-2 text-sm text-rose-300">{error}</div>}
+      {error && <div className="w-full mt-2 text-sm text-rose-300 text-center">{error}</div>}
     </form>
   )
 }
