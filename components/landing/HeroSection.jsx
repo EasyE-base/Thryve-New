@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Button } from '@/components/ui/button'
-import { ArrowRight } from 'lucide-react'
-import Link from 'next/link'
 
 // ✅ EXTRACTED: Hero section with video backgrounds
+const BADGES = ['5 Min Setup','Sync From Other Platforms','Payouts Daily']
+
+const normalize = r => (r === 'studio-owner' || r === 'studio' || r === 'merchant') ? 'merchant' : r
 const HERO_VIDEOS = [
   "https://customer-assets.emergentagent.com/job_fitness-hub-28/artifacts/9acvnc7j_social_based.him_A_vibrant_dynamic_photograph_captures_a_full_body_y_6b0e1611-f8ba-498d-82cb-f11a897e2e3c_1.mp4",
   "https://customer-assets.emergentagent.com/job_fitness-hub-28/artifacts/ecnrqgwm_social_based.him_A_vibrant_dynamic_photograph_captures_a_young_man_r_b5e14506-2983-42c6-8ad5-d9fd686f8466_3.mp4",
@@ -22,6 +22,26 @@ const LIFESTYLE_IMAGES = [
 export default function HeroSection() {
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0)
   const heroRef = useRef(null)
+
+  const [persona, setPersona] = useState(() => {
+    const qp = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('role') : null
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('thryve_persona') : null
+    return normalize((qp || saved || 'merchant'))
+  })
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('thryve_persona', persona)
+      const url = new URL(window.location.href)
+      url.searchParams.set('role', persona)
+      window.history.replaceState({}, '', url)
+    } catch {}
+  }, [persona])
+
+  const primaryHref =
+    persona === 'merchant' ? '/signup?role=merchant'
+    : persona === 'instructor' ? '/signup?role=instructor'
+    : '/signup?role=customer'
 
   // Auto-rotate videos with smooth transitions (3 seconds per video)
   useEffect(() => {
@@ -82,18 +102,25 @@ export default function HeroSection() {
           The future of fitness is here. Book classes, manage your studio, and connect with your community — all in one stunning platform.
         </p>
         
-        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-          <Link href="/signup">
-            <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-100 px-8 py-4 text-lg font-semibold shadow-lg">
-              Book a Class
-              <ArrowRight className="ml-2 w-5 h-5" />
-            </Button>
-          </Link>
-          
-          <Button size="lg" variant="outline" className="border-white text-white hover:bg-white hover:text-blue-600 px-8 py-4 text-lg font-semibold">
-            Watch Demo
-          </Button>
+        {/* CTAs */}
+        <div className="mt-8 flex items-center justify-center gap-4">
+          <a href={primaryHref} className="inline-flex rounded-full bg-white px-6 py-3 font-semibold text-gray-900 hover:bg-gray-100" aria-label="Start Your Journey">
+            Start Your Journey
+          </a>
+          <a href="/pricing" className="inline-flex rounded-full bg-white/10 px-6 py-3 font-semibold ring-1 ring-white/40 hover:bg-white/20" aria-label="See Plans">
+            See Plans
+          </a>
         </div>
+
+        {/* Badges */}
+        <ul className="mt-6 flex flex-wrap items-center justify-center gap-3 text-sm">
+          {BADGES.map(b => (
+            <li key={b} className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 ring-1 ring-white/30 backdrop-blur">
+              <span className="inline-block h-2 w-2 rounded-full bg-emerald-400" />
+              {b}
+            </li>
+          ))}
+        </ul>
         
         <div className="mt-16 text-white/70 text-sm">
           <p>Join thousands of studios and fitness enthusiasts worldwide</p>
