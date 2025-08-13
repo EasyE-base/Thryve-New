@@ -20,10 +20,21 @@ export function useMarketplaceAccess() {
       if (!user) return setRes({ state: 'block', reason: 'no-auth', role: 'unknown' })
 
       try {
-        const prof = await getDoc(doc(db, 'profiles', user.uid))
-        const data = prof.exists() ? prof.data() : {}
-        const role = canonicalizeRole(data.role)
-        const onboarded = !!data.onboardingComplete
+        // Primary source
+        const profSnap = await getDoc(doc(db, 'profiles', user.uid))
+        let role = 'unknown'
+        let onboarded = false
+        if (profSnap.exists()) {
+          const p = profSnap.data() || {}
+          role = canonicalizeRole(p.role)
+          onboarded = !!p.onboardingComplete
+        } else {
+          // Fallback: legacy users collection
+          const userSnap = await getDoc(doc(db, 'users', user.uid))
+          const u = userSnap.exists() ? (userSnap.data() || {}) : {}
+          role = canonicalizeRole(u.role)
+          onboarded = !!(u.onboardingComplete || u.profileComplete || u.onboard_complete)
+        }
 
         if (!onboarded) return setRes({ state: 'block', reason: 'not-onboarded', role })
         if (role === 'merchant' || role === 'instructor') return setRes({ state: 'allowed', role })
