@@ -76,6 +76,17 @@ export default function HomePage() {
     window.dataLayer.push({ event, ...payload })
   }
 
+  const hasFiredViewRef = useRef(false)
+
+  // Fire segment_view once after segment is resolved on mount
+  useEffect(() => {
+    if (!mounted) return
+    if (!hasFiredViewRef.current && segment) {
+      trackEvent('segment_view', { segment })
+      hasFiredViewRef.current = true
+    }
+  }, [mounted, segment])
+
   const handleSegmentChange = (next) => {
     setSegment(next)
     if (typeof window !== 'undefined') {
@@ -84,11 +95,12 @@ export default function HomePage() {
       url.searchParams.set('segment', next)
       window.history.replaceState({}, '', url.toString())
     }
+    trackEvent('segment_change', { segment: next })
     trackEvent('segment_view', { segment: next })
   }
 
-  const onCtaClick = (loc, dest) => {
-    trackEvent('cta_click', { segment, label: 'cta', dest })
+  const onCtaClick = (cta, dest) => {
+    trackEvent('home_cta_click', { segment, cta, dest })
   }
 
   const heroCopy = homeSegments[segment]?.hero || homeSegments.studios.hero
@@ -235,14 +247,14 @@ export default function HomePage() {
                 <>
                   <button
                     onClick={() => {
-                      onCtaClick('hero', 'jobs_near_me')
+                      onCtaClick('jobs_near_me', 'zip')
                       if (zipToolbarRef.current) zipToolbarRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
                     }}
                     className="inline-flex items-center justify-center rounded-xl bg-white text-gray-900 hover:bg-gray-100 px-8 py-3 text-lg font-medium shadow-lg shadow-black/20 ring-1 ring-black/5 min-w-[220px]"
                   >
                     Find jobs near me
                   </button>
-                  <Link href="/signup?role=instructor" onClick={() => onCtaClick('hero', '/signup?role=instructor')} className="inline-flex">
+                  <Link href="/signup?role=instructor" onClick={() => onCtaClick('create_profile', '/signup?role=instructor')} className="inline-flex">
                     <span className="inline-flex items-center justify-center rounded-xl bg-white text-gray-900 hover:bg-gray-100 px-8 py-3 text-lg font-medium ring-1 ring-black/5 min-w-[220px] text-center">Create your free profile</span>
                   </Link>
                 </>
@@ -251,14 +263,14 @@ export default function HomePage() {
                 <>
                   <button
                     onClick={() => {
-                      onCtaClick('hero', 'classes_near_me')
+                      onCtaClick('classes_near_me', 'zip')
                       if (zipToolbarRef.current) zipToolbarRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
                     }}
                     className="inline-flex items-center justify-center rounded-xl bg-white text-gray-900 hover:bg-gray-100 px-8 py-3 text-lg font-medium shadow-lg shadow-black/20 ring-1 ring-black/5 min-w-[220px]"
                   >
                     See classes near me
                   </button>
-                  <Link href="/signup?role=customer" onClick={() => onCtaClick('hero', '/signup?role=customer')} className="inline-flex">
+                  <Link href="/signup?role=customer" onClick={() => onCtaClick('get_10_off', '/signup?role=customer')} className="inline-flex">
                     <span className="inline-flex items-center justify-center rounded-xl bg-white text-gray-900 hover:bg-gray-100 px-8 py-3 text-lg font-medium ring-1 ring-black/5 min-w-[220px] text-center">Get 10% off</span>
                   </Link>
                 </>
@@ -370,7 +382,7 @@ export default function HomePage() {
         .reveal-up { opacity: 1 !important; transform: none !important; }
       `}</style>
 
-      {/* Steps (persona-specific) */}
+      {/* Steps (segment-specific) */}
       <section className="py-20 bg-gray-50" data-animate>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
@@ -378,11 +390,7 @@ export default function HomePage() {
             <p className="mt-3 text-gray-600">A simple, clear flow from signup to live onboarding.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {title:'Create your account', desc:'Start for free with email or Google.'},
-              {title:'Customize your journey', desc:'Pick role and complete the guided steps.'},
-              {title:'Launch and grow', desc:'Go live with dashboards and real-time data.'}
-            ].map((s, i) => (
+            {(homeSegments[segment]?.steps || []).map((s, i) => (
               <div key={i} className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm reveal-up" style={{ transitionDelay: `${i * 60}ms` }}>
                 <div className="w-10 h-10 rounded-full bg-gray-900 text-white flex items-center justify-center font-semibold mb-4">{i+1}</div>
                 <h3 className="text-xl font-semibold text-gray-900">{s.title}</h3>
@@ -393,7 +401,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Benefits (persona-specific) */}
+      {/* Why choose Thryve (segment-specific) */}
       <section className="py-20 bg-white" data-animate>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
@@ -401,18 +409,11 @@ export default function HomePage() {
             <p className="mt-3 text-gray-700">Conversion-first design with scalable architecture.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {icon: <Zap className="h-6 w-6 text-indigo-600" />, t:'Frictionless signup', d:'Optimized for mobile and desktop with best practices.'},
-              {icon: <Layers className="h-6 w-6 text-indigo-600" />, t:'Role-based onboarding', d:'Tailored flows for studios, instructors, and customers.'},
-              {icon: <Shield className="h-6 w-6 text-indigo-600" />, t:'Secure by default', d:'Hardened Firebase rules and server verification.'},
-              {icon: <BarChart3 className="h-6 w-6 text-indigo-600" />, t:'Real data, no mocks', d:'Dashboards show live Firestore data with empty states.'},
-              {icon: <Rocket className="h-6 w-6 text-indigo-600" />, t:'Fast redirects', d:'Robust role persistence and guard logic.'},
-              {icon: <CheckCircle2 className="h-6 w-6 text-indigo-600" />, t:'Production-ready', d:'CI-friendly, Vercel-ready, and tested E2E.'}
-            ].map((b, i) => (
+            {(homeSegments[segment]?.benefits || []).map((t, i) => (
               <div key={i} className="rounded-2xl border border-gray-200 p-8 bg-white shadow-sm hover:shadow-md transition-shadow reveal-up" style={{ transitionDelay: `${i * 80}ms` }}>
-                <div className="mb-3 inline-flex items-center justify-center rounded-lg bg-indigo-50 p-2">{b.icon}</div>
-                <h3 className="text-lg font-semibold text-gray-900">{b.t}</h3>
-                <p className="mt-2 text-gray-700">{b.d}</p>
+                <div className="mb-3 inline-flex items-center justify-center rounded-lg bg-indigo-50 p-2">✅</div>
+                <h3 className="text-lg font-semibold text-gray-900">{t}</h3>
+                <p className="mt-2 text-gray-700"></p>
               </div>
             ))}
           </div>
@@ -421,7 +422,7 @@ export default function HomePage() {
 
       
 
-      {/* Pricing (per role) */}
+      {/* Pricing (segment-specific) */}
       <section id="pricing" className="py-20 bg-white" data-animate>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
@@ -432,11 +433,7 @@ export default function HomePage() {
           {/* Studios */}
           <h3 className="text-xl font-bold text-gray-900 text-center mb-6">Studios</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-4">
-            {[
-              {name:'Starter', price:'$29/mo', features:['Bookings & schedule','Stripe payouts','Basic analytics'], primary:false},
-              {name:'Business+', price:'$59/mo', features:['Everything in Starter','Hiring & scheduling','Advanced analytics'], primary:true},
-              {name:'Enterprise', price:'Custom', features:['Custom SLAs','Dedicated support','Advanced controls'], primary:false}
-            ].map((p, i) => (
+            {(homeSegments.studios.pricing.tiers || []).map((p, i) => (
               <div key={i} className={`rounded-2xl border ${p.primary ? 'border-indigo-200 shadow-xl ring-1 ring-indigo-100' : 'border-gray-200'} p-8 bg-white`}>
                 <h4 className="text-xl font-bold text-gray-900">{p.name}</h4>
                 <div className="mt-2 text-4xl font-extrabold text-gray-900">{p.price}</div>
@@ -451,30 +448,28 @@ export default function HomePage() {
               </div>
             ))}
           </div>
-          <p className="text-center text-sm text-gray-700 mb-10">+ 3.75% platform fee per customer transaction.</p>
+          <p className="text-center text-sm text-gray-700 mb-10">{homeSegments.studios.pricing.footnote}</p>
 
           {/* Programs subsection */}
           <div className="rounded-2xl border border-gray-200 p-6 md:p-8 bg-gray-50 mb-16">
             <h4 className="text-lg font-semibold text-gray-900 mb-4">Optional programs</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-gray-800">
-              <div>
-                <div className="font-semibold">Member Plus</div>
-                <p>Cross-studio class packs, 5% per booking (only when redeemed).</p>
-              </div>
-              <div>
-                <div className="font-semibold">Thryve X Pass</div>
-                <p>Monthly credits across studios, 8% per redemption by default (configurable 5–10%).</p>
-              </div>
+              {homeSegments.studios.pricing.programs.map((pr, i) => (
+                <div key={i}>
+                  <div className="font-semibold">{pr.title}</div>
+                  <p>{pr.desc}</p>
+                </div>
+              ))}
             </div>
           </div>
 
           {/* Instructors */}
           <h3 className="text-xl font-bold text-gray-900 text-center mb-6">Instructors</h3>
           <div className="rounded-2xl border border-gray-200 p-8 bg-white text-center mb-16">
-            <p className="text-gray-800">Free to join. Marketplace (optional): 7% per marketplace-sourced session, capped at $12. $0 for home-studio/direct assignments.</p>
+            <p className="text-gray-800">{homeSegments.instructors.pricing.freeCard.bullets.join(' • ')}</p>
             <div className="mt-6">
-              <Link href="/signup?role=instructor">
-                <Button className="rounded-xl bg-gray-900 hover:bg-black text-white">Join as instructor</Button>
+              <Link href={homeSegments.instructors.pricing.freeCard.cta.href}>
+                <Button className="rounded-xl bg-gray-900 hover:bg-black text-white">{homeSegments.instructors.pricing.freeCard.cta.label}</Button>
               </Link>
             </div>
           </div>
@@ -482,11 +477,7 @@ export default function HomePage() {
           {/* Members (X Pass) */}
           <h3 className="text-xl font-bold text-gray-900 text-center mb-6">Members (X Pass)</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              {name:'Lite', price:'$39/mo', credits:'4 credits'},
-              {name:'Core', price:'$79/mo', credits:'8 credits'},
-              {name:'Pro', price:'$119/mo', credits:'12 credits'},
-            ].map((p, i) => (
+            {(homeSegments.members.pricing.xpass || []).map((p, i) => (
               <div key={i} className="rounded-2xl border border-gray-200 p-8 bg-white text-center">
                 <h4 className="text-xl font-bold text-gray-900">{p.name}</h4>
                 <div className="mt-2 text-3xl font-extrabold text-gray-900">{p.price}</div>
@@ -500,6 +491,7 @@ export default function HomePage() {
               </div>
             ))}
           </div>
+          <p className="text-center text-sm text-gray-700 mt-6">{homeSegments.members.pricing.alt}</p>
         </div>
       </section>
 
@@ -524,24 +516,20 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Features Section */}
+      {/* Features Section (segment-specific) */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Everything You Need to Succeed</h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">Built specifically for fitness studios with features that save time and increase revenue.</p>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">Built specifically for your journey with features that save time and increase results.</p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              { title: "Class Management", description: "Schedule classes and manage instructors", icon: "📅" },
-              { title: "Online Booking", description: "Let clients book classes anytime", icon: "📱" },
-              { title: "Payment Processing", description: "Secure payments with competitive rates", icon: "💳" }
-            ].map((feature, index) => (
+            {(homeSegments[segment]?.features || []).map((f, index) => (
               <div key={index} className="bg-gray-50 rounded-xl p-8 hover:shadow-lg transition-shadow">
-                <div className="text-4xl mb-4">{feature.icon}</div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">{feature.title}</h3>
-                <p className="text-gray-600">{feature.description}</p>
+                <div className="text-2xl mb-4">✨</div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">{f.t}</h3>
+                <p className="text-gray-600">{f.d}</p>
               </div>
             ))}
           </div>
