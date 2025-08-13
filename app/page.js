@@ -316,24 +316,57 @@ export default function HomePage() {
         </section>
       )}
 
-      {segment === 'members' && location && (
+      {segment === 'members' && (
         <section id="classes" className="py-12 bg-white">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <h2 className="text-2xl font-bold text-gray-900 text-center">Classes near you</h2>
             <div className="mt-6 flex justify-center">
               <div className="w-full">
-                <ClassesFeed lat={location.lat} lng={location.lng} radius={25} />
+                {location ? (
+                  <ClassesFeed lat={location.lat} lng={location.lng} radius={25} />
+                ) : (
+                  <div className="overflow-x-auto -mx-4 px-4">
+                    <div className="flex gap-4">
+                      {(homeSegments.members.mock.classes || []).map((c) => (
+                        <div key={c.id} className="min-w-[260px] rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+                          {c.imageUrl && <img alt="" src={c.imageUrl} className="h-32 w-full object-cover" />}
+                          <div className="p-4">
+                            <div className="text-sm text-gray-500">{c.studioName} • {c.city}, {c.state}</div>
+                            <div className="mt-1 font-semibold text-gray-900">{c.title}</div>
+                            <div className="mt-1 text-sm text-gray-700">{new Date(c.startTime).toLocaleString()}</div>
+                            <div className="mt-2 text-sm text-gray-700">${(c.priceCents/100).toFixed(2)}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </section>
       )}
 
-      {segment === 'instructors' && location && (
+      {segment === 'instructors' && (
         <section id="jobs" className="py-12 bg-white">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <h2 className="text-2xl font-bold text-gray-900">Studios hiring near you</h2>
-            <JobsFeed lat={location.lat} lng={location.lng} radius={25} />
+            {location ? (
+              <JobsFeed lat={location.lat} lng={location.lng} radius={25} />
+            ) : (
+              <div className="mt-6 overflow-x-auto -mx-4 px-4">
+                <div className="flex gap-4">
+                  {(homeSegments.instructors.mock.jobs || []).map((j) => (
+                    <div key={j.id} className="min-w-[260px] rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden p-4">
+                      <div className="text-sm text-gray-500">{j.city}, {j.state}</div>
+                      <div className="mt-1 font-semibold text-gray-900">{j.title}</div>
+                      <div className="mt-1 text-sm text-gray-700">${j.ratePerHour}/hr • {j.scheduleSummary}</div>
+                      {j.remote && <div className="mt-2 inline-flex items-center rounded-full border border-gray-200 px-2 py-0.5 text-xs text-gray-700">Remote OK</div>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </section>
       )}
@@ -495,18 +528,14 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* FAQ */}
+      {/* FAQ (segment-specific) */}
       <section className="py-20 bg-gray-50">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Frequently asked questions</h2>
           </div>
           <Accordion type="single" collapsible className="bg-white rounded-xl border border-gray-100" data-animate>
-            {[
-              {q:'Can I use a .mov for the hero?', a:'Yes, but for the web we serve MP4 and WEBM with a poster. MOV is not recommended for production.'},
-              {q:'Does the dashboard show real data?', a:'Yes. We removed mock data and return Firestore results or empty states.'},
-              {q:'Is the onboarding role-aware?', a:'Yes. Role is persisted and redirects are enforced for correct flows.'}
-            ].map((f, i) => (
+            {(homeSegments[segment]?.faqs || []).map((f, i) => (
               <AccordionItem key={i} value={`item-${i}`} className="reveal-up" style={{ transitionDelay: `${i * 50}ms` }}>
                 <AccordionTrigger className="px-6">{f.q}</AccordionTrigger>
                 <AccordionContent className="px-6 text-gray-600">{f.a}</AccordionContent>
@@ -527,7 +556,9 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {(homeSegments[segment]?.features || []).map((f, index) => (
               <div key={index} className="bg-gray-50 rounded-xl p-8 hover:shadow-lg transition-shadow">
-                <div className="text-2xl mb-4">✨</div>
+                <div className="text-gray-700 mb-4">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline-block align-middle"><path d="M12 20l9-5-9-5-9 5 9 5z"/><path d="M12 12l9-5-9-5-9 5 9 5z"/></svg>
+                </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">{f.t}</h3>
                 <p className="text-gray-600">{f.d}</p>
               </div>
