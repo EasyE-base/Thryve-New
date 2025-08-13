@@ -325,21 +325,7 @@ export default function HomePage() {
                 {location ? (
                   <ClassesFeed lat={location.lat} lng={location.lng} radius={25} />
                 ) : (
-                  <div className="overflow-x-auto -mx-4 px-4">
-                    <div className="flex gap-4">
-                      {(homeSegments.members.mock.classes || []).map((c) => (
-                        <div key={c.id} className="min-w-[260px] rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-                          {c.imageUrl && <img alt="" src={c.imageUrl} className="h-32 w-full object-cover" />}
-                          <div className="p-4">
-                            <div className="text-sm text-gray-500">{c.studioName} • {c.city}, {c.state}</div>
-                            <div className="mt-1 font-semibold text-gray-900">{c.title}</div>
-                            <div className="mt-1 text-sm text-gray-700">{new Date(c.startTime).toLocaleString()}</div>
-                            <div className="mt-2 text-sm text-gray-700">${(c.priceCents/100).toFixed(2)}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  <ClassesFeed mockItems={homeSegments.members.mock.classes} />
                 )}
               </div>
             </div>
@@ -354,18 +340,7 @@ export default function HomePage() {
             {location ? (
               <JobsFeed lat={location.lat} lng={location.lng} radius={25} />
             ) : (
-              <div className="mt-6 overflow-x-auto -mx-4 px-4">
-                <div className="flex gap-4">
-                  {(homeSegments.instructors.mock.jobs || []).map((j) => (
-                    <div key={j.id} className="min-w-[260px] rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden p-4">
-                      <div className="text-sm text-gray-500">{j.city}, {j.state}</div>
-                      <div className="mt-1 font-semibold text-gray-900">{j.title}</div>
-                      <div className="mt-1 text-sm text-gray-700">${j.ratePerHour}/hr • {j.scheduleSummary}</div>
-                      {j.remote && <div className="mt-2 inline-flex items-center rounded-full border border-gray-200 px-2 py-0.5 text-xs text-gray-700">Remote OK</div>}
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <JobsFeed mockItems={homeSegments.instructors.mock.jobs} />
             )}
           </div>
         </section>
