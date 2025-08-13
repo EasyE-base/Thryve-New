@@ -13,7 +13,7 @@ export default function MerchantMarketplace() {
           <CardTitle className="text-lg font-semibold flex items-center gap-2">
             <Search className="h-5 w-5" /> Instructor Marketplace
           </CardTitle>
-          <Link href="/marketplace" target="_blank">
+          <Link href="/marketplace">
             <Button size="sm" className="bg-[#1E90FF] hover:bg-blue-600">Open Marketplace</Button>
           </Link>
         </CardHeader>
@@ -30,10 +30,7 @@ export default function MerchantMarketplace() {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap gap-3">
-            <Link href="/marketplace/gate" target="_blank">
-              <Button variant="outline">Marketplace Gate</Button>
-            </Link>
-            <Link href="/marketplace" target="_blank">
+            <Link href="/marketplace">
               <Button variant="outline">Browse Instructors</Button>
             </Link>
           </div>

@@ -97,7 +97,16 @@ export default function MarketplacePage() {
 
   // Access control via hook
   useEffect(() => {
-    if (access.state === 'block') router.replace('/marketplace/gate')
+    if (access.state === 'block') {
+      if (access.reason === 'not-onboarded') {
+        const r = access.role === 'instructor' ? 'instructor' : 'merchant'
+        router.replace(`/onboarding/${r}`)
+      } else if (access.reason === 'no-auth') {
+        router.replace('/login?next=/marketplace')
+      } else {
+        router.replace('/signup?role=merchant&reason=marketplace_restricted')
+      }
+    }
     if (access.state === 'allowed') searchInstructors()
   }, [access])
 
