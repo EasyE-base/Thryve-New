@@ -12,6 +12,7 @@ import PopularCities from '@/components/home/PopularCities'
 import ClassesFeed from '@/components/home/feeds/ClassesFeed'
 import JobsFeed from '@/components/home/feeds/JobsFeed'
 import { useHomeLocation } from '@/hooks/useHomeLocation'
+import { homeSegments } from '@/lib/homeSegments'
 
 export default function HomePage() {
   const { user, loading, role } = useAuth()
@@ -90,20 +91,7 @@ export default function HomePage() {
     trackEvent('cta_click', { segment, label: 'cta', dest })
   }
 
-  const heroCopy = {
-    studios: {
-      headline: 'Launch and grow your studio. Bookings, payouts, analytics—done.',
-      sub: 'Powerful tools to manage classes, payouts via Stripe, and growth analytics.',
-    },
-    instructors: {
-      headline: 'Find work you love. Get hired by studios nearby.',
-      sub: 'Browse open jobs, create a free profile, and get paid on time.',
-    },
-    members: {
-      headline: 'Classes near you. Book in seconds.',
-      sub: 'Discover studios, claim 10% off your first class, and join the ThryveX network.',
-    },
-  }
+  const heroCopy = homeSegments[segment]?.hero || homeSegments.studios.hero
 
   // Expose auth state for feed click guards
   useEffect(() => {
@@ -209,7 +197,7 @@ export default function HomePage() {
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-40">
           <div className="text-center">
             <div className="min-h-[4.5rem] md:min-h-[6rem] lg:min-h-[6rem] flex items-center justify-center">
-              <h1 className="text-3xl md:text-6xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.15] text-balance">{heroCopy[segment].headline}</h1>
+              <h1 className="text-3xl md:text-6xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.15] text-balance">{heroCopy.headline}</h1>
             </div>
             {/* Persona switcher */}
             <div className="mt-6 inline-flex items-center rounded-full border border-white/20 bg-white/10 backdrop-blur p-1 text-white">
@@ -229,7 +217,7 @@ export default function HomePage() {
             </div>
             <div className="mt-6 min-h-[2.75rem] md:min-h-[3.25rem] flex items-center justify-center">
               <p className="text-lg md:text-xl text-white/85 max-w-2xl mx-auto text-pretty">
-              {heroCopy[segment].sub}
+              {heroCopy.sub}
               </p>
             </div>
             <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center min-h-[48px] md:min-h-[48px]">
@@ -277,27 +265,13 @@ export default function HomePage() {
               )}
             </div>
             <div className="mt-8 flex flex-wrap justify-center gap-4 text-white/70 text-sm">
-              {segment === 'studios' && (
-                <>
-                  <div className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 backdrop-blur"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />5 Min Setup</div>
-                  <div className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 backdrop-blur"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Sync From Other Platforms</div>
-                  <div className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 backdrop-blur"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Payouts Daily</div>
-                </>
-              )}
-              {segment === 'instructors' && (
-                <>
-                  <div className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 backdrop-blur"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Find Jobs Near You</div>
-                  <div className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 backdrop-blur"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Set Your Own Rates</div>
-                  <div className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 backdrop-blur"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Get Paid on Time</div>
-                </>
-              )}
+              {(homeSegments[segment]?.hero?.badges || []).map((b) => (
+                <div key={b} className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 backdrop-blur">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />{b}
+                </div>
+              ))}
               {segment === 'members' && (
-                <>
-                  <div className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 backdrop-blur"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Discover Classes Nearby</div>
-                  <div className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 backdrop-blur"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Save With ThryveX</div>
-                  <div className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 backdrop-blur"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Book in One Tap</div>
-                  <div className="inline-flex items-center gap-2 rounded-full border border-emerald-300 px-3 py-1 backdrop-blur text-emerald-200"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />10% off your first class</div>
-                </>
+                <div className="inline-flex items-center gap-2 rounded-full border border-emerald-300 px-3 py-1 backdrop-blur text-emerald-200"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />10% off your first class</div>
               )}
             </div>
           </div>
