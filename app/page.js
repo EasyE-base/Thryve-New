@@ -455,78 +455,94 @@ export default function HomePage() {
 
       
 
-      {/* Pricing (segment-specific) */}
-      <section id="pricing" className="py-20 bg-white" data-animate>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Simple pricing</h2>
-            <p className="mt-3 text-gray-700">Pricing for each role — Studios, Instructors, and Members (X Pass).</p>
-          </div>
-
-          {/* Studios */}
-          <h3 className="text-xl font-bold text-gray-900 text-center mb-6">Studios</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-4">
-            {(homeSegments.studios.pricing.tiers || []).map((p, i) => (
-              <div key={i} className={`rounded-2xl border ${p.primary ? 'border-indigo-200 shadow-xl ring-1 ring-indigo-100' : 'border-gray-200'} p-8 bg-white`}>
-                <h4 className="text-xl font-bold text-gray-900">{p.name}</h4>
-                <div className="mt-2 text-4xl font-extrabold text-gray-900">{p.price}</div>
-                <ul className="mt-6 space-y-2 text-gray-700">
-                  {p.features.map((f, idx) => (
-                    <li key={idx} className="flex items-start gap-2"><span className="mt-1 inline-block h-2 w-2 rounded-full bg-green-500" />{f}</li>
-                  ))}
-                </ul>
-                <Link href="/signup?role=merchant">
-                  <Button className={`mt-8 w-full rounded-xl ${p.primary ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'bg-gray-900 hover:bg-black text-white'}`}>Start free</Button>
-                </Link>
-              </div>
-            ))}
-          </div>
-          <p className="text-center text-sm text-gray-700 mb-10">{homeSegments.studios.pricing.footnote}</p>
-
-          {/* Programs subsection */}
-          <div className="rounded-2xl border border-gray-200 p-6 md:p-8 bg-gray-50 mb-16">
-            <h4 className="text-lg font-semibold text-gray-900 mb-4">Optional programs</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-gray-800">
-              {homeSegments.studios.pricing.programs.map((pr, i) => (
-                <div key={i}>
-                  <div className="font-semibold">{pr.title}</div>
-                  <p>{pr.desc}</p>
+      {/* Pricing (segment-specific, only one block rendered) */}
+      {segment === 'studios' && (
+        <section id="pricing-studios" aria-labelledby="pricing-studios-heading" className="py-20 bg-white" data-animate>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h2 id="pricing-studios-heading" className="text-3xl md:text-4xl font-bold text-gray-900">Studios pricing</h2>
+              <p className="mt-3 text-gray-700">Plans built for growth — from starter to enterprise.</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-4">
+              {(homeSegments.studios.pricing.tiers || []).map((p, i) => (
+                <div key={i} className={`rounded-2xl border ${p.primary ? 'border-indigo-200 shadow-xl ring-1 ring-indigo-100' : 'border-gray-200'} p-8 bg-white`}>
+                  <h4 className="text-xl font-bold text-gray-900">{p.name}</h4>
+                  <div className="mt-2 text-4xl font-extrabold text-gray-900">{p.price}</div>
+                  <ul className="mt-6 space-y-2 text-gray-700">
+                    {p.features.map((f, idx) => (
+                      <li key={idx} className="flex items-start gap-2"><span className="mt-1 inline-block h-2 w-2 rounded-full bg-green-500" />{f}</li>
+                    ))}
+                  </ul>
+                  <Link href="/signup?role=merchant">
+                    <Button className={`mt-8 w-full rounded-xl ${p.primary ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'bg-gray-900 hover:bg-black text-white'}`}>Start free</Button>
+                  </Link>
                 </div>
               ))}
             </div>
-          </div>
-
-          {/* Instructors */}
-          <h3 className="text-xl font-bold text-gray-900 text-center mb-6">Instructors</h3>
-          <div className="rounded-2xl border border-gray-200 p-8 bg-white text-center mb-16">
-            <p className="text-gray-800">{homeSegments.instructors.pricing.freeCard.bullets.join(' • ')}</p>
-            <div className="mt-6">
-              <Link href={homeSegments.instructors.pricing.freeCard.cta.href}>
-                <Button className="rounded-xl bg-gray-900 hover:bg-black text-white">{homeSegments.instructors.pricing.freeCard.cta.label}</Button>
-              </Link>
+            <p className="text-center text-sm text-gray-700 mb-10">{homeSegments.studios.pricing.footnote}</p>
+            <div className="rounded-2xl border border-gray-200 p-6 md:p-8 bg-gray-50">
+              <h4 className="text-lg font-semibold text-gray-900 mb-4">Optional programs</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-gray-800">
+                {homeSegments.studios.pricing.programs.map((pr, i) => (
+                  <div key={i}>
+                    <div className="font-semibold">{pr.title}</div>
+                    <p>{pr.desc}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
+        </section>
+      )}
 
-          {/* Members (X Pass) */}
-          <h3 className="text-xl font-bold text-gray-900 text-center mb-6">Members (X Pass)</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {(homeSegments.members.pricing.xpass || []).map((p, i) => (
-              <div key={i} className="rounded-2xl border border-gray-200 p-8 bg-white text-center">
-                <h4 className="text-xl font-bold text-gray-900">{p.name}</h4>
-                <div className="mt-2 text-3xl font-extrabold text-gray-900">{p.price}</div>
-                <p className="mt-2 text-gray-800">{p.credits}</p>
-                <p className="mt-4 text-sm text-gray-700">Rollover up to one month’s worth; cancel anytime; no-show/late cancel forfeits credit (studio fee may apply).</p>
-                <div className="mt-6">
-                  <Link href="/signup?role=customer">
-                    <Button className="rounded-xl bg-gray-900 hover:bg-black text-white">Get started</Button>
-                  </Link>
-                </div>
+      {segment === 'instructors' && (
+        <section id="pricing-instructors" aria-labelledby="pricing-instructors-heading" className="py-20 bg-white" data-animate>
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 id="pricing-instructors-heading" className="text-3xl md:text-4xl font-bold text-gray-900">Instructors pricing</h2>
+            <p className="mt-3 text-gray-700">Always free to join. Fees only on marketplace gigs.</p>
+            <div className="mt-8 rounded-2xl border border-gray-200 p-8 bg-white">
+              <div className="text-2xl font-bold text-gray-900">Free forever</div>
+              <ul className="mt-4 space-y-2 text-gray-700">
+                {homeSegments.instructors.pricing.freeCard.bullets.map((b, i) => (
+                  <li key={i} className="flex items-start gap-2"><span className="mt-1 inline-block h-2 w-2 rounded-full bg-green-500" />{b}</li>
+                ))}
+              </ul>
+              <div className="mt-6">
+                <Link href={homeSegments.instructors.pricing.freeCard.cta.href}>
+                  <Button className="rounded-xl bg-gray-900 hover:bg-black text-white min-w-[220px]">{homeSegments.instructors.pricing.freeCard.cta.label}</Button>
+                </Link>
               </div>
-            ))}
+            </div>
           </div>
-          <p className="text-center text-sm text-gray-700 mt-6">{homeSegments.members.pricing.alt}</p>
-        </div>
-      </section>
+        </section>
+      )}
+
+      {segment === 'members' && (
+        <section id="pricing-members" aria-labelledby="pricing-members-heading" className="py-20 bg-white" data-animate>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h2 id="pricing-members-heading" className="text-3xl md:text-4xl font-bold text-gray-900">Members (X Pass) pricing</h2>
+              <p className="mt-3 text-gray-700">Save with credits or pay as you go — your choice.</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {(homeSegments.members.pricing.xpass || []).map((p, i) => (
+                <div key={i} className="rounded-2xl border border-gray-200 p-8 bg-white text-center">
+                  <h4 className="text-xl font-bold text-gray-900">{p.name}</h4>
+                  <div className="mt-2 text-3xl font-extrabold text-gray-900">{p.price}</div>
+                  <p className="mt-2 text-gray-800">{p.credits}</p>
+                  <p className="mt-4 text-sm text-gray-700">{homeSegments.members.pricing.footnote}</p>
+                  <div className="mt-6">
+                    <Link href="/signup?role=customer">
+                      <Button className="rounded-xl bg-gray-900 hover:bg黑 text-white min-w-[220px]">Get started</Button>
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="text-center text-sm text-gray-700 mt-6">{homeSegments.members.pricing.alt}</p>
+          </div>
+        </section>
+      )}
 
       {/* FAQ (segment-specific) */}
       <section className="py-20 bg-gray-50">
