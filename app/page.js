@@ -234,11 +234,11 @@ export default function HomePage() {
             <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center min-h-[48px] md:min-h-[48px]">
               {segment === 'studios' && (
                 <>
-                  <Link href="/signup?role=merchant" onClick={() => onCtaClick('hero', '/signup?role=merchant')}>
-                    <Button className="bg-white text-gray-900 hover:bg-gray-100 px-8 py-3 text-lg font-semibold rounded-xl shadow-lg shadow-black/20 ring-1 ring-black/5">Start Your Journey</Button>
+                  <Link href="/signup?role=merchant" onClick={() => onCtaClick('hero', '/signup?role=merchant')} className="inline-flex">
+                    <span className="inline-flex items-center justify-center rounded-xl bg-white text-gray-900 hover:bg-gray-100 px-8 py-3 text-lg font-medium shadow-lg shadow-black/20 ring-1 ring-black/5 min-w-[220px] text-center">Start Your Journey</span>
                   </Link>
-                  <Link href="/pricing" onClick={() => onCtaClick('hero', '/pricing')}>
-                    <Button className="bg-white text-gray-900 hover:bg-gray-100 px-8 py-3 text-lg rounded-xl">See Plans</Button>
+                  <Link href="/pricing" onClick={() => onCtaClick('hero', '/pricing')} className="inline-flex">
+                    <span className="inline-flex items-center justify-center rounded-xl bg-white text-gray-900 hover:bg-gray-100 px-8 py-3 text-lg font-medium ring-1 ring-black/5 min-w-[220px] text-center">See Plans</span>
                   </Link>
                 </>
               )}
@@ -249,12 +249,12 @@ export default function HomePage() {
                       onCtaClick('hero', 'jobs_near_me')
                       if (zipToolbarRef.current) zipToolbarRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
                     }}
-                    className="bg-white text-gray-900 hover:bg-gray-100 px-8 py-3 text-lg font-semibold rounded-xl shadow-lg shadow-black/20 ring-1 ring-black/5"
+                    className="inline-flex items-center justify-center rounded-xl bg-white text-gray-900 hover:bg-gray-100 px-8 py-3 text-lg font-medium shadow-lg shadow-black/20 ring-1 ring-black/5 min-w-[220px]"
                   >
                     Find jobs near me
                   </button>
-                  <Link href="/signup?role=instructor" onClick={() => onCtaClick('hero', '/signup?role=instructor')}>
-                    <Button className="bg-white text-gray-900 hover:bg-gray-100 px-8 py-3 text-lg rounded-xl">Create your free profile</Button>
+                  <Link href="/signup?role=instructor" onClick={() => onCtaClick('hero', '/signup?role=instructor')} className="inline-flex">
+                    <span className="inline-flex items-center justify-center rounded-xl bg-white text-gray-900 hover:bg-gray-100 px-8 py-3 text-lg font-medium ring-1 ring-black/5 min-w-[220px] text-center">Create your free profile</span>
                   </Link>
                 </>
               )}
@@ -265,22 +265,38 @@ export default function HomePage() {
                       onCtaClick('hero', 'classes_near_me')
                       if (zipToolbarRef.current) zipToolbarRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
                     }}
-                    className="bg-white text-gray-900 hover:bg-gray-100 px-8 py-3 text-lg font-semibold rounded-xl shadow-lg shadow-black/20 ring-1 ring-black/5"
+                    className="inline-flex items-center justify-center rounded-xl bg-white text-gray-900 hover:bg-gray-100 px-8 py-3 text-lg font-medium shadow-lg shadow-black/20 ring-1 ring-black/5 min-w-[220px]"
                   >
                     See classes near me
                   </button>
-                  <Link href="/signup?role=customer" onClick={() => onCtaClick('hero', '/signup?role=customer')}>
-                    <Button className="bg-white text-gray-900 hover:bg-gray-100 px-8 py-3 text-lg rounded-xl">Get 10% off</Button>
+                  <Link href="/signup?role=customer" onClick={() => onCtaClick('hero', '/signup?role=customer')} className="inline-flex">
+                    <span className="inline-flex items-center justify-center rounded-xl bg-white text-gray-900 hover:bg-gray-100 px-8 py-3 text-lg font-medium ring-1 ring-black/5 min-w-[220px] text-center">Get 10% off</span>
                   </Link>
                 </>
               )}
             </div>
             <div className="mt-8 flex flex-wrap justify-center gap-4 text-white/70 text-sm">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 backdrop-blur"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />5 Min Setup</div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 backdrop-blur"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Sync From Other Platforms</div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 backdrop-blur"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Payouts Daily</div>
+              {segment === 'studios' && (
+                <>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 backdrop-blur"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />5 Min Setup</div>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 backdrop-blur"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Sync From Other Platforms</div>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 backdrop-blur"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Payouts Daily</div>
+                </>
+              )}
+              {segment === 'instructors' && (
+                <>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 backdrop-blur"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Find Jobs Near You</div>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 backdrop-blur"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Set Your Own Rates</div>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 backdrop-blur"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Get Paid on Time</div>
+                </>
+              )}
               {segment === 'members' && (
-                <div className="inline-flex items-center gap-2 rounded-full border border-emerald-300 px-3 py-1 backdrop-blur text-emerald-200"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />10% off your first class</div>
+                <>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 backdrop-blur"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Discover Classes Nearby</div>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 backdrop-blur"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Save With ThryveX</div>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 backdrop-blur"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Book in One Tap</div>
+                  <div className="inline-flex items-center gap-2 rounded-full border border-emerald-300 px-3 py-1 backdrop-blur text-emerald-200"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />10% off your first class</div>
+                </>
               )}
             </div>
           </div>

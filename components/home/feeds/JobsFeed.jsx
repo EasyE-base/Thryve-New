@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 
-export default function JobsFeed({ lat, lng, radius = 25 }) {
+export default function JobsFeed({ lat, lng, radius = 25, segment = 'instructors' }) {
   const [items, setItems] = useState([])
   const [cursor, setCursor] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -47,16 +47,29 @@ export default function JobsFeed({ lat, lng, radius = 25 }) {
   return (
     <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
       {items.map((j) => (
-        <a key={j.id} href={`/job/${j.id}`} className="rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow overflow-hidden" onClick={(e) => {
-          if (!window.__isAuthed) { e.preventDefault(); window.location.href = `/login?next=/job/${j.id}` }
-        }}>
+        <div key={j.id} className="rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow overflow-hidden">
           <div className="p-4">
             <div className="text-sm text-gray-500">{j.city}, {j.state}</div>
             <div className="mt-1 font-semibold text-gray-900">{j.title}</div>
             <div className="mt-1 text-sm text-gray-700">${j.ratePerHour}/hr • {j.scheduleSummary}</div>
             {j.remote && <div className="mt-2 inline-flex items-center rounded-full border border-gray-200 px-2 py-0.5 text-xs text-gray-700">Remote OK</div>}
+            <div className="mt-3">
+              <a
+                href={`/job/${j.id}`}
+                onClick={(e) => {
+                  if (typeof window !== 'undefined') {
+                    window.dataLayer = window.dataLayer || []
+                    window.dataLayer.push({ event: 'job_card_click', id: j.id, segment })
+                  }
+                  if (!window.__isAuthed) { e.preventDefault(); window.location.href = `/login?next=/job/${j.id}` }
+                }}
+                className="inline-flex items-center justify-center rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-black"
+              >
+                Apply
+              </a>
+            </div>
           </div>
-        </a>
+        </div>
       ))}
       <div ref={sentinelRef} />
       {loading && <div className="col-span-full text-center text-gray-600">Loading…</div>}
