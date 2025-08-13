@@ -68,22 +68,19 @@ export default function AuthProvider({ children }) {
           setRole(userRole)
           setOnboardingCompleted(onboardingStatus)
           
-          // Sync user data to cookies for middleware
-          if (typeof document !== 'undefined') {
-            const cookieData = {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email,
-              role: userRole,
-              onboardingCompleted: onboardingStatus
-            }
-            
-            // Set cookie for middleware (expires in 24 hours)
-            const expires = new Date()
-            expires.setTime(expires.getTime() + (24 * 60 * 60 * 1000))
-            
-            document.cookie = `user=${JSON.stringify(cookieData)}; expires=${expires.toUTCString()}; path=/; SameSite=Lax`
-            console.log('🔥 AuthProvider: Set user cookie for middleware')
-          }
+          // Sync cookie via server endpoint (so middleware reads it reliably)
+          try {
+            await fetch('/api/session/sync', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                uid: firebaseUser.uid,
+                email: firebaseUser.email,
+                role: userRole,
+                onboardingCompleted: onboardingStatus
+              })
+            })
+          } catch (_) {}
           
         } catch (error) {
           console.error('❌ AuthProvider: Error fetching user role:', error)
@@ -134,10 +131,14 @@ export default function AuthProvider({ children }) {
         setLoading(false)
         
         // Clear cookies and localStorage when user logs out
-        if (typeof document !== 'undefined') {
-          document.cookie = 'user=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
-          console.log('🔥 AuthProvider: Cleared user cookie')
-        }
+        // Clear cookie via server so middleware updates immediately
+        try {
+          await fetch('/api/session/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ clear: true })
+          })
+        } catch (_) {}
         
         if (typeof window !== 'undefined') {
           localStorage.removeItem('pendingRoleSelection')
