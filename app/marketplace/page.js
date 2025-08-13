@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/auth-provider'
+import { useMarketplaceAccess } from '@/hooks/useMarketplaceAccess'
 import { useRouter } from 'next/navigation'
 import { Search, Filter, MapPin, Star, Clock, DollarSign, Users, Award } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -16,6 +17,7 @@ import { toast } from 'sonner'
 
 export default function MarketplacePage() {
   const { user, role } = useAuth()
+  const access = useMarketplaceAccess()
   const router = useRouter()
   const [instructors, setInstructors] = useState([])
   const [loading, setLoading] = useState(false)
@@ -93,16 +95,11 @@ export default function MarketplacePage() {
     }
   }
 
-  // Access control: B2B only (studio owners/merchants)
+  // Access control via hook
   useEffect(() => {
-    if (!user) return
-    // Allow roles: 'studio' or 'merchant'
-    if (role !== 'studio' && role !== 'merchant') {
-      router.replace('/marketplace/gate')
-      return
-    }
-    searchInstructors()
-  }, [user, role])
+    if (access.state === 'block') router.replace('/marketplace/gate')
+    if (access.state === 'allowed') searchInstructors()
+  }, [access])
 
   // Handle specialty filter toggle
   const toggleSpecialty = (specialty) => {

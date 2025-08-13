@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server'
-import { getFirebaseUser, adminDb } from '@/lib/firebase-admin'
+import { initAdmin } from '@/lib/firebase-admin'
+import { requireMarketplaceUser } from '../_guard'
 
 function parseNum(v, d = null) { const n = Number(v); return Number.isFinite(n) ? n : d }
 function parseBool(v) { return v === 'true' ? true : v === 'false' ? false : undefined }
 
 export async function GET(request) {
   try {
-    const user = await getFirebaseUser(request)
-    if (!user) return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    const { uid, role } = await requireMarketplaceUser(request.headers.get('authorization'))
+    // Role gate: require merchant or instructor. For MVP we infer by presence of studio/instructor docs if needed.
 
     const url = new URL(request.url)
     const lat = parseNum(url.searchParams.get('lat'))
@@ -21,7 +22,8 @@ export async function GET(request) {
     const languages = url.searchParams.getAll('languages[]')
 
     // Base query: visible instructors
-    let query = adminDb.collection('instructors').where('marketplaceVisible', '==', true)
+    const { db } = initAdmin()
+    let query = db.collection('instructors').where('marketplaceVisible', '==', true)
 
     if (minRate != null) query = query.where('hourlyRate', '>=', minRate)
     if (maxRate != null) query = query.where('hourlyRate', '<=', maxRate)
