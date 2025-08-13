@@ -1,20 +1,27 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '@/components/auth-provider'
 import { Button } from '@/components/ui/button'
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion'
 import { Shield, Rocket, BarChart3, Layers, Zap, CheckCircle2 } from 'lucide-react'
 import Link from 'next/link'
 import SignInModal from '@/components/landing/SignInModal'
+import ZipSearchBar from '@/components/home/ZipSearchBar'
+import PopularCities from '@/components/home/PopularCities'
+import ClassesFeed from '@/components/home/feeds/ClassesFeed'
+import JobsFeed from '@/components/home/feeds/JobsFeed'
+import { useHomeLocation } from '@/hooks/useHomeLocation'
 
 export default function HomePage() {
   const { user, loading, role } = useAuth()
   const [mounted, setMounted] = useState(false)
   const [showSignInModal, setShowSignInModal] = useState(false)
   const [showFloatingCta, setShowFloatingCta] = useState(false)
-  // Persona state: 'studio-owner' | 'instructor' | 'customer'
-  const [persona, setPersona] = useState('studio-owner')
+  // Segment state: 'studios' | 'instructors' | 'members'
+  const [segment, setSegment] = useState('studios')
+  const { location, setZip, useMyLocation } = useHomeLocation()
+  const zipToolbarRef = useRef(null)
   const phrases = [
     'big thing',
     'store they line up for',
@@ -46,18 +53,14 @@ export default function HomePage() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  // Initialize persona from query or localStorage
+  // Initialize segment from query or localStorage
   useEffect(() => {
     if (typeof window === 'undefined') return
     const params = new URLSearchParams(window.location.search)
-    const roleParam = params.get('role')
-    const stored = window.localStorage.getItem('thryve.persona')
-    let initial = 'studio-owner'
-    if (roleParam === 'merchant') initial = 'studio-owner'
-    else if (roleParam === 'instructor') initial = 'instructor'
-    else if (roleParam === 'customer') initial = 'customer'
-    else if (stored) initial = stored
-    setPersona(initial)
+    const segParam = params.get('segment')
+    const stored = window.localStorage.getItem('thryve_segment')
+    const initial = (segParam || stored || 'studios')
+    setSegment(['studios','instructors','members'].includes(initial) ? initial : 'studios')
   }, [])
 
   // dataLayer stub
@@ -72,35 +75,42 @@ export default function HomePage() {
     window.dataLayer.push({ event, ...payload })
   }
 
-  const handlePersonaChange = (next) => {
-    setPersona(next)
+  const handleSegmentChange = (next) => {
+    setSegment(next)
     if (typeof window !== 'undefined') {
-      window.localStorage.setItem('thryve.persona', next)
+      window.localStorage.setItem('thryve_segment', next)
       const url = new URL(window.location.href)
-      url.searchParams.set('role', next === 'studio-owner' ? 'merchant' : next)
+      url.searchParams.set('segment', next)
       window.history.replaceState({}, '', url.toString())
     }
-    trackEvent('persona_select', { persona: next })
+    trackEvent('segment_view', { segment: next })
   }
 
-  const onCtaClick = (location, dest) => {
-    trackEvent('cta_click', { persona, location, dest })
+  const onCtaClick = (loc, dest) => {
+    trackEvent('cta_click', { segment, label: 'cta', dest })
   }
 
   const heroCopy = {
-    'studio-owner': {
+    studios: {
       headline: 'Launch and grow your studio. Bookings, payouts, analytics—done.',
-      cta: { label: 'Start your studio', href: '/signup?role=merchant' },
+      sub: 'Powerful tools to manage classes, payouts via Stripe, and growth analytics.',
     },
-    instructor: {
-      headline: 'Fill your schedule and get paid on time.',
-      cta: { label: 'Earn with classes', href: '/signup?role=instructor' },
+    instructors: {
+      headline: 'Find work you love. Get hired by studios nearby.',
+      sub: 'Browse open jobs, create a free profile, and get paid on time.',
     },
-    customer: {
-      headline: 'Discover classes near you. Book in seconds.',
-      cta: { label: 'Get started', href: '/signup?role=customer' },
+    members: {
+      headline: 'Classes near you. Book in seconds.',
+      sub: 'Discover studios, claim 10% off your first class, and join the ThryveX network.',
     },
   }
+
+  // Expose auth state for feed click guards
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.__isAuthed = !!user
+    }
+  }, [user])
 
   const benefitsByPersona = {
     'studio-owner': [
@@ -198,19 +208,19 @@ export default function HomePage() {
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-40">
           <div className="text-center">
             <div className="min-h-[4.5rem] md:min-h-[6rem] lg:min-h-[6rem] flex items-center justify-center">
-              <h1 className="text-3xl md:text-6xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.15] text-balance">{heroCopy[persona].headline}</h1>
+              <h1 className="text-3xl md:text-6xl lg:text-6xl font-extrabold tracking-tight text-white leading-[1.15] text-balance">{heroCopy[segment].headline}</h1>
             </div>
             {/* Persona switcher */}
             <div className="mt-6 inline-flex items-center rounded-full border border-white/20 bg-white/10 backdrop-blur p-1 text-white">
               {[
-                { id: 'studio-owner', label: 'Studios' },
-                { id: 'instructor', label: 'Instructors' },
-                { id: 'customer', label: 'Enthusiasts' },
+                { id: 'studios', label: 'Studios' },
+                { id: 'instructors', label: 'Instructors' },
+                { id: 'members', label: 'Members' },
               ].map((p) => (
                 <button
                   key={p.id}
-                  onClick={() => handlePersonaChange(p.id)}
-                  className={`w-28 px-4 py-1.5 rounded-full text-sm font-medium transition ${persona === p.id ? 'bg-white text-gray-900' : 'text-white'}`}
+                  onClick={() => handleSegmentChange(p.id)}
+                  className={`w-28 px-4 py-1.5 rounded-full text-sm font-medium transition ${segment === p.id ? 'bg-white text-gray-900' : 'text-white'}`}
                 >
                   {p.label}
                 </button>
@@ -218,34 +228,108 @@ export default function HomePage() {
             </div>
             <div className="mt-6 min-h-[2.75rem] md:min-h-[3.25rem] flex items-center justify-center">
               <p className="text-lg md:text-xl text-white/85 max-w-2xl mx-auto text-pretty">
-              {persona === 'studio-owner' && 'Powerful tools to manage classes, payouts via Stripe, and growth analytics.'}
-              {persona === 'instructor' && 'Showcase your expertise, set availability, and get hired by vetted studios.'}
-              {persona === 'customer' && 'Browse nearby classes, checkout fast, and track your fitness journey.'}
+              {heroCopy[segment].sub}
               </p>
             </div>
             <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center min-h-[48px] md:min-h-[48px]">
-              <Link href={heroCopy[persona].cta.href} onClick={() => onCtaClick('hero', heroCopy[persona].cta.href)}>
-                <Button className="bg-white text-gray-900 hover:bg-gray-100 px-8 py-3 text-lg font-semibold rounded-xl shadow-lg shadow-black/20 ring-1 ring-black/5">
-                  {heroCopy[persona].cta.label}
-                </Button>
-              </Link>
-              {/* Secondary slots reserved to avoid layout shifts */}
-              {persona === 'studio-owner' && (
-                <Link href="#pricing" onClick={() => onCtaClick('hero', '#pricing')}>
-                  <Button className="bg-white text-gray-900 hover:bg-gray-100 px-8 py-3 text-lg rounded-xl">
-                    See pricing
-                  </Button>
-                </Link>
+              {segment === 'studios' && (
+                <>
+                  <Link href="/signup?role=merchant" onClick={() => onCtaClick('hero', '/signup?role=merchant')}>
+                    <Button className="bg-white text-gray-900 hover:bg-gray-100 px-8 py-3 text-lg font-semibold rounded-xl shadow-lg shadow-black/20 ring-1 ring-black/5">Start Your Journey</Button>
+                  </Link>
+                  <Link href="/pricing" onClick={() => onCtaClick('hero', '/pricing')}>
+                    <Button className="bg-white text-gray-900 hover:bg-gray-100 px-8 py-3 text-lg rounded-xl">See Plans</Button>
+                  </Link>
+                </>
+              )}
+              {segment === 'instructors' && (
+                <>
+                  <button
+                    onClick={() => {
+                      onCtaClick('hero', 'jobs_near_me')
+                      if (zipToolbarRef.current) zipToolbarRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                    }}
+                    className="bg-white text-gray-900 hover:bg-gray-100 px-8 py-3 text-lg font-semibold rounded-xl shadow-lg shadow-black/20 ring-1 ring-black/5"
+                  >
+                    Find jobs near me
+                  </button>
+                  <Link href="/signup?role=instructor" onClick={() => onCtaClick('hero', '/signup?role=instructor')}>
+                    <Button className="bg-white text-gray-900 hover:bg-gray-100 px-8 py-3 text-lg rounded-xl">Create your free profile</Button>
+                  </Link>
+                </>
+              )}
+              {segment === 'members' && (
+                <>
+                  <button
+                    onClick={() => {
+                      onCtaClick('hero', 'classes_near_me')
+                      if (zipToolbarRef.current) zipToolbarRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                    }}
+                    className="bg-white text-gray-900 hover:bg-gray-100 px-8 py-3 text-lg font-semibold rounded-xl shadow-lg shadow-black/20 ring-1 ring-black/5"
+                  >
+                    See classes near me
+                  </button>
+                  <Link href="/signup?role=customer" onClick={() => onCtaClick('hero', '/signup?role=customer')}>
+                    <Button className="bg-white text-gray-900 hover:bg-gray-100 px-8 py-3 text-lg rounded-xl">Get 10% off</Button>
+                  </Link>
+                </>
               )}
             </div>
             <div className="mt-8 flex flex-wrap justify-center gap-4 text-white/70 text-sm">
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 backdrop-blur"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Fast setup</div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 backdrop-blur"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Secure by default</div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 backdrop-blur"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Payouts via Stripe</div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 backdrop-blur"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />5 Min Setup</div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 backdrop-blur"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Sync From Other Platforms</div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 backdrop-blur"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />Payouts Daily</div>
+              {segment === 'members' && (
+                <div className="inline-flex items-center gap-2 rounded-full border border-emerald-300 px-3 py-1 backdrop-blur text-emerald-200"><span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />10% off your first class</div>
+              )}
             </div>
           </div>
         </div>
       </section>
+
+      {/* ZIP toolbar and feeds for instructors/members */}
+      {(segment === 'instructors' || segment === 'members') && (
+        <section ref={zipToolbarRef} className="bg-gray-900 text-white py-8">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <ZipSearchBar
+              onSubmit={async (zip) => {
+                const loc = await setZip(zip)
+                if (loc) {
+                  trackEvent('zip_set', { zip: loc.zip, lat: loc.lat, lng: loc.lng, method: 'manual' })
+                }
+              }}
+              onUseLocation={() => {
+                useMyLocation()
+                trackEvent('zip_set', { zip: '', lat: 0, lng: 0, method: 'geo' })
+              }}
+            />
+            {!location && (
+              <PopularCities onSelect={async (c) => {
+                const loc = await setZip(c.zip)
+                if (loc) trackEvent('zip_set', { zip: loc.zip, lat: loc.lat, lng: loc.lng, method: 'city_click' })
+              }} />
+            )}
+          </div>
+        </section>
+      )}
+
+      {segment === 'members' && location && (
+        <section id="classes" className="py-12 bg-white">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-2xl font-bold text-gray-900">Classes near you</h2>
+            <ClassesFeed lat={location.lat} lng={location.lng} radius={25} />
+          </div>
+        </section>
+      )}
+
+      {segment === 'instructors' && location && (
+        <section id="jobs" className="py-12 bg-white">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 className="text-2xl font-bold text-gray-900">Studios hiring near you</h2>
+            <JobsFeed lat={location.lat} lng={location.lng} radius={25} />
+          </div>
+        </section>
+      )}
 
       {/* Floating CTA */}
       {showFloatingCta && (
