@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Eye, EyeOff, ArrowLeft } from 'lucide-react'
 import { useAuth } from '@/components/auth-provider'
+import GoogleSignInButton from '@/components/auth/GoogleSignInButton'
+import GoogleRedirectHandler from '@/components/auth/GoogleRedirectHandler'
 
 // Component that uses useSearchParams
 function LoginContent() {
@@ -23,7 +25,7 @@ function LoginContent() {
   const searchParams = useSearchParams()
   const { user } = useAuth()
 
-  const redirectTo = searchParams.get('redirect') || '/dashboard'
+  const redirectTo = searchParams.get('next') || '/dashboard'
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
@@ -80,6 +82,10 @@ function LoginContent() {
 
         {/* Login Form */}
         <div className="bg-white rounded-xl shadow-lg p-8">
+          <GoogleRedirectHandler next={redirectTo} />
+          <div className="mb-4">
+            <GoogleSignInButton next={redirectTo} />
+          </div>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <Label htmlFor="email" className="text-gray-700 font-medium">
