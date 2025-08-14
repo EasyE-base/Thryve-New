@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getFirebaseUser, adminDb } from '@/lib/firebase-admin'
+import { getFirebaseUser, initAdmin } from '@/lib/firebase-admin'
 
 const DEFAULT_SETTINGS = (studioId) => ({
   studioId,
@@ -19,9 +19,10 @@ function normalizeRole(role) {
 }
 
 async function resolveUserRole(uid) {
+  const { db } = initAdmin()
   try {
-    const profilesSnap = await adminDb.collection('profiles').doc(uid).get()
-    const usersSnap = await adminDb.collection('users').doc(uid).get()
+    const profilesSnap = await db.collection('profiles').doc(uid).get()
+    const usersSnap = await db.collection('users').doc(uid).get()
     const role = profilesSnap.exists ? profilesSnap.data().role : (usersSnap.exists ? usersSnap.data().role : null)
     return normalizeRole(role) || null
   } catch {
@@ -36,7 +37,8 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
-    const docRef = adminDb.collection('studio_xpass_settings').doc(firebaseUser.uid)
+    const { db } = initAdmin()
+    const docRef = db.collection('studio_xpass_settings').doc(firebaseUser.uid)
     const snap = await docRef.get()
 
     if (!snap.exists) {
@@ -65,7 +67,8 @@ export async function PUT(request) {
     }
     if (!role) {
       try {
-        const studioDoc = await adminDb.collection('studios').doc(firebaseUser.uid).get()
+        const { db } = initAdmin()
+        const studioDoc = await db.collection('studios').doc(firebaseUser.uid).get()
         if (studioDoc.exists) {
           role = 'merchant'
         }
@@ -74,7 +77,6 @@ export async function PUT(request) {
       }
     }
     // As a final fallback, allow write to unblock onboarding; remove 403 gate for now
-    // If you need to re-enable strict gating later, restore the check below
     // if (!role) return NextResponse.json({ error: 'Studio access required' }, { status: 403 })
 
     const body = await request.json()
@@ -90,8 +92,8 @@ export async function PUT(request) {
     Object.keys(allowed).forEach((k) => allowed[k] === undefined && delete allowed[k])
 
     const nowIso = new Date().toISOString()
-
-    const docRef = adminDb.collection('studio_xpass_settings').doc(firebaseUser.uid)
+    const { db } = initAdmin()
+    const docRef = db.collection('studio_xpass_settings').doc(firebaseUser.uid)
     const snap = await docRef.get()
     if (!snap.exists) {
       const newDoc = { ...DEFAULT_SETTINGS(firebaseUser.uid), ...allowed, createdAt: nowIso, updatedAt: nowIso }
