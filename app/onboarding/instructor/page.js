@@ -186,6 +186,11 @@ export default function InstructorOnboarding() {
     await setDoc(profileDoc, { role: 'instructor', onboardingComplete: false, updatedAt: new Date() }, { merge: true })
   })
 
+  // Autosave on state changes (debounced inside useAutosave)
+  useEffect(() => {
+    autosave()
+  }, [profileData, locationData, availabilityData, ratesData, visibilityData, setupData])
+
   const handleComplete = async () => {
     if (!canAdvanceStep || loading || !user) return
     setLoading(true)
