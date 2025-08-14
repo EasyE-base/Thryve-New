@@ -19,6 +19,7 @@ import { toast } from 'sonner'
 import { doc, setDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
 import { syncCustomClaims } from '@/lib/client-session'
+import tzlookup from 'tz-lookup'
 
 export default function InstructorOnboarding() {
   const { user, role, loading: authLoading } = useAuth()
@@ -66,6 +67,10 @@ export default function InstructorOnboarding() {
     ],
     timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
   })
+  const [geoTimeZone, setGeoTimeZone] = useState('')
+  const browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+  const [showAvailabilityWarn, setShowAvailabilityWarn] = useState(false)
+  const firstAvailabilityRef = useRef(null)
 
   const [ratesData, setRatesData] = useState({
     hourlyRate: 50,
@@ -132,12 +137,21 @@ export default function InstructorOnboarding() {
     }))
   }, [])
 
+  const proceedNext = useCallback(() => {
+    window.dataLayer?.push({ event: 'onboarding_next', role: 'instructor', step: currentStep })
+    setCurrentStep((s) => Math.min(totalSteps, s + 1))
+  }, [currentStep, totalSteps])
+
   const nextStep = useCallback(() => {
-    if (currentStep < totalSteps && canAdvanceStep) {
-      window.dataLayer?.push({ event: 'onboarding_next', role: 'instructor', step: currentStep })
-      setCurrentStep(currentStep + 1)
+    if (currentStep === 3 && (availabilityData.windows?.length || 0) === 0) {
+      setShowAvailabilityWarn(true)
+      window.dataLayer?.push({ event: 'onboarding_warn_availability_empty', role: 'instructor' })
+      return
     }
-  }, [currentStep, canAdvanceStep, totalSteps])
+    if (currentStep < totalSteps && canAdvanceStep) {
+      proceedNext()
+    }
+  }, [currentStep, totalSteps, canAdvanceStep, availabilityData.windows, proceedNext])
 
   const prevStep = useCallback(() => {
     if (currentStep > 1) {
@@ -282,7 +296,13 @@ export default function InstructorOnboarding() {
           <StepCard title="Location" subtitle="Where are you based?">
             <div className="space-y-4">
               <Label>Search City or ZIP</Label>
-              <MapboxAutocomplete onSelect={(sel) => { setLocationData(prev => ({ ...prev, city: sel.city, state: sel.state, lat: sel.lat, lng: sel.lng })); autosave() }} />
+              <MapboxAutocomplete onSelect={(sel) => {
+                const tz = (() => { try { return tzlookup(sel.lat, sel.lng) } catch { return browserTimeZone } })()
+                setGeoTimeZone(tz)
+                setLocationData(prev => ({ ...prev, city: sel.city, state: sel.state, lat: sel.lat, lng: sel.lng }))
+                setAvailabilityData(prev => ({ ...prev, timeZone: tz || browserTimeZone }))
+                autosave()
+              }} />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label>Home ZIP</Label>
@@ -305,6 +325,9 @@ export default function InstructorOnboarding() {
                   <span>Remote sessions available</span>
                 </label>
               </div>
+              {locationData.lat && locationData.lng && geoTimeZone && geoTimeZone !== availabilityData.timeZone && (
+                <div className="text-xs text-gray-600">We detected {geoTimeZone}. Using {availabilityData.timeZone}. You can change this.</div>
+              )}
             </div>
           </StepCard>
         )
@@ -312,10 +335,19 @@ export default function InstructorOnboarding() {
       case 3:
         return (
           <StepCard title="Availability" subtitle="When are you available?">
+            {showAvailabilityWarn && (
+              <div className="mb-4 p-3 border border-yellow-300 bg-yellow-50 rounded-md text-sm text-yellow-800 flex items-center justify-between">
+                <span>You haven’t set hours yet. You can continue, but you won’t appear in time-based searches.</span>
+                <div className="flex items-center gap-2 ml-4">
+                  <button type="button" className="px-3 py-2 border rounded" onClick={() => { setShowAvailabilityWarn(false); firstAvailabilityRef.current?.focus() }}>Set hours</button>
+                  <button type="button" className="px-3 py-2 bg-black text-white rounded" onClick={() => { setShowAvailabilityWarn(false); proceedNext() }}>Continue anyway</button>
+                </div>
+              </div>
+            )}
             <div className="text-sm text-gray-600 mb-2">You can change this anytime. Leaving it empty is okay, but we recommend adding windows.</div>
             {availabilityData.windows.map((w, idx) => (
               <div key={idx} className="flex items-center gap-2 mb-2">
-                <select className="border rounded px-2 py-2" value={w.day} onChange={(e) => { const c = [...availabilityData.windows]; c[idx] = { ...w, day: e.target.value }; setAvailabilityData({ ...availabilityData, windows: c }); autosave() }}>
+                <select ref={idx === 0 ? firstAvailabilityRef : undefined} className="border rounded px-2 py-2" value={w.day} onChange={(e) => { const c = [...availabilityData.windows]; c[idx] = { ...w, day: e.target.value }; setAvailabilityData({ ...availabilityData, windows: c }); autosave() }}>
                   {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
                 <Input type="time" value={w.start} onChange={(e) => { const c = [...availabilityData.windows]; c[idx] = { ...w, start: e.target.value }; setAvailabilityData({ ...availabilityData, windows: c }); autosave() }} className="w-32" />
