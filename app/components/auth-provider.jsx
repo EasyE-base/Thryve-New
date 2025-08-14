@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { auth } from '@/lib/firebase'
 import { onAuthStateChanged } from 'firebase/auth'
+import { syncAuthState, syncCustomClaims } from '@/lib/client-session'
 import { getUserRole, signUp as firebaseSignUp, signIn as firebaseSignIn, signOut as firebaseSignOut } from '@/lib/firebase-auth'
 
 const AuthContext = createContext({})
@@ -24,128 +25,21 @@ export default function AuthProvider({ children }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        setUser(firebaseUser)
-        
-        // Set loading to true when fetching role data
-        setLoading(true)
-        
         try {
-          console.log('🔥 AuthProvider: Fetching role for user:', firebaseUser.uid)
-          const userData = await getUserRole(firebaseUser.uid)
-          console.log('🔥 AuthProvider: Got user data:', userData)
-          
-          // getUserRole returns the full user data object, we need just the role
-          let userRole = userData?.role || null
-          let onboardingStatus = userData?.onboard_complete || false
-          
-          // Fallback: Check localStorage if API is not available
-          if (!userRole && typeof window !== 'undefined') {
-            const pendingUserData = localStorage.getItem('pendingRoleSelection')
-            if (pendingUserData) {
-              try {
-                const parsedData = JSON.parse(pendingUserData)
-                // Check if the data is for the current user and not too old (1 hour)
-                const isCurrentUser = parsedData.uid === firebaseUser.uid
-                const isRecent = parsedData.timestamp && (Date.now() - parsedData.timestamp) < 3600000 // 1 hour
-                
-                if (isCurrentUser && (!parsedData.timestamp || isRecent)) {
-                  userRole = parsedData.role
-                  onboardingStatus = parsedData.onboardingCompleted || false
-                  console.log('🔥 AuthProvider: Using localStorage fallback role:', userRole)
-                } else if (!isRecent) {
-                  console.log('🔥 AuthProvider: Clearing stale localStorage data')
-                  localStorage.removeItem('pendingRoleSelection')
-                }
-              } catch (e) {
-                console.error('Failed to parse localStorage data:', e)
-                // Clean up corrupted data
-                localStorage.removeItem('pendingRoleSelection')
-              }
-            }
-          }
-          
-          console.log('🔥 AuthProvider: Setting role:', userRole, 'onboarding:', onboardingStatus)
-          setRole(userRole)
-          setOnboardingCompleted(onboardingStatus)
-          
-          // Sync cookie via server endpoint (so middleware reads it reliably)
-          try {
-            await fetch('/api/session/sync', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                uid: firebaseUser.uid,
-                email: firebaseUser.email,
-                role: userRole,
-                onboardingCompleted: onboardingStatus
-              })
-            })
-          } catch (_) {}
-          
+          await syncAuthState(firebaseUser)
+          console.log('🔥 AuthProvider: User authenticated:', firebaseUser.email)
+          setUser(firebaseUser)
         } catch (error) {
-          console.error('❌ AuthProvider: Error fetching user role:', error)
-          
-          // Fallback: Check localStorage if API fails
-          if (typeof window !== 'undefined') {
-            const pendingUserData = localStorage.getItem('pendingRoleSelection')
-            if (pendingUserData) {
-              try {
-                const parsedData = JSON.parse(pendingUserData)
-                if (parsedData.uid === firebaseUser.uid) {
-                  console.log('🔥 AuthProvider: Using localStorage fallback due to API error:', parsedData.role)
-                  setRole(parsedData.role)
-                  setOnboardingCompleted(parsedData.onboardingCompleted || false)
-                  
-                  // Still set cookie even with fallback data
-                  if (typeof document !== 'undefined') {
-                    const cookieData = {
-                      uid: firebaseUser.uid,
-                      email: firebaseUser.email,
-                      role: parsedData.role,
-                      onboardingCompleted: parsedData.onboardingCompleted || false
-                    }
-                    
-                    const expires = new Date()
-                    expires.setTime(expires.getTime() + (24 * 60 * 60 * 1000))
-                    document.cookie = `user=${JSON.stringify(cookieData)}; expires=${expires.toUTCString()}; path=/; SameSite=Lax`
-                  }
-                  return
-                }
-              } catch (e) {
-                console.error('Failed to parse localStorage fallback data:', e)
-              }
-            }
-          }
-          
-          setRole(null)
-          setOnboardingCompleted(false)
-        } finally {
-          // Set loading to false after role fetch completes (success or error)
-          setLoading(false)
+          console.error('🔥 AuthProvider: Error syncing session:', error)
+          setUser(null)
         }
       } else {
-        console.log('🔥 AuthProvider: No user, clearing state')
+        console.log('🔥 AuthProvider: No authenticated user')
+        await syncAuthState(null)
         setUser(null)
-        setRole(null)
-        setOnboardingCompleted(false)
-        setLoading(false)
-        
-        // Clear cookies and localStorage when user logs out
-        // Clear cookie via server so middleware updates immediately
-        try {
-          await fetch('/api/session/sync', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ clear: true })
-          })
-        } catch (_) {}
-        
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('pendingRoleSelection')
-        }
       }
+      setLoading(false)
     })
-
     return () => unsubscribe()
   }, [])
 
@@ -233,14 +127,11 @@ export default function AuthProvider({ children }) {
 
   const value = {
     user,
-    role,
     loading,
-    onboardingCompleted,
-    refreshRole,
-    completeOnboarding,
     signUp,
     signIn,
-    signOut
+    signOut,
+    syncCustomClaims,
   }
 
   return (
