@@ -26,7 +26,9 @@ export default function RoleSelectionPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ role: selectedRole })
       })
-      const data = await response.json()
+      const raw = await response.text()
+      let data
+      try { data = raw ? JSON.parse(raw) : {} } catch { throw new Error(raw || 'Failed to save role') }
       if (!response.ok) {
         throw new Error(data?.error || 'Failed to save role')
       }
