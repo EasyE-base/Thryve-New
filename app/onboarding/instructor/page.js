@@ -278,28 +278,28 @@ export default function InstructorOnboarding() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>First Name *</Label>
-                <Input value={profileData.firstName} onChange={(e) => setProfileData(prev => ({ ...prev, firstName: e.target.value }))} onBlur={() => autosave()} />
+                <Input value={profileData.firstName} onChange={(e) => setProfileData(prev => ({ ...prev, firstName: e.target.value }))} />
               </div>
               <div>
                 <Label>Last Name *</Label>
-                <Input value={profileData.lastName} onChange={(e) => setProfileData(prev => ({ ...prev, lastName: e.target.value }))} onBlur={() => autosave()} />
+                <Input value={profileData.lastName} onChange={(e) => setProfileData(prev => ({ ...prev, lastName: e.target.value }))} />
               </div>
               <div>
                 <Label>Phone (E.164)</Label>
-                <Input placeholder="+15551234567" value={profileData.phone} onChange={(e) => setProfileData(prev => ({ ...prev, phone: e.target.value }))} onBlur={() => autosave()} />
+                <Input placeholder="+15551234567" value={profileData.phone} onChange={(e) => setProfileData(prev => ({ ...prev, phone: e.target.value }))} />
               </div>
               <div className="md:col-span-2">
                 <Label>Professional Bio *</Label>
-                <Textarea value={profileData.publicBio} maxLength={280} onChange={(e) => setProfileData(prev => ({ ...prev, publicBio: e.target.value.slice(0,280) }))} onBlur={() => autosave()} rows={3} />
+                <Textarea value={profileData.publicBio} maxLength={280} onChange={(e) => setProfileData(prev => ({ ...prev, publicBio: e.target.value.slice(0,280) }))} rows={3} />
                 <div className="text-xs text-gray-500">{(profileData.publicBio || '').length}/280</div>
               </div>
               <div>
                 <Label>Specialties</Label>
-                <Input placeholder="Yoga, HIIT" onBlur={(e) => { setProfileData(prev => ({ ...prev, specialties: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })); autosave() }} />
+                <Input placeholder="Yoga, HIIT" onBlur={(e) => { setProfileData(prev => ({ ...prev, specialties: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })) }} />
               </div>
               <div>
                 <Label>Languages</Label>
-                <Input placeholder="English, Spanish" onBlur={(e) => { setProfileData(prev => ({ ...prev, languages: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })); autosave() }} />
+                <Input placeholder="English, Spanish" onBlur={(e) => { setProfileData(prev => ({ ...prev, languages: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })) }} />
               </div>
             </div>
           </StepCard>
@@ -320,19 +320,19 @@ export default function InstructorOnboarding() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label>Home ZIP</Label>
-                  <Input value={locationData.homeZip} onChange={(e) => setLocationData(prev => ({ ...prev, homeZip: e.target.value }))} onBlur={() => autosave()} />
+                  <Input value={locationData.homeZip} onChange={(e) => setLocationData(prev => ({ ...prev, homeZip: e.target.value }))} />
                 </div>
                 <div>
                   <Label>City</Label>
-                  <Input value={locationData.city} onChange={(e) => setLocationData(prev => ({ ...prev, city: e.target.value }))} onBlur={() => autosave()} />
+                  <Input value={locationData.city} onChange={(e) => setLocationData(prev => ({ ...prev, city: e.target.value }))} />
                 </div>
                 <div>
                   <Label>State</Label>
-                  <Input value={locationData.state} onChange={(e) => setLocationData(prev => ({ ...prev, state: e.target.value }))} onBlur={() => autosave()} />
+                  <Input value={locationData.state} onChange={(e) => setLocationData(prev => ({ ...prev, state: e.target.value }))} />
                 </div>
                 <div>
                   <Label>Travel Radius (km)</Label>
-                  <Input type="number" min={0} max={100} value={locationData.travelRadiusKm} onChange={(e) => setLocationData(prev => ({ ...prev, travelRadiusKm: Math.max(0, Math.min(100, parseInt(e.target.value || '0', 10))) }))} onBlur={() => autosave()} />
+                  <Input type="number" min={0} max={100} value={locationData.travelRadiusKm} onChange={(e) => setLocationData(prev => ({ ...prev, travelRadiusKm: Math.max(0, Math.min(100, parseInt(e.target.value || '0', 10))) }))} />
                 </div>
                 <label className="flex items-center gap-2">
                   <Checkbox checked={locationData.remoteAvailable} onCheckedChange={(c) => { setLocationData(prev => ({ ...prev, remoteAvailable: !!c })); autosave() }} />
@@ -361,21 +361,21 @@ export default function InstructorOnboarding() {
             <div className="text-sm text-gray-600 mb-2">You can change this anytime. Leaving it empty is okay, but we recommend adding windows.</div>
             {availabilityData.windows.map((w, idx) => (
               <div key={idx} className="flex items-center gap-2 mb-2">
-                <select ref={idx === 0 ? firstAvailabilityRef : undefined} className="border rounded px-2 py-2" value={w.day} onChange={(e) => { const c = [...availabilityData.windows]; c[idx] = { ...w, day: e.target.value }; setAvailabilityData({ ...availabilityData, windows: c }); autosave() }}>
+                <select ref={idx === 0 ? firstAvailabilityRef : undefined} className="border rounded px-2 py-2" value={w.day} onChange={(e) => { const c = [...availabilityData.windows]; c[idx] = { ...w, day: e.target.value }; setAvailabilityData({ ...availabilityData, windows: c }) }}>
                   {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
-                <Input type="time" value={w.start} onChange={(e) => { const c = [...availabilityData.windows]; c[idx] = { ...w, start: e.target.value }; setAvailabilityData({ ...availabilityData, windows: c }); autosave() }} className="w-32" />
+                <Input type="time" value={w.start} onChange={(e) => { const c = [...availabilityData.windows]; c[idx] = { ...w, start: e.target.value }; setAvailabilityData({ ...availabilityData, windows: c }) }} className="w-32" />
                 <span>to</span>
-                <Input type="time" value={w.end} onChange={(e) => { const c = [...availabilityData.windows]; c[idx] = { ...w, end: e.target.value }; setAvailabilityData({ ...availabilityData, windows: c }); autosave() }} className="w-32" />
+                <Input type="time" value={w.end} onChange={(e) => { const c = [...availabilityData.windows]; c[idx] = { ...w, end: e.target.value }; setAvailabilityData({ ...availabilityData, windows: c }) }} className="w-32" />
               </div>
             ))}
             <div className="mt-2 flex gap-2">
-              <button type="button" className="px-3 py-2 border rounded" onClick={() => { setAvailabilityData(prev => ({ ...prev, windows: [...prev.windows, { day: 'Mon', start: '06:00', end: '09:00' }] })); autosave() }}>Add window</button>
-              <button type="button" className="px-3 py-2 border rounded" onClick={() => { setAvailabilityData(prev => ({ ...prev, windows: prev.windows.slice(0,-1) })); autosave() }} disabled={availabilityData.windows.length <= 1}>Remove last</button>
+              <button type="button" className="px-3 py-2 border rounded" onClick={() => { setAvailabilityData(prev => ({ ...prev, windows: [...prev.windows, { day: 'Mon', start: '06:00', end: '09:00' }] })) }}>Add window</button>
+              <button type="button" className="px-3 py-2 border rounded" onClick={() => { setAvailabilityData(prev => ({ ...prev, windows: prev.windows.slice(0,-1) })) }} disabled={availabilityData.windows.length <= 1}>Remove last</button>
             </div>
             <div className="mt-4">
               <Label>Time Zone *</Label>
-              <Input value={availabilityData.timeZone} onChange={(e) => { setAvailabilityData(prev => ({ ...prev, timeZone: e.target.value })); autosave() }} />
+              <Input value={availabilityData.timeZone} onChange={(e) => { setAvailabilityData(prev => ({ ...prev, timeZone: e.target.value })) }} />
             </div>
           </StepCard>
         )
@@ -386,12 +386,12 @@ export default function InstructorOnboarding() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>Hourly Rate (USD)</Label>
-                <Input type="number" min={10} max={500} value={ratesData.hourlyRate} onChange={(e) => setRatesData(prev => ({ ...prev, hourlyRate: Math.max(10, Math.min(500, parseInt(e.target.value || '10', 10))) }))} onBlur={() => autosave()} />
+                <Input type="number" min={10} max={500} value={ratesData.hourlyRate} onChange={(e) => setRatesData(prev => ({ ...prev, hourlyRate: Math.max(10, Math.min(500, parseInt(e.target.value || '10', 10))) }))} />
                 <div className="text-xs text-gray-500">You can change this anytime.</div>
               </div>
               <div>
                 <Label>Minimum Session Length</Label>
-                <select className="w-full px-3 py-2 border rounded-md" value={ratesData.minSessionLengthMins} onChange={(e) => { const v = parseInt(e.target.value, 10); setRatesData(prev => ({ ...prev, minSessionLengthMins: v })); autosave() }}>
+                <select className="w-full px-3 py-2 border rounded-md" value={ratesData.minSessionLengthMins} onChange={(e) => { const v = parseInt(e.target.value, 10); setRatesData(prev => ({ ...prev, minSessionLengthMins: v })) }}>
                   {[30,45,60].map(v => <option key={v} value={v}>{v} minutes</option>)}
                 </select>
               </div>
@@ -403,7 +403,7 @@ export default function InstructorOnboarding() {
         return (
           <StepCard title="Visibility" subtitle="Control how you're shown in the marketplace.">
             <label className="flex items-center gap-2">
-              <Checkbox checked={visibilityData.marketplaceVisible} onCheckedChange={(c) => { setVisibilityData({ marketplaceVisible: !!c }); autosave() }} />
+              <Checkbox checked={visibilityData.marketplaceVisible} onCheckedChange={(c) => { setVisibilityData({ marketplaceVisible: !!c }) }} />
               <span>Appear in Marketplace</span>
             </label>
             <div className="text-xs text-gray-600">Free to join; 7% fee capped $12 when sourced via marketplace.</div>
@@ -416,14 +416,14 @@ export default function InstructorOnboarding() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>Avatar URL</Label>
-                <Input value={setupData.avatarUrl} onChange={(e) => setSetupData(prev => ({ ...prev, avatarUrl: e.target.value }))} onBlur={() => autosave()} />
+                <Input value={setupData.avatarUrl} onChange={(e) => setSetupData(prev => ({ ...prev, avatarUrl: e.target.value }))} />
               </div>
               <div>
                 <Label>Banner URL</Label>
-                <Input value={setupData.bannerUrl} onChange={(e) => setSetupData(prev => ({ ...prev, bannerUrl: e.target.value }))} onBlur={() => autosave()} />
+                <Input value={setupData.bannerUrl} onChange={(e) => setSetupData(prev => ({ ...prev, bannerUrl: e.target.value }))} />
               </div>
               <label className="flex items-center gap-2">
-                <Checkbox checked={setupData.stripeConnected} onCheckedChange={(c) => { setSetupData(prev => ({ ...prev, stripeConnected: !!c })); autosave() }} />
+                <Checkbox checked={setupData.stripeConnected} onCheckedChange={(c) => { setSetupData(prev => ({ ...prev, stripeConnected: !!c })) }} />
                 <span>Stripe Connected</span>
               </label>
             </div>
