@@ -167,7 +167,22 @@ export default function InstructorOnboarding() {
       setup: setupData,
       updatedAt: new Date(),
     }
-    await setDoc(instructorDoc, payload, { merge: true })
+    const sanitizeForFirestore = (value) => {
+      if (Array.isArray(value)) {
+        return value.map(sanitizeForFirestore).filter((v) => v !== undefined)
+      }
+      if (value && typeof value === 'object') {
+        const out = {}
+        Object.entries(value).forEach(([k, v]) => {
+          const sv = sanitizeForFirestore(v)
+          out[k] = sv === undefined ? null : sv
+        })
+        return out
+      }
+      return value === undefined ? null : value
+    }
+    const sanitized = sanitizeForFirestore(payload)
+    await setDoc(instructorDoc, sanitized, { merge: true })
     await setDoc(profileDoc, { role: 'instructor', onboardingComplete: false, updatedAt: new Date() }, { merge: true })
   })
 
