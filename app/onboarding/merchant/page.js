@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/auth-provider'
 import { useOnboarding } from '@/components/onboarding/OnboardingProvider'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -13,9 +13,18 @@ import { Textarea } from '@/components/ui/textarea'
 import { Slider } from '@/components/ui/slider'
 import OnboardingLayout from '@/components/onboarding/OnboardingLayout'
 import OnboardingSteps from '@/components/onboarding/OnboardingSteps'
+import StepRail from '@/components/onboarding/StepRail'
+import StepCard from '@/components/onboarding/StepCard'
+import StepActions from '@/components/onboarding/StepActions'
+import MapboxAutocomplete from '@/components/onboarding/MapboxAutocomplete'
+import { useAutosave } from '@/components/onboarding/useAutosave'
+import { merchantProfileSchema, merchantLocationSchema, merchantOperationsSchema, merchantStaffSchema, merchantPricingSchema, merchantSetupSchema } from '@/components/onboarding/schemas'
 import WelcomeTour from '@/components/onboarding/WelcomeTour'
 import StepIndicator from '@/components/onboarding/StepIndicator'
-import { ArrowRight, ArrowLeft, CheckCircle, User, Building, MapPin, CreditCard, Settings, Camera, Zap, DollarSign, Users } from 'lucide-react'
+import { CheckCircle, User, MapPin, Settings, DollarSign, Users } from 'lucide-react'
+import { doc, setDoc } from 'firebase/firestore'
+import { db } from '@/lib/firebase'
+import { syncCustomClaims } from '@/lib/client-session'
 import { toast } from 'sonner'
 
 export default function MerchantOnboarding() {
@@ -35,84 +44,59 @@ export default function MerchantOnboarding() {
   const [profileData, setProfileData] = useState({
     firstName: '',
     lastName: '',
+    businessEmail: '',
     phone: '',
-    businessName: '',
-    businessType: '',
-    businessEmail: ''
+    studioName: '',
+    studioType: ''
   })
 
   const [locationData, setLocationData] = useState({
-    address: '',
+    address1: '',
+    address2: '',
     city: '',
     state: '',
-    zipCode: '',
-    description: '',
-    amenities: [],
-    capacity: [50]
+    zip: '',
+    country: 'US',
+    lat: undefined,
+    lng: undefined,
   })
 
   const [operationsData, setOperationsData] = useState({
-    operatingHours: {
-      monday: { open: '06:00', close: '22:00' },
-      tuesday: { open: '06:00', close: '22:00' },
-      wednesday: { open: '06:00', close: '22:00' },
-      thursday: { open: '06:00', close: '22:00' },
-      friday: { open: '06:00', close: '22:00' },
-      saturday: { open: '07:00', close: '20:00' },
-      sunday: { open: '08:00', close: '18:00' }
-    },
-    cancellationPolicy: '24-hour',
-    noShowFee: [15],
-    lateCancelFee: [10]
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+    businessHours: [
+      { day: 'Mon', start: '09:00', end: '17:00' },
+      { day: 'Tue', start: '09:00', end: '17:00' },
+      { day: 'Wed', start: '09:00', end: '17:00' },
+      { day: 'Thu', start: '09:00', end: '17:00' },
+      { day: 'Fri', start: '09:00', end: '17:00' },
+    ],
+    classTypes: [],
+    cancellationWindowHours: 24,
+    noShowFeeCents: 0,
+    lateCancelFeeCents: 0,
   })
 
-  const [staffData, setStaffData] = useState({
-    staffCount: [5],
-    instructorRequirements: [],
-    managementStyle: '',
-    hiringPlans: ''
-  })
+  const [staffData, setStaffData] = useState({ invites: [] })
 
-  const [pricingData, setPricingData] = useState({
-    membershipTypes: [],
-    pricingModel: '',
-    specialFeatures: [],
-    marketingPreferences: []
-  })
+  const [pricingData, setPricingData] = useState({ plan: '' })
 
   const [setupData, setSetupData] = useState({
-    businessLicense: '',
-    insurance: '',
-    taxId: '',
-    bankingDetails: '',
-    termsAccepted: false,
-    privacyAccepted: false
+    brand: { logoUrl: '', primaryColor: '' },
+    stripeConnected: false,
   })
 
-  // ✅ FIXED: Proper validation with memoization
-  const isProfileValid = useMemo(() => {
-    return !!(profileData.firstName && profileData.lastName && profileData.businessName && profileData.businessType)
-  }, [profileData.firstName, profileData.lastName, profileData.businessName, profileData.businessType])
+  // ✅ Validation with zod schemas
+  const isProfileValid = useMemo(() => merchantProfileSchema.safeParse(profileData).success, [profileData])
 
-  const isLocationValid = useMemo(() => {
-    return !!(locationData.address && locationData.city && locationData.state && locationData.zipCode)
-  }, [locationData.address, locationData.city, locationData.state, locationData.zipCode])
+  const isLocationValid = useMemo(() => merchantLocationSchema.safeParse(locationData).success, [locationData])
 
-  const isOperationsValid = useMemo(() => {
-    return !!(operationsData.cancellationPolicy)
-  }, [operationsData.cancellationPolicy])
+  const isOperationsValid = useMemo(() => merchantOperationsSchema.safeParse(operationsData).success, [operationsData])
 
-  const isStaffValid = useMemo(() => {
-    return !!(staffData.managementStyle)
-  }, [staffData.managementStyle])
+  const isStaffValid = useMemo(() => merchantStaffSchema.safeParse(staffData).success, [staffData])
 
-  const isPricingValid = useMemo(() => {
-    return !!(pricingData.pricingModel && pricingData.membershipTypes.length > 0)
-  }, [pricingData.pricingModel, pricingData.membershipTypes.length])
+  const isPricingValid = useMemo(() => merchantPricingSchema.safeParse(pricingData).success, [pricingData])
 
-  const isSetupValid = useMemo(() => {
-    return !!(setupData.termsAccepted && setupData.privacyAccepted)
-  }, [setupData.termsAccepted, setupData.privacyAccepted])
+  const isSetupValid = useMemo(() => merchantSetupSchema.safeParse(setupData).success, [setupData])
 
   // ✅ FIXED: Consolidated validation logic
   const canAdvanceStep = useMemo(() => {
@@ -194,6 +178,7 @@ export default function MerchantOnboarding() {
 
   // Handle step navigation
   const handleNext = useCallback(() => {
+    window.dataLayer?.push({ event: 'onboarding_next', role: 'merchant', step: currentStep })
     if (currentStep < totalSteps) {
       setCurrentStep(prev => prev + 1)
     }
@@ -207,380 +192,158 @@ export default function MerchantOnboarding() {
 
   // Handle form submission
   const handleSubmit = useCallback(async () => {
-    if (!canAdvanceStep) return
+    if (!canAdvanceStep || !user) return
 
     setLoading(true)
 
     try {
-      // Import Firebase functions dynamically
-      const { doc, setDoc } = await import('firebase/firestore')
-      const { db } = await import('@/lib/firebase')
-
-      if (!user) {
-        throw new Error('User not authenticated')
-      }
-
-      // Combine all step data for submission
-      const completeFormData = {
-        // User profile data
-        ...profileData,
-        // Studio data
-        studioName: profileData.businessName,
-        studioType: profileData.businessType,
-        location: locationData.address,
-        city: locationData.city,
-        state: locationData.state,
-        zipCode: locationData.zipCode,
-        amenities: locationData.amenities,
-        description: locationData.description,
-        // Operations data
-        ...operationsData,
-        // Staff and pricing data
-        ...staffData,
-        ...pricingData,
-        ...setupData,
-        // System fields
-        role: 'studio', // Keep as 'studio' for backwards compatibility
-        profileComplete: true,
-        onboardingCompletedAt: new Date(),
-        email: user.email,
-        createdAt: new Date()
-      }
-
-      // Save to users collection (ensure no undefined fields that Firestore rejects)
-      const sanitizedUserData = Object.fromEntries(
-        Object.entries(completeFormData).map(([k, v]) => [k, v === undefined ? null : v])
-      )
-      await setDoc(doc(db, 'users', user.uid), sanitizedUserData, { merge: true })
-
-      // Create studio-specific profile (avoid undefined values)
-      const studioPayload = {
-        name: profileData.businessName,
-        type: profileData.businessType,
-        ownerId: user.uid,
-        isActive: true,
-        location: {
-          address: locationData.address,
-          city: locationData.city,
-          state: locationData.state,
-          zipCode: locationData.zipCode
-        },
-        amenities: locationData.amenities || [],
-        description: locationData.description || '',
-        operatingHours: operationsData.operatingHours || {},
-        capacity: Array.isArray(locationData.capacity) ? (locationData.capacity[0] ?? 0) : (locationData.capacity ?? 0),
-        pricing: pricingData || {},
-        cancellationPolicy: operationsData.cancellationPolicy || '24-hour',
-        createdBy: user.uid,
-        instructors: [],
-        classes: [],
-        createdAt: new Date()
-      }
-
-      const sanitizeForFirestore = (value) => {
-        if (Array.isArray(value)) {
-          return value.map(sanitizeForFirestore).filter((v) => v !== undefined)
-        }
-        if (value && typeof value === 'object') {
-          const out = {}
-          Object.entries(value).forEach(([k, v]) => {
-            const sv = sanitizeForFirestore(v)
-            out[k] = sv === undefined ? null : sv
-          })
-          return out
-        }
-        return value === undefined ? null : value
-      }
-
-      await setDoc(doc(db, 'studios', user.uid), sanitizeForFirestore(studioPayload))
-
-      toast.success('Studio profile completed successfully!')
-      
-      // Use the OnboardingProvider's completeOnboarding function
-      const result = await completeOnboarding(completeFormData)
-      if (result.success) {
-        // The OnboardingProvider will handle the redirect to dashboard
-      } else {
-        throw new Error('Failed to complete onboarding')
-      }
+      // Mark onboarding complete
+      await setDoc(doc(db, 'profiles', user.uid), { role: 'merchant', onboardingComplete: true, updatedAt: new Date() }, { merge: true })
+      await syncCustomClaims()
+      toast.success('Onboarding complete!')
+      window.dataLayer?.push({ event: 'onboarding_complete', role: 'merchant' })
+      router.push('/dashboard/merchant')
     } catch (error) {
       console.error('Onboarding submission error:', error)
       toast.error('Failed to complete onboarding. Please try again.')
     } finally {
       setLoading(false)
     }
-  }, [canAdvanceStep, profileData, locationData, operationsData, staffData, pricingData, setupData, completeOnboarding, user])
+  }, [canAdvanceStep, user, router])
 
   // Render step content
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
         return (
-          <div className="space-y-6">
-            <div className="text-center mb-8">
-              <User className="h-16 w-16 text-[#1E90FF] mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-gray-900">Profile & Business Info</h2>
-              <p className="text-gray-600">Tell us about yourself and your studio</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">First Name *</Label>
-                <Input
-                  id="firstName"
-                  value={profileData.firstName}
-                  onChange={(e) => updateProfileData('firstName', e.target.value)}
-                  placeholder="Enter your first name"
-                />
+          <StepCard title="Profile & Business Info" subtitle="Tell us about yourself and your studio.">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>First Name *</Label>
+                <Input value={profileData.firstName} onChange={(e) => { updateProfileData('firstName', e.target.value); }} onBlur={() => autosave()} />
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name *</Label>
-                <Input
-                  id="lastName"
-                  value={profileData.lastName}
-                  onChange={(e) => updateProfileData('lastName', e.target.value)}
-                  placeholder="Enter your last name"
-                />
+              <div>
+                <Label>Last Name *</Label>
+                <Input value={profileData.lastName} onChange={(e) => { updateProfileData('lastName', e.target.value); }} onBlur={() => autosave()} />
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  value={profileData.phone}
-                  onChange={(e) => updateProfileData('phone', e.target.value)}
-                  placeholder="(555) 123-4567"
-                />
+              <div>
+                <Label>Business Email *</Label>
+                <Input type="email" value={profileData.businessEmail} onChange={(e) => { updateProfileData('businessEmail', e.target.value); }} onBlur={() => autosave()} />
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="businessEmail">Business Email</Label>
-                <Input
-                  id="businessEmail"
-                  type="email"
-                  value={profileData.businessEmail}
-                  onChange={(e) => updateProfileData('businessEmail', e.target.value)}
-                  placeholder="studio@example.com"
-                />
+              <div>
+                <Label>Phone (E.164)</Label>
+                <Input placeholder="+15551234567" value={profileData.phone} onChange={(e) => { updateProfileData('phone', e.target.value); }} onBlur={() => autosave()} />
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="businessName">Studio Name *</Label>
-                <Input
-                  id="businessName"
-                  value={profileData.businessName}
-                  onChange={(e) => updateProfileData('businessName', e.target.value)}
-                  placeholder="Your Studio Name"
-                />
+              <div>
+                <Label>Studio Name *</Label>
+                <Input value={profileData.studioName} onChange={(e) => { updateProfileData('studioName', e.target.value); }} onBlur={() => autosave()} />
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="businessType">Studio Type *</Label>
-                <select
-                  id="businessType"
-                  value={profileData.businessType}
-                  onChange={(e) => updateProfileData('businessType', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#1E90FF]"
-                >
+              <div>
+                <Label>Studio Type *</Label>
+                <select className="w-full px-3 py-2 border border-gray-300 rounded-md" value={profileData.studioType} onChange={(e) => { updateProfileData('studioType', e.target.value); }} onBlur={() => autosave()}>
                   <option value="">Select studio type</option>
-                  <option value="yoga">Yoga Studio</option>
-                  <option value="pilates">Pilates Studio</option>
-                  <option value="crossfit">CrossFit Box</option>
-                  <option value="dance">Dance Studio</option>
+                  <option value="yoga">Yoga</option>
+                  <option value="pilates">Pilates</option>
+                  <option value="crossfit">CrossFit</option>
+                  <option value="dance">Dance</option>
                   <option value="martial-arts">Martial Arts</option>
                   <option value="general-fitness">General Fitness</option>
-                  <option value="specialized">Specialized Training</option>
+                  <option value="specialized">Specialized</option>
                 </select>
               </div>
             </div>
-          </div>
+          </StepCard>
         )
 
       case 2:
         return (
-          <div className="space-y-6">
-            <div className="text-center mb-8">
-              <MapPin className="h-16 w-16 text-[#1E90FF] mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-gray-900">Location & Studio Details</h2>
-              <p className="text-gray-600">Where is your studio located?</p>
-            </div>
-
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="address">Studio Address *</Label>
-                <Input
-                  id="address"
-                  value={locationData.address}
-                  onChange={(e) => updateLocationData('address', e.target.value)}
-                  placeholder="123 Main Street"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="city">City *</Label>
-                  <Input
-                    id="city"
-                    value={locationData.city}
-                    onChange={(e) => updateLocationData('city', e.target.value)}
-                    placeholder="City"
-                  />
+          <StepCard title="Location" subtitle="Where is your studio located?">
+            <div className="space-y-4">
+              <Label>Search Address</Label>
+              <MapboxAutocomplete
+                defaultValue={locationData.address1}
+                onSelect={(sel) => { setLocationData(prev => ({ ...prev, ...sel })); autosave() }}
+              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Address 1 *</Label>
+                  <Input value={locationData.address1} onChange={(e) => { updateLocationData('address1', e.target.value) }} onBlur={() => autosave()} />
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="state">State *</Label>
-                  <Input
-                    id="state"
-                    value={locationData.state}
-                    onChange={(e) => updateLocationData('state', e.target.value)}
-                    placeholder="State"
-                  />
+                <div>
+                  <Label>Address 2</Label>
+                  <Input value={locationData.address2} onChange={(e) => { updateLocationData('address2', e.target.value) }} onBlur={() => autosave()} />
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="zipCode">ZIP Code *</Label>
-                  <Input
-                    id="zipCode"
-                    value={locationData.zipCode}
-                    onChange={(e) => updateLocationData('zipCode', e.target.value)}
-                    placeholder="12345"
-                  />
+                <div>
+                  <Label>City *</Label>
+                  <Input value={locationData.city} onChange={(e) => { updateLocationData('city', e.target.value) }} onBlur={() => autosave()} />
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Studio Description</Label>
-                <Textarea
-                  id="description"
-                  value={locationData.description}
-                  onChange={(e) => updateLocationData('description', e.target.value)}
-                  placeholder="Describe your studio's atmosphere, mission, and what makes it special..."
-                  rows={4}
-                />
-              </div>
-
-              <div className="space-y-4">
-                <Label>Amenities & Features</Label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {[
-                    'Parking Available', 'Showers', 'Lockers', 'Retail Shop',
-                    'Childcare', 'WiFi', 'Sound System', 'Air Conditioning',
-                    'Yoga Props', 'Free Weights', 'Cardio Equipment'
-                  ].map((amenity) => (
-                    <div key={amenity} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={amenity}
-                        checked={locationData.amenities.includes(amenity)}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            updateLocationData('amenities', [...locationData.amenities, amenity])
-                          } else {
-                            updateLocationData('amenities', locationData.amenities.filter(a => a !== amenity))
-                          }
-                        }}
-                      />
-                      <Label htmlFor={amenity} className="text-sm">{amenity}</Label>
-                    </div>
-                  ))}
+                <div>
+                  <Label>State *</Label>
+                  <Input value={locationData.state} onChange={(e) => { updateLocationData('state', e.target.value) }} onBlur={() => autosave()} />
                 </div>
-              </div>
-
-              <div className="space-y-4">
-                <Label htmlFor="capacity">Studio Capacity: {locationData.capacity[0]} people</Label>
-                <Slider
-                  id="capacity"
-                  min={10}
-                  max={200}
-                  step={5}
-                  value={locationData.capacity}
-                  onValueChange={(value) => updateLocationData('capacity', value)}
-                  className="w-full"
-                />
+                <div>
+                  <Label>ZIP *</Label>
+                  <Input value={locationData.zip} onChange={(e) => { updateLocationData('zip', e.target.value) }} onBlur={() => autosave()} />
+                </div>
+                <div>
+                  <Label>Country *</Label>
+                  <Input value={locationData.country} onChange={(e) => { updateLocationData('country', e.target.value) }} onBlur={() => autosave()} />
+                </div>
               </div>
             </div>
-          </div>
+          </StepCard>
         )
 
       case 3:
         return (
-          <div className="space-y-6">
-            <div className="text-center mb-8">
-              <Settings className="h-16 w-16 text-[#1E90FF] mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-gray-900">Operations & Policies</h2>
-              <p className="text-gray-600">Set your operating hours and policies</p>
+          <StepCard title="Operations" subtitle="Hours, policies, and types.">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Time Zone *</Label>
+                <Input value={operationsData.timeZone} onChange={(e) => { updateOperationsData('timeZone', e.target.value) }} onBlur={() => autosave()} />
+              </div>
+              <div>
+                <Label>Cancellation Window (hours)</Label>
+                <Input type="number" min={0} max={48} value={operationsData.cancellationWindowHours} onChange={(e) => { updateOperationsData('cancellationWindowHours', parseInt(e.target.value || '0', 10)) }} onBlur={() => autosave()} />
+              </div>
+              <div>
+                <Label>No-Show Fee (USD)</Label>
+                <Input type="number" min={0} max={200} value={Math.round(operationsData.noShowFeeCents / 100)} onChange={(e) => { const usd = Math.max(0, Math.min(200, parseInt(e.target.value || '0', 10))); updateOperationsData('noShowFeeCents', usd * 100) }} onBlur={() => autosave()} />
+              </div>
+              <div>
+                <Label>Late Cancel Fee (USD)</Label>
+                <Input type="number" min={0} max={200} value={Math.round(operationsData.lateCancelFeeCents / 100)} onChange={(e) => { const usd = Math.max(0, Math.min(200, parseInt(e.target.value || '0', 10))); updateOperationsData('lateCancelFeeCents', usd * 100) }} onBlur={() => autosave()} />
+              </div>
             </div>
-
-            <div className="space-y-6">
-              <div className="space-y-4">
-                <Label>Operating Hours</Label>
-                {Object.entries(operationsData.operatingHours).map(([day, hours]) => (
-                  <div key={day} className="flex items-center space-x-4">
-                    <div className="w-24 capitalize font-medium">{day}</div>
-                    <Input
-                      type="time"
-                      value={hours.open}
-                      onChange={(e) => updateOperationsData('operatingHours', {
-                        ...operationsData.operatingHours,
-                        [day]: { ...hours, open: e.target.value }
-                      })}
-                      className="w-32"
-                    />
-                    <span>to</span>
-                    <Input
-                      type="time"
-                      value={hours.close}
-                      onChange={(e) => updateOperationsData('operatingHours', {
-                        ...operationsData.operatingHours,
-                        [day]: { ...hours, close: e.target.value }
-                      })}
-                      className="w-32"
-                    />
-                  </div>
+            <div className="mt-4">
+              <Label>Business Hours *</Label>
+              {operationsData.businessHours.map((bh, idx) => (
+                <div key={idx} className="flex items-center gap-3 mt-2">
+                  <select className="border rounded px-2 py-2" value={bh.day} onChange={(e) => { const copy = [...operationsData.businessHours]; copy[idx] = { ...bh, day: e.target.value }; updateOperationsData('businessHours', copy) }} onBlur={() => autosave()}>
+                    {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                  <Input type="time" value={bh.start} onChange={(e) => { const copy = [...operationsData.businessHours]; copy[idx] = { ...bh, start: e.target.value }; updateOperationsData('businessHours', copy) }} onBlur={() => autosave()} className="w-32" />
+                  <span>to</span>
+                  <Input type="time" value={bh.end} onChange={(e) => { const copy = [...operationsData.businessHours]; copy[idx] = { ...bh, end: e.target.value }; updateOperationsData('businessHours', copy) }} onBlur={() => autosave()} className="w-32" />
+                </div>
+              ))}
+              <div className="mt-2 flex gap-2">
+                <button type="button" className="px-3 py-2 border rounded" onClick={() => { updateOperationsData('businessHours', [...operationsData.businessHours, { day: 'Mon', start: '09:00', end: '17:00' }]) }}>Add window</button>
+                <button type="button" className="px-3 py-2 border rounded" onClick={() => { updateOperationsData('businessHours', operationsData.businessHours.slice(0,-1)) }} disabled={operationsData.businessHours.length <= 1}>Remove last</button>
+              </div>
+            </div>
+            <div className="mt-4">
+              <Label>Class Types</Label>
+              <div className="flex gap-2 flex-wrap mt-1">
+                {['Yoga','Pilates','HIIT','Strength','Dance','Cardio'].map(t => (
+                  <label key={t} className="flex items-center gap-2 border rounded px-2 py-1">
+                    <Checkbox checked={operationsData.classTypes.includes(t)} onCheckedChange={() => setOperationsData(prev => ({ ...prev, classTypes: prev.classTypes.includes(t) ? prev.classTypes.filter(x => x !== t) : [...prev.classTypes, t] }))} />
+                    <span className="text-sm">{t}</span>
+                  </label>
                 ))}
               </div>
-
-              <div className="space-y-4">
-                <Label htmlFor="cancellationPolicy">Cancellation Policy *</Label>
-                <select
-                  id="cancellationPolicy"
-                  value={operationsData.cancellationPolicy}
-                  onChange={(e) => updateOperationsData('cancellationPolicy', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#1E90FF]"
-                >
-                  <option value="">Select policy</option>
-                  <option value="2-hour">2 Hours Before</option>
-                  <option value="4-hour">4 Hours Before</option>
-                  <option value="24-hour">24 Hours Before</option>
-                  <option value="48-hour">48 Hours Before</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <Label>No-Show Fee: ${operationsData.noShowFee[0]}</Label>
-                  <Slider
-                    min={0}
-                    max={50}
-                    step={5}
-                    value={operationsData.noShowFee}
-                    onValueChange={(value) => updateOperationsData('noShowFee', value)}
-                  />
-                </div>
-
-                <div className="space-y-4">
-                  <Label>Late Cancel Fee: ${operationsData.lateCancelFee[0]}</Label>
-                  <Slider
-                    min={0}
-                    max={30}
-                    step={5}
-                    value={operationsData.lateCancelFee}
-                    onValueChange={(value) => updateOperationsData('lateCancelFee', value)}
-                  />
-                </div>
-              </div>
             </div>
-          </div>
+          </StepCard>
         )
 
       case 4:
@@ -661,185 +424,52 @@ export default function MerchantOnboarding() {
 
       case 5:
         return (
-          <div className="space-y-6">
-            <div className="text-center mb-8">
-              <DollarSign className="h-16 w-16 text-[#1E90FF] mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-gray-900">Pricing & Features</h2>
-              <p className="text-gray-600">Set up your pricing and membership options</p>
+          <StepCard title="Pricing" subtitle="Choose a plan.">
+            <div className="space-y-3">
+              <label className="flex items-center gap-2 border rounded px-3 py-2">
+                <input type="radio" name="plan" checked={pricingData.plan === 'starter'} onChange={() => { setPricingData({ plan: 'starter' }) }} />
+                <div>
+                  <div className="font-medium">Starter $29</div>
+                  <div className="text-xs text-gray-500">+ 3.75% platform fee.</div>
+                </div>
+              </label>
+              <label className="flex items-center gap-2 border rounded px-3 py-2">
+                <input type="radio" name="plan" checked={pricingData.plan === 'business_plus'} onChange={() => { setPricingData({ plan: 'business_plus' }) }} />
+                <div>
+                  <div className="font-medium">Business+ $59</div>
+                  <div className="text-xs text-gray-500">+ 3.75% platform fee.</div>
+                </div>
+              </label>
+              <label className="flex items-center gap-2 border rounded px-3 py-2">
+                <input type="radio" name="plan" checked={pricingData.plan === 'enterprise'} onChange={() => { setPricingData({ plan: 'enterprise' }) }} />
+                <div>
+                  <div className="font-medium">Enterprise (Contact)</div>
+                  <div className="text-xs text-gray-500">+ 3.75% platform fee.</div>
+                </div>
+              </label>
+              <div className="text-xs text-gray-600">Programs: Member Plus 5%, Thryve X Pass 5–10% (default 8%).</div>
             </div>
-
-            <div className="space-y-6">
-              <div className="space-y-4">
-                <Label>Membership Types *</Label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {[
-                    'Drop-in Classes', 'Class Packages', 'Monthly Unlimited',
-                    'Annual Memberships', 'Student Discounts', 'Senior Discounts'
-                  ].map((type) => (
-                    <div key={type} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={type}
-                        checked={pricingData.membershipTypes.includes(type)}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            updatePricingData('membershipTypes', [...pricingData.membershipTypes, type])
-                          } else {
-                            updatePricingData('membershipTypes', pricingData.membershipTypes.filter(t => t !== type))
-                          }
-                        }}
-                      />
-                      <Label htmlFor={type} className="text-sm">{type}</Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="pricingModel">Pricing Model *</Label>
-                <select
-                  id="pricingModel"
-                  value={pricingData.pricingModel}
-                  onChange={(e) => updatePricingData('pricingModel', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#1E90FF]"
-                >
-                  <option value="">Select pricing model</option>
-                  <option value="premium">Premium Pricing</option>
-                  <option value="competitive">Competitive Pricing</option>
-                  <option value="value">Value Pricing</option>
-                  <option value="tiered">Tiered Pricing</option>
-                </select>
-              </div>
-
-              <div className="space-y-4">
-                <Label>Special Features</Label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {[
-                    'Online Classes', 'Personal Training', 'Workshops',
-                    'Retreats', 'Corporate Programs', 'Teacher Training'
-                  ].map((feature) => (
-                    <div key={feature} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={feature}
-                        checked={pricingData.specialFeatures.includes(feature)}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            updatePricingData('specialFeatures', [...pricingData.specialFeatures, feature])
-                          } else {
-                            updatePricingData('specialFeatures', pricingData.specialFeatures.filter(f => f !== feature))
-                          }
-                        }}
-                      />
-                      <Label htmlFor={feature} className="text-sm">{feature}</Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <Label>Marketing Preferences</Label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {[
-                    'Social Media', 'Email Marketing', 'Local Partnerships',
-                    'Referral Programs', 'Community Events', 'Online Advertising'
-                  ].map((preference) => (
-                    <div key={preference} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={preference}
-                        checked={pricingData.marketingPreferences.includes(preference)}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            updatePricingData('marketingPreferences', [...pricingData.marketingPreferences, preference])
-                          } else {
-                            updatePricingData('marketingPreferences', pricingData.marketingPreferences.filter(p => p !== preference))
-                          }
-                        }}
-                      />
-                      <Label htmlFor={preference} className="text-sm">{preference}</Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
+          </StepCard>
         )
 
       case 6:
         return (
-          <div className="space-y-6">
-            <div className="text-center mb-8">
-              <CheckCircle className="h-16 w-16 text-[#1E90FF] mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-gray-900">Legal & Setup</h2>
-              <p className="text-gray-600">Final steps to complete your studio setup</p>
-            </div>
-
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="businessLicense">Business License Number</Label>
-                  <Input
-                    id="businessLicense"
-                    value={setupData.businessLicense}
-                    onChange={(e) => updateSetupData('businessLicense', e.target.value)}
-                    placeholder="License number"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="insurance">Insurance Provider</Label>
-                  <Input
-                    id="insurance"
-                    value={setupData.insurance}
-                    onChange={(e) => updateSetupData('insurance', e.target.value)}
-                    placeholder="Insurance company"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="taxId">Tax ID (EIN)</Label>
-                  <Input
-                    id="taxId"
-                    value={setupData.taxId}
-                    onChange={(e) => updateSetupData('taxId', e.target.value)}
-                    placeholder="Tax identification number"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="bankingDetails">Banking Information</Label>
-                  <Input
-                    id="bankingDetails"
-                    value={setupData.bankingDetails}
-                    onChange={(e) => updateSetupData('bankingDetails', e.target.value)}
-                    placeholder="Bank account details"
-                  />
-                </div>
+          <StepCard title="Setup" subtitle="Brand and connections.">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Logo URL</Label>
+                <Input value={setupData.brand.logoUrl} onChange={(e) => { setSetupData(prev => ({ ...prev, brand: { ...prev.brand, logoUrl: e.target.value } })) }} onBlur={() => autosave()} />
               </div>
-
-              <div className="space-y-4 pt-6 border-t">
-                <div className="flex items-start space-x-3">
-                  <Checkbox
-                    id="termsAccepted"
-                    checked={setupData.termsAccepted}
-                    onCheckedChange={(checked) => updateSetupData('termsAccepted', checked)}
-                  />
-                  <Label htmlFor="termsAccepted" className="text-sm leading-6">
-                    I agree to the <a href="/terms" className="text-[#1E90FF] underline">Terms of Service</a> and understand the platform fees and policies. *
-                  </Label>
-                </div>
-
-                <div className="flex items-start space-x-3">
-                  <Checkbox
-                    id="privacyAccepted"
-                    checked={setupData.privacyAccepted}
-                    onCheckedChange={(checked) => updateSetupData('privacyAccepted', checked)}
-                  />
-                  <Label htmlFor="privacyAccepted" className="text-sm leading-6">
-                    I agree to the <a href="/privacy" className="text-[#1E90FF] underline">Privacy Policy</a> and consent to data processing for platform operations. *
-                  </Label>
-                </div>
+              <div>
+                <Label>Primary Color (hex)</Label>
+                <Input value={setupData.brand.primaryColor} onChange={(e) => { setSetupData(prev => ({ ...prev, brand: { ...prev.brand, primaryColor: e.target.value } })) }} onBlur={() => autosave()} />
               </div>
+              <label className="flex items-center gap-2">
+                <Checkbox checked={!!setupData.stripeConnected} onCheckedChange={(c) => { setSetupData(prev => ({ ...prev, stripeConnected: !!c })); autosave() }} />
+                <span>Stripe Connected</span>
+              </label>
             </div>
-          </div>
+          </StepCard>
         )
 
       default:
@@ -852,36 +482,29 @@ export default function MerchantOnboarding() {
   }
 
   return (
-    <OnboardingLayout>
-      <div className="min-h-screen bg-gray-50">
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          <StepIndicator 
-            currentStep={currentStep} 
-            totalSteps={totalSteps} 
-            stepLabels={stepLabels}
-          />
-          
-          <Card className="mt-8">
-            <CardContent className="p-8">
-              {renderStepContent()}
-            </CardContent>
-          </Card>
-
-          <OnboardingSteps
-            currentStep={currentStep}
-            totalSteps={totalSteps}
-            canAdvance={canAdvanceStep}
-            onNext={handleNext}
-            onPrevious={handlePrevious}
-            onComplete={handleSubmit}
-            loading={loading}
-          />
-        </div>
-
-        {showWelcomeTour && (
-          <WelcomeTour onComplete={() => setShowWelcomeTour(false)} />
-        )}
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <StepRail steps={stepLabels} currentIndex={currentStep - 1} />
+        <Card className="mt-6">
+          <CardContent className="p-6 md:p-8">
+            {renderStepContent()}
+            <StepActions
+              currentStep={currentStep}
+              totalSteps={totalSteps}
+              canProceed={canAdvanceStep}
+              onPrevious={handlePrevious}
+              onNext={handleNext}
+              onComplete={handleSubmit}
+              loading={loading}
+              allowSkip={currentStep === 4}
+              onSkip={handleNext}
+            />
+          </CardContent>
+        </Card>
       </div>
-    </OnboardingLayout>
+      {showWelcomeTour && (
+        <WelcomeTour onComplete={() => setShowWelcomeTour(false)} />
+      )}
+    </div>
   )
 }
