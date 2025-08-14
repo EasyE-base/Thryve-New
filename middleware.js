@@ -13,17 +13,40 @@ export async function middleware(request) {
 
   // Enforce Marketplace access at the edge
   if (pathname.startsWith('/marketplace')) {
-    const cookie = request.cookies.get('user')?.value || ''
-    if (!cookie) {
+    // Prefer secure session cookie (Firebase session JWT), fallback to legacy 'user' cookie
+    const sessionCookie = request.cookies.get('session')?.value || ''
+    const legacyCookie = request.cookies.get('user')?.value || ''
+
+    let role = 'unknown'
+    let onboarded = false
+
+    if (sessionCookie) {
+      try {
+        const payloadB64 = sessionCookie.split('.')[1] || ''
+        // base64url → base64
+        const normalized = payloadB64.replace(/-/g, '+').replace(/_/g, '/')
+        const json = Buffer.from(normalized, 'base64').toString('utf8')
+        const payload = JSON.parse(json)
+        role = canonicalizeRole(payload.role)
+        onboarded = !!payload.onboardingComplete
+      } catch {}
+    }
+
+    if ((role === 'unknown' || onboarded === false) && legacyCookie) {
+      try {
+        const legacy = JSON.parse(legacyCookie)
+        const maybeRole = canonicalizeRole(legacy.role)
+        const maybeOnboarded = !!legacy.onboardingCompleted
+        if (maybeRole !== 'unknown') role = maybeRole
+        if (maybeOnboarded) onboarded = true
+      } catch {}
+    }
+
+    if (!sessionCookie && !legacyCookie) {
       const url = new URL('/login', request.url)
       url.searchParams.set('next', '/marketplace')
       return NextResponse.redirect(url)
     }
-
-    let parsed
-    try { parsed = JSON.parse(cookie) } catch { parsed = {} }
-    const role = canonicalizeRole(parsed.role)
-    const onboarded = !!parsed.onboardingCompleted
 
     if (!onboarded) {
       const url = new URL(`/onboarding/${role === 'instructor' ? 'instructor' : 'merchant'}`, request.url)
