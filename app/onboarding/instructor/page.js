@@ -1,29 +1,30 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/auth-provider'
-import { useOnboarding } from '@/hooks/useOnboarding'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Slider } from '@/components/ui/slider'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import OnboardingSteps from '@/components/onboarding/OnboardingSteps'
+import StepRail from '@/components/onboarding/StepRail'
+import StepCard from '@/components/onboarding/StepCard'
+import StepActions from '@/components/onboarding/StepActions'
+import MapboxAutocomplete from '@/components/onboarding/MapboxAutocomplete'
+import { useAutosave } from '@/components/onboarding/useAutosave'
+import { instructorProfileSchema, instructorLocationSchema, instructorAvailabilitySchema, instructorRatesSchema, instructorVisibilitySchema, instructorSetupSchema } from '@/components/onboarding/schemas'
 import { User, Award, Calendar, CheckCircle, Settings } from 'lucide-react'
 import { toast } from 'sonner'
 import { doc, setDoc } from 'firebase/firestore'
 import { db } from '@/lib/firebase'
+import { syncCustomClaims } from '@/lib/client-session'
 
 export default function InstructorOnboarding() {
-  const { user, role, loading: authLoading, completeOnboarding: markOnboardingComplete } = useAuth()
-  const { onboardingStatus, formData, updateFormData, completeStep, completeOnboarding } = useOnboarding()
+  const { user, role, loading: authLoading } = useAuth()
   const router = useRouter()
-  
-  const totalSteps = 5
-  const stepLabels = ["Profile", "Credentials", "Teaching", "Verification", "Setup"]
+  const totalSteps = 6
+  const stepLabels = ['Profile', 'Location', 'Availability', 'Rates', 'Visibility', 'Setup']
 
   // ✅ FIXED: Separated state objects to prevent cross-contamination
   const [currentStep, setCurrentStep] = useState(1)
@@ -35,75 +36,70 @@ export default function InstructorOnboarding() {
     firstName: '',
     lastName: '',
     phone: '',
-    profilePhoto: '',
-    bio: ''
-  })
-
-  const [credentialsData, setCredentialsData] = useState({
-    certifications: [],
+    publicBio: '',
     specialties: [],
-    experience: '',
-    education: '',
-    languages: ['English']
+    languages: [],
   })
 
-  const [teachingData, setTeachingData] = useState({
-    availability: [],
-    teachingStyle: '',
-    maxClassSize: [10],
-    ratePerHour: [50]
+  const [locationData, setLocationData] = useState({
+    homeZip: '',
+    city: '',
+    state: '',
+    lat: undefined,
+    lng: undefined,
+    travelRadiusKm: 0,
+    remoteAvailable: true,
   })
 
-  const [verificationData, setVerificationData] = useState({
-    insurance: '',
-    backgroundCheck: false,
-    references: [],
-    socialMedia: {
-      instagram: '',
-      youtube: '',
-      website: ''
-    }
+  const [availabilityData, setAvailabilityData] = useState({
+    windows: [
+      { day: 'Mon', start: '06:00', end: '09:00' },
+      { day: 'Mon', start: '17:00', end: '20:00' },
+      { day: 'Tue', start: '06:00', end: '09:00' },
+      { day: 'Tue', start: '17:00', end: '20:00' },
+      { day: 'Wed', start: '06:00', end: '09:00' },
+      { day: 'Wed', start: '17:00', end: '20:00' },
+      { day: 'Thu', start: '06:00', end: '09:00' },
+      { day: 'Thu', start: '17:00', end: '20:00' },
+      { day: 'Fri', start: '06:00', end: '09:00' },
+      { day: 'Fri', start: '17:00', end: '20:00' },
+    ],
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
   })
 
-  const [setupData, setSetupData] = useState({
-    taxId: '',
-    paymentDetails: '',
-    termsAccepted: false,
-    liabilityWaiver: false
+  const [ratesData, setRatesData] = useState({
+    hourlyRate: 50,
+    minSessionLengthMins: 60,
   })
+
+  const [visibilityData, setVisibilityData] = useState({ marketplaceVisible: false })
+
+  const [setupData, setSetupData] = useState({ avatarUrl: '', bannerUrl: '', stripeConnected: false })
 
   // ✅ FIXED: Proper validation with memoization
-  const isProfileValid = useMemo(() => {
-    return !!(profileData.firstName && profileData.lastName && profileData.bio)
-  }, [profileData.firstName, profileData.lastName, profileData.bio])
+  const isProfileValid = useMemo(() => instructorProfileSchema.safeParse(profileData).success, [profileData])
 
-  const isCredentialsValid = useMemo(() => {
-    return !!(credentialsData.certifications.length > 0 && credentialsData.specialties.length > 0 && credentialsData.experience)
-  }, [credentialsData.certifications, credentialsData.specialties, credentialsData.experience])
+  const isLocationValid = useMemo(() => instructorLocationSchema.safeParse(locationData).success, [locationData])
 
-  const isTeachingValid = useMemo(() => {
-    return !!(teachingData.availability.length > 0 && teachingData.teachingStyle)
-  }, [teachingData.availability, teachingData.teachingStyle])
+  const isAvailabilityValid = useMemo(() => instructorAvailabilitySchema.safeParse(availabilityData).success, [availabilityData])
 
-  const isVerificationValid = useMemo(() => {
-    return !!(verificationData.insurance && verificationData.backgroundCheck)
-  }, [verificationData.insurance, verificationData.backgroundCheck])
+  const isRatesValid = useMemo(() => instructorRatesSchema.safeParse(ratesData).success, [ratesData])
 
-  const isSetupValid = useMemo(() => {
-    return !!(setupData.termsAccepted && setupData.liabilityWaiver)
-  }, [setupData.termsAccepted, setupData.liabilityWaiver])
+  const isVisibilityValid = useMemo(() => instructorVisibilitySchema.safeParse(visibilityData).success, [visibilityData])
+  const isSetupValid = useMemo(() => instructorSetupSchema.safeParse(setupData).success, [setupData])
 
   // ✅ FIXED: Validation logic using memoized values
   const canAdvanceStep = useMemo(() => {
     switch (currentStep) {
       case 1: return isProfileValid
-      case 2: return isCredentialsValid
-      case 3: return isTeachingValid
-      case 4: return isVerificationValid
-      case 5: return isSetupValid
+      case 2: return isLocationValid
+      case 3: return true // availability can be empty; warn only
+      case 4: return isRatesValid
+      case 5: return isVisibilityValid
+      case 6: return isSetupValid
       default: return false
     }
-  }, [currentStep, isProfileValid, isCredentialsValid, isTeachingValid, isVerificationValid, isSetupValid])
+  }, [currentStep, isProfileValid, isLocationValid, isRatesValid, isVisibilityValid, isSetupValid])
 
   // ✅ FIXED: Safe state update functions
   const updateProfileData = useCallback((field, value) => {
@@ -138,10 +134,10 @@ export default function InstructorOnboarding() {
 
   const nextStep = useCallback(() => {
     if (currentStep < totalSteps && canAdvanceStep) {
-      completeStep(currentStep)
+      window.dataLayer?.push({ event: 'onboarding_next', role: 'instructor', step: currentStep })
       setCurrentStep(currentStep + 1)
     }
-  }, [currentStep, canAdvanceStep, totalSteps, completeStep])
+  }, [currentStep, canAdvanceStep, totalSteps])
 
   const prevStep = useCallback(() => {
     if (currentStep > 1) {
@@ -149,76 +145,31 @@ export default function InstructorOnboarding() {
     }
   }, [currentStep])
 
+  const autosave = useAutosave(async () => {
+    if (!user) return
+    const instructorDoc = doc(db, 'instructors', user.uid)
+    const profileDoc = doc(db, 'profiles', user.uid)
+    const payload = {
+      userId: user.uid,
+      ...profileData,
+      location: locationData,
+      availability: availabilityData,
+      rates: ratesData,
+      visibility: visibilityData,
+      setup: setupData,
+      updatedAt: new Date(),
+    }
+    await setDoc(instructorDoc, payload, { merge: true })
+    await setDoc(profileDoc, { role: 'instructor', onboardingComplete: false, updatedAt: new Date() }, { merge: true })
+  })
+
   const handleComplete = async () => {
     if (!canAdvanceStep || loading || !user) return
-
     setLoading(true)
     try {
-      const allData = {
-        profile: profileData,
-        credentials: credentialsData,
-        teaching: teachingData,
-        verification: verificationData,
-        setup: setupData
-      }
-
-      const sanitizeForFirestore = (value) => {
-        if (Array.isArray(value)) {
-          return value.map(sanitizeForFirestore).filter((v) => v !== undefined)
-        }
-        if (value && typeof value === 'object') {
-          const out = {}
-          Object.entries(value).forEach(([k, v]) => {
-            const sv = sanitizeForFirestore(v)
-            out[k] = sv === undefined ? null : sv
-          })
-          return out
-        }
-        return value === undefined ? null : value
-      }
-
-      // Save to users collection (avoid spreading user to prevent functions like getIdToken)
-      await setDoc(doc(db, 'users', user.uid), {
-        email: user.email || '',
-        displayName: `${profileData.firstName} ${profileData.lastName}`.trim(),
-        role: 'instructor',
-        profileComplete: true,
-        instructorData: sanitizeForFirestore(allData),
-        updatedAt: new Date()
-      }, { merge: true })
-
-      // Save to instructors collection
-      await setDoc(doc(db, 'instructors', user.uid), {
-        userId: user.uid,
-        email: user.email,
-        displayName: `${profileData.firstName} ${profileData.lastName}`,
-        firstName: profileData.firstName,
-        lastName: profileData.lastName,
-        phone: profileData.phone,
-        profilePhoto: profileData.profilePhoto,
-        bio: profileData.bio,
-        certifications: credentialsData.certifications,
-        specialties: credentialsData.specialties,
-        experience: credentialsData.experience,
-        education: credentialsData.education,
-        languages: credentialsData.languages,
-        availability: teachingData.availability,
-        teachingStyle: teachingData.teachingStyle,
-        maxClassSize: teachingData.maxClassSize[0],
-        ratePerHour: teachingData.ratePerHour[0],
-        insurance: verificationData.insurance,
-        backgroundCheck: verificationData.backgroundCheck,
-        socialMedia: verificationData.socialMedia,
-        taxId: setupData.taxId,
-        paymentDetails: setupData.paymentDetails,
-        termsAccepted: setupData.termsAccepted,
-        liabilityWaiver: setupData.liabilityWaiver,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      })
-
-      await completeOnboarding()
-      await markOnboardingComplete()
+      await setDoc(doc(db, 'profiles', user.uid), { role: 'instructor', onboardingComplete: true, updatedAt: new Date() }, { merge: true })
+      await syncCustomClaims()
+      window.dataLayer?.push({ event: 'onboarding_complete', role: 'instructor' })
       toast.success('Instructor profile completed successfully!')
       router.push('/dashboard/instructor')
     } catch (error) {
@@ -238,14 +189,7 @@ export default function InstructorOnboarding() {
       return
     }
 
-    if (role && role !== 'instructor' && !authLoading) {
-      const redirectTimer = setTimeout(() => {
-        console.log('🔄 Instructor onboarding: Redirecting user with role', role, 'to correct onboarding')
-        router.push(`/onboarding/${role}`)
-      }, 500)
-
-      return () => clearTimeout(redirectTimer)
-    }
+    // Allow user to be here while selecting role
 
     // Check if this is first time user
     const hasSeenTour = localStorage.getItem(`tour_seen_${user?.uid}`)
@@ -254,9 +198,8 @@ export default function InstructorOnboarding() {
     }
     
     // Load saved data
-    if (formData.step1) {
-      setProfileData(prev => ({ ...prev, ...formData.step1 }))
-    }
+    // Seed analytics
+    window.dataLayer?.push({ event: 'onboarding_step_view', role: 'instructor', step: 1 })
   }, [user, role, authLoading, router, formData])
 
   // Options arrays
@@ -303,374 +246,142 @@ export default function InstructorOnboarding() {
     switch (currentStep) {
       case 1:
         return (
-          <div className="space-y-6">
-            <div className="text-center">
-              <User className="h-12 w-12 text-[#1E90FF] mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Personal Information</h2>
-              <p className="text-gray-600">Tell us about yourself as a fitness professional</p>
-            </div>
-
+          <StepCard title="Profile" subtitle="Tell us about yourself as a fitness professional.">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">First Name *</Label>
-                <Input
-                  id="firstName"
-                  value={profileData.firstName}
-                  onChange={(e) => updateProfileData('firstName', e.target.value)}
-                  required
-                />
+              <div>
+                <Label>First Name *</Label>
+                <Input value={profileData.firstName} onChange={(e) => setProfileData(prev => ({ ...prev, firstName: e.target.value }))} onBlur={() => autosave()} />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name *</Label>
-                <Input
-                  id="lastName"
-                  value={profileData.lastName}
-                  onChange={(e) => updateProfileData('lastName', e.target.value)}
-                  required
-                />
+              <div>
+                <Label>Last Name *</Label>
+                <Input value={profileData.lastName} onChange={(e) => setProfileData(prev => ({ ...prev, lastName: e.target.value }))} onBlur={() => autosave()} />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  value={profileData.phone}
-                  onChange={(e) => updateProfileData('phone', e.target.value)}
-                />
+              <div>
+                <Label>Phone (E.164)</Label>
+                <Input placeholder="+15551234567" value={profileData.phone} onChange={(e) => setProfileData(prev => ({ ...prev, phone: e.target.value }))} onBlur={() => autosave()} />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="profilePhoto">Profile Photo URL</Label>
-                <Input
-                  id="profilePhoto"
-                  type="url"
-                  value={profileData.profilePhoto}
-                  onChange={(e) => updateProfileData('profilePhoto', e.target.value)}
-                  placeholder="https://..."
-                />
+              <div className="md:col-span-2">
+                <Label>Professional Bio *</Label>
+                <Textarea value={profileData.publicBio} maxLength={280} onChange={(e) => setProfileData(prev => ({ ...prev, publicBio: e.target.value.slice(0,280) }))} onBlur={() => autosave()} rows={3} />
+                <div className="text-xs text-gray-500">{(profileData.publicBio || '').length}/280</div>
+              </div>
+              <div>
+                <Label>Specialties</Label>
+                <Input placeholder="Yoga, HIIT" onBlur={(e) => { setProfileData(prev => ({ ...prev, specialties: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })); autosave() }} />
+              </div>
+              <div>
+                <Label>Languages</Label>
+                <Input placeholder="English, Spanish" onBlur={(e) => { setProfileData(prev => ({ ...prev, languages: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })); autosave() }} />
               </div>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="bio">Professional Bio *</Label>
-              <Textarea
-                id="bio"
-                value={profileData.bio}
-                onChange={(e) => updateProfileData('bio', e.target.value)}
-                placeholder="Tell us about your fitness journey and teaching philosophy..."
-                rows={4}
-                required
-              />
-            </div>
-          </div>
+          </StepCard>
         )
 
       case 2:
         return (
-          <div className="space-y-6">
-            <div className="text-center">
-              <Award className="h-12 w-12 text-[#1E90FF] mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Certifications & Specialties</h2>
-              <p className="text-gray-600">Share your qualifications and areas of expertise</p>
-            </div>
-
-            <div className="space-y-6">
-              <div className="space-y-3">
-                <Label>Certifications *</Label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {certificationOptions.map((cert) => (
-                    <div key={cert} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={cert}
-                        checked={credentialsData.certifications.includes(cert)}
-                        onCheckedChange={() => handleArrayToggle(setCredentialsData, 'certifications', cert)}
-                      />
-                      <Label htmlFor={cert} className="text-sm">{cert}</Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <Label>Specialties *</Label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {specialtyOptions.map((specialty) => (
-                    <div key={specialty} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={specialty}
-                        checked={credentialsData.specialties.includes(specialty)}
-                        onCheckedChange={() => handleArrayToggle(setCredentialsData, 'specialties', specialty)}
-                      />
-                      <Label htmlFor={specialty} className="text-sm">{specialty}</Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
+          <StepCard title="Location" subtitle="Where are you based?">
+            <div className="space-y-4">
+              <Label>Search City or ZIP</Label>
+              <MapboxAutocomplete onSelect={(sel) => { setLocationData(prev => ({ ...prev, city: sel.city, state: sel.state, lat: sel.lat, lng: sel.lng })); autosave() }} />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="experience">Years of Experience *</Label>
-                  <Select 
-                    value={credentialsData.experience} 
-                    onValueChange={(value) => updateCredentialsData('experience', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select experience level" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Less than 1 year">Less than 1 year</SelectItem>
-                      <SelectItem value="1-2 years">1-2 years</SelectItem>
-                      <SelectItem value="3-5 years">3-5 years</SelectItem>
-                      <SelectItem value="5-10 years">5-10 years</SelectItem>
-                      <SelectItem value="10+ years">10+ years</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div>
+                  <Label>Home ZIP</Label>
+                  <Input value={locationData.homeZip} onChange={(e) => setLocationData(prev => ({ ...prev, homeZip: e.target.value }))} onBlur={() => autosave()} />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="education">Education Background</Label>
-                  <Input
-                    id="education"
-                    value={credentialsData.education}
-                    onChange={(e) => updateCredentialsData('education', e.target.value)}
-                    placeholder="Degree, School, etc."
-                  />
+                <div>
+                  <Label>City</Label>
+                  <Input value={locationData.city} onChange={(e) => setLocationData(prev => ({ ...prev, city: e.target.value }))} onBlur={() => autosave()} />
                 </div>
-              </div>
-
-              <div className="space-y-3">
-                <Label>Languages Spoken</Label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {languageOptions.map((language) => (
-                    <div key={language} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={language}
-                        checked={credentialsData.languages.includes(language)}
-                        onCheckedChange={() => handleArrayToggle(setCredentialsData, 'languages', language)}
-                      />
-                      <Label htmlFor={language} className="text-sm">{language}</Label>
-                    </div>
-                  ))}
+                <div>
+                  <Label>State</Label>
+                  <Input value={locationData.state} onChange={(e) => setLocationData(prev => ({ ...prev, state: e.target.value }))} onBlur={() => autosave()} />
                 </div>
+                <div>
+                  <Label>Travel Radius (km)</Label>
+                  <Input type="number" min={0} max={100} value={locationData.travelRadiusKm} onChange={(e) => setLocationData(prev => ({ ...prev, travelRadiusKm: Math.max(0, Math.min(100, parseInt(e.target.value || '0', 10))) }))} onBlur={() => autosave()} />
+                </div>
+                <label className="flex items-center gap-2">
+                  <Checkbox checked={locationData.remoteAvailable} onCheckedChange={(c) => { setLocationData(prev => ({ ...prev, remoteAvailable: !!c })); autosave() }} />
+                  <span>Remote sessions available</span>
+                </label>
               </div>
             </div>
-          </div>
+          </StepCard>
         )
 
       case 3:
         return (
-          <div className="space-y-6">
-            <div className="text-center">
-              <Calendar className="h-12 w-12 text-[#1E90FF] mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Teaching Preferences</h2>
-              <p className="text-gray-600">When and how do you prefer to teach?</p>
+          <StepCard title="Availability" subtitle="When are you available?">
+            <div className="text-sm text-gray-600 mb-2">You can change this anytime. Leaving it empty is okay, but we recommend adding windows.</div>
+            {availabilityData.windows.map((w, idx) => (
+              <div key={idx} className="flex items-center gap-2 mb-2">
+                <select className="border rounded px-2 py-2" value={w.day} onChange={(e) => { const c = [...availabilityData.windows]; c[idx] = { ...w, day: e.target.value }; setAvailabilityData({ ...availabilityData, windows: c }); autosave() }}>
+                  {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+                <Input type="time" value={w.start} onChange={(e) => { const c = [...availabilityData.windows]; c[idx] = { ...w, start: e.target.value }; setAvailabilityData({ ...availabilityData, windows: c }); autosave() }} className="w-32" />
+                <span>to</span>
+                <Input type="time" value={w.end} onChange={(e) => { const c = [...availabilityData.windows]; c[idx] = { ...w, end: e.target.value }; setAvailabilityData({ ...availabilityData, windows: c }); autosave() }} className="w-32" />
+              </div>
+            ))}
+            <div className="mt-2 flex gap-2">
+              <button type="button" className="px-3 py-2 border rounded" onClick={() => { setAvailabilityData(prev => ({ ...prev, windows: [...prev.windows, { day: 'Mon', start: '06:00', end: '09:00' }] })); autosave() }}>Add window</button>
+              <button type="button" className="px-3 py-2 border rounded" onClick={() => { setAvailabilityData(prev => ({ ...prev, windows: prev.windows.slice(0,-1) })); autosave() }} disabled={availabilityData.windows.length <= 1}>Remove last</button>
             </div>
-
-            <div className="space-y-6">
-              <div className="space-y-3">
-                <Label>Availability *</Label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {availabilityOptions.map((time) => (
-                    <div key={time} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={time}
-                        checked={teachingData.availability.includes(time)}
-                        onCheckedChange={() => handleArrayToggle(setTeachingData, 'availability', time)}
-                      />
-                      <Label htmlFor={time} className="text-sm">{time}</Label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Teaching Style *</Label>
-                <Select 
-                  value={teachingData.teachingStyle} 
-                  onValueChange={(value) => updateTeachingData('teachingStyle', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select your teaching style" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {teachingStyleOptions.map((style) => (
-                      <SelectItem key={style} value={style}>{style}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-3">
-                <Label>Maximum Class Size: {teachingData.maxClassSize[0]} students</Label>
-                <Slider
-                  value={teachingData.maxClassSize}
-                  onValueChange={(value) => updateTeachingData('maxClassSize', value)}
-                  max={50}
-                  min={1}
-                  step={1}
-                  className="w-full"
-                />
-              </div>
-
-              <div className="space-y-3">
-                <Label>Hourly Rate: ${teachingData.ratePerHour[0]}</Label>
-                <Slider
-                  value={teachingData.ratePerHour}
-                  onValueChange={(value) => updateTeachingData('ratePerHour', value)}
-                  max={200}
-                  min={20}
-                  step={5}
-                  className="w-full"
-                />
-              </div>
+            <div className="mt-4">
+              <Label>Time Zone *</Label>
+              <Input value={availabilityData.timeZone} onChange={(e) => { setAvailabilityData(prev => ({ ...prev, timeZone: e.target.value })); autosave() }} />
             </div>
-          </div>
+          </StepCard>
         )
 
       case 4:
         return (
-          <div className="space-y-6">
-            <div className="text-center">
-              <CheckCircle className="h-12 w-12 text-[#1E90FF] mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Verification & Professional Details</h2>
-              <p className="text-gray-600">Complete your professional verification</p>
-            </div>
-
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="insurance">Liability Insurance *</Label>
-                <Select 
-                  value={verificationData.insurance} 
-                  onValueChange={(value) => updateVerificationData('insurance', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select insurance status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="I have liability insurance">I have liability insurance</SelectItem>
-                    <SelectItem value="I need help getting insurance">I need help getting insurance</SelectItem>
-                    <SelectItem value="I'm covered under studio insurance">I'm covered under studio insurance</SelectItem>
-                  </SelectContent>
-                </Select>
+          <StepCard title="Rates" subtitle="Set your rate and session length.">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Hourly Rate (USD)</Label>
+                <Input type="number" min={10} max={500} value={ratesData.hourlyRate} onChange={(e) => setRatesData(prev => ({ ...prev, hourlyRate: Math.max(10, Math.min(500, parseInt(e.target.value || '10', 10))) }))} onBlur={() => autosave()} />
+                <div className="text-xs text-gray-500">You can change this anytime.</div>
               </div>
-
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="backgroundCheck"
-                  checked={verificationData.backgroundCheck}
-                  onCheckedChange={(checked) => updateVerificationData('backgroundCheck', checked)}
-                />
-                <Label htmlFor="backgroundCheck">
-                  I consent to a background check *
-                </Label>
-              </div>
-
-              <div className="space-y-4">
-                <Label>Social Media & Portfolio (Optional)</Label>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="instagram">Instagram</Label>
-                    <Input
-                      id="instagram"
-                      value={verificationData.socialMedia.instagram}
-                      onChange={(e) => updateVerificationData('socialMedia', {
-                        ...verificationData.socialMedia,
-                        instagram: e.target.value
-                      })}
-                      placeholder="@username"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="youtube">YouTube</Label>
-                    <Input
-                      id="youtube"
-                      value={verificationData.socialMedia.youtube}
-                      onChange={(e) => updateVerificationData('socialMedia', {
-                        ...verificationData.socialMedia,
-                        youtube: e.target.value
-                      })}
-                      placeholder="Channel URL"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="website">Website</Label>
-                    <Input
-                      id="website"
-                      value={verificationData.socialMedia.website}
-                      onChange={(e) => updateVerificationData('socialMedia', {
-                        ...verificationData.socialMedia,
-                        website: e.target.value
-                      })}
-                      placeholder="https://..."
-                    />
-                  </div>
-                </div>
+              <div>
+                <Label>Minimum Session Length</Label>
+                <select className="w-full px-3 py-2 border rounded-md" value={ratesData.minSessionLengthMins} onChange={(e) => { const v = parseInt(e.target.value, 10); setRatesData(prev => ({ ...prev, minSessionLengthMins: v })); autosave() }}>
+                  {[30,45,60].map(v => <option key={v} value={v}>{v} minutes</option>)}
+                </select>
               </div>
             </div>
-          </div>
+          </StepCard>
         )
 
       case 5:
         return (
-          <div className="space-y-6">
-            <div className="text-center">
-              <Settings className="h-12 w-12 text-[#1E90FF] mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Final Setup</h2>
-              <p className="text-gray-600">Complete your instructor profile setup</p>
-            </div>
+          <StepCard title="Visibility" subtitle="Control how you're shown in the marketplace.">
+            <label className="flex items-center gap-2">
+              <Checkbox checked={visibilityData.marketplaceVisible} onCheckedChange={(c) => { setVisibilityData({ marketplaceVisible: !!c }); autosave() }} />
+              <span>Appear in Marketplace</span>
+            </label>
+            <div className="text-xs text-gray-600">Free to join; 7% fee capped $12 when sourced via marketplace.</div>
+          </StepCard>
+        )
 
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="taxId">Tax ID / SSN (Optional)</Label>
-                  <Input
-                    id="taxId"
-                    value={setupData.taxId}
-                    onChange={(e) => updateSetupData('taxId', e.target.value)}
-                    placeholder="For payment processing"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="paymentDetails">Payment Method</Label>
-                  <Select 
-                    value={setupData.paymentDetails} 
-                    onValueChange={(value) => updateSetupData('paymentDetails', value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select payment method" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Direct Deposit">Direct Deposit</SelectItem>
-                      <SelectItem value="PayPal">PayPal</SelectItem>
-                      <SelectItem value="Venmo">Venmo</SelectItem>
-                      <SelectItem value="Check">Check</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+      case 6:
+        return (
+          <StepCard title="Setup" subtitle="Finish your profile.">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label>Avatar URL</Label>
+                <Input value={setupData.avatarUrl} onChange={(e) => setSetupData(prev => ({ ...prev, avatarUrl: e.target.value }))} onBlur={() => autosave()} />
               </div>
-
-              <div className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="terms"
-                    checked={setupData.termsAccepted}
-                    onCheckedChange={(checked) => updateSetupData('termsAccepted', checked)}
-                  />
-                  <Label htmlFor="terms" className="text-sm">
-                    I accept the <a href="/terms" className="text-[#1E90FF] hover:underline">Terms of Service</a> *
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="liability"
-                    checked={setupData.liabilityWaiver}
-                    onCheckedChange={(checked) => updateSetupData('liabilityWaiver', checked)}
-                  />
-                  <Label htmlFor="liability" className="text-sm">
-                    I accept the <a href="/liability" className="text-[#1E90FF] hover:underline">Liability Waiver</a> *
-                  </Label>
-                </div>
+              <div>
+                <Label>Banner URL</Label>
+                <Input value={setupData.bannerUrl} onChange={(e) => setSetupData(prev => ({ ...prev, bannerUrl: e.target.value }))} onBlur={() => autosave()} />
               </div>
+              <label className="flex items-center gap-2">
+                <Checkbox checked={setupData.stripeConnected} onCheckedChange={(c) => { setSetupData(prev => ({ ...prev, stripeConnected: !!c })); autosave() }} />
+                <span>Stripe Connected</span>
+              </label>
             </div>
-          </div>
+          </StepCard>
         )
 
       default:
@@ -679,45 +390,20 @@ export default function InstructorOnboarding() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#1E90FF]/5 to-white">
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Instructor Onboarding</h1>
-            <p className="text-gray-600">Join our community of fitness professionals</p>
-          </div>
-
-          <div className="bg-white rounded-lg shadow-lg p-8">
-            <div className="mb-8">
-              <div className="flex justify-between items-center mb-4">
-                <span className="text-sm font-medium text-gray-600">
-                  Step {currentStep} of {totalSteps}
-                </span>
-                <span className="text-sm font-medium text-gray-600">
-                  {stepLabels[currentStep - 1]}
-                </span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-[#1E90FF] h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${(currentStep / totalSteps) * 100}%` }}
-                />
-              </div>
-            </div>
-
-            {renderStepContent()}
-
-            <OnboardingSteps
-              currentStep={currentStep}
-              totalSteps={totalSteps}
-              onNext={nextStep}
-              onPrevious={prevStep}
-              onComplete={handleComplete}
-              canProceed={canAdvanceStep}
-              loading={loading}
-              completeLabel="Start Teaching"
-            />
-          </div>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <StepRail steps={stepLabels} currentIndex={currentStep - 1} />
+        <div className="mt-6 bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
+          {renderStepContent()}
+          <StepActions
+            currentStep={currentStep}
+            totalSteps={totalSteps}
+            canProceed={canAdvanceStep}
+            onPrevious={prevStep}
+            onNext={nextStep}
+            onComplete={handleComplete}
+            loading={loading}
+          />
         </div>
       </div>
     </div>

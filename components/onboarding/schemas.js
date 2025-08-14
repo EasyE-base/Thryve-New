@@ -74,7 +74,7 @@ export const instructorLocationSchema = z.object({
   lat: z.number().optional(),
   lng: z.number().optional(),
   travelRadiusKm: z.number().min(0).max(100).default(0),
-  remoteAvailable: z.boolean().default(false),
+  remoteAvailable: z.boolean().default(true),
 }).refine(v => !!v.homeZip || (!!v.city && !!v.state && typeof v.lat === 'number' && typeof v.lng === 'number'), {
   message: 'Provide homeZip or full city/state/lat/lng',
 })
@@ -88,13 +88,13 @@ const availabilityWindow = z.object({
 }).refine(v => v.start < v.end, { message: 'Start must be before end', path: ['end'] })
 
 export const instructorAvailabilitySchema = z.object({
-  windows: z.array(availabilityWindow).min(1),
+  windows: z.array(availabilityWindow).default([]),
   timeZone: z.string().min(1),
 })
 
 export const instructorRatesSchema = z.object({
   hourlyRate: z.number().min(10).max(500),
-  minSessionLengthMins: z.enum(['30', '45', '60']).transform(v => parseInt(v, 10)),
+  minSessionLengthMins: z.union([z.literal(30), z.literal(45), z.literal(60)]),
 })
 
 export const instructorVisibilitySchema = z.object({
