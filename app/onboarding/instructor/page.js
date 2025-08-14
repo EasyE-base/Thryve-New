@@ -111,13 +111,7 @@ export default function InstructorOnboarding() {
     setProfileData(prev => ({ ...prev, [field]: value }))
   }, [])
 
-  const updateCredentialsData = useCallback((field, value) => {
-    setCredentialsData(prev => ({ ...prev, [field]: value }))
-  }, [])
-
-  const updateTeachingData = useCallback((field, value) => {
-    setTeachingData(prev => ({ ...prev, [field]: value }))
-  }, [])
+  // removed legacy update handlers for credentials/teaching (no longer used)
 
   const updateVerificationData = useCallback((field, value) => {
     setVerificationData(prev => ({ ...prev, [field]: value }))
@@ -214,7 +208,7 @@ export default function InstructorOnboarding() {
     // Load saved data
     // Seed analytics
     window.dataLayer?.push({ event: 'onboarding_step_view', role: 'instructor', step: 1 })
-  }, [user, role, authLoading, router, formData])
+  }, [user, role, authLoading, router])
 
   // Options arrays
   const certificationOptions = [
