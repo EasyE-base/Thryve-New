@@ -1,15 +1,16 @@
 import { NextResponse } from 'next/server'
-import { getFirebaseUser, adminDb } from '@/lib/firebase-admin'
+import { getFirebaseUser, initAdmin } from '@/lib/firebase-admin'
 
 export async function GET(request) {
   try {
+    const { db } = initAdmin()
     const user = await getFirebaseUser(request)
     if (!user) return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     const url = new URL(request.url)
     const role = url.searchParams.get('role') // 'merchant' | 'instructor'
     const status = url.searchParams.get('status') // optional
 
-    let query = adminDb.collection('studio_instructor_links')
+    let query = db.collection('studio_instructor_links')
     if (role === 'merchant') {
       query = query.where('studioId', '==', user.uid)
     } else if (role === 'instructor') {

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { adminAuth } from '@/lib/firebase-admin'
+import { initAdmin } from '@/lib/firebase-admin'
 
 export async function GET(request) {
   try {
@@ -22,7 +22,8 @@ export async function GET(request) {
     }
 
     try {
-      const decodedToken = await adminAuth.verifyIdToken(token)
+      const { auth } = initAdmin()
+      const decodedToken = await auth.verifyIdToken(token)
       return NextResponse.json({
         authenticated: true,
         user: {

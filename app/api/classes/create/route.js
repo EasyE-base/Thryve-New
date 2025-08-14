@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getFirebaseUser, adminDb } from '@/lib/firebase-admin'
+import { getFirebaseUser, initAdmin } from '@/lib/firebase-admin'
 
 function sanitize(input) {
   if (input == null || typeof input !== 'object') return input
@@ -45,7 +45,8 @@ export async function POST(request) {
     // const studioSnap = await adminDb.collection('studios').doc(firebaseUser.uid).get()
     // if (!studioSnap.exists) return NextResponse.json({ error: 'Studio not found' }, { status: 403 })
 
-    const docRef = await adminDb.collection('classes').add(newClass)
+    const { db } = initAdmin()
+    const docRef = await db.collection('classes').add(newClass)
     const created = { id: docRef.id, ...newClass }
     return NextResponse.json(created, { status: 201 })
   } catch (error) {

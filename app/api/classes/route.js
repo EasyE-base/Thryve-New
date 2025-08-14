@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getFirebaseUser, adminDb } from '@/lib/firebase-admin'
+import { getFirebaseUser, initAdmin } from '@/lib/firebase-admin'
 
 export async function GET(request) {
   try {
@@ -11,7 +11,8 @@ export async function GET(request) {
     const end = searchParams.get('end')
     if (!start || !end) return NextResponse.json({ classes: [] })
 
-    const snap = await adminDb.collection('classes')
+    const { db } = initAdmin()
+    const snap = await db.collection('classes')
       .where('studioId', '==', firebaseUser.uid)
       .where('startTime', '>=', start)
       .where('startTime', '<=', end)

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getFirebaseUser, adminDb } from '@/lib/firebase-admin'
+import { getFirebaseUser, initAdmin } from '@/lib/firebase-admin'
 
 function sanitize(input) {
   if (input == null || typeof input !== 'object') return input
@@ -12,7 +12,8 @@ function sanitize(input) {
 }
 
 async function getClassDoc(classId) {
-  const ref = adminDb.collection('classes').doc(classId)
+  const { db } = initAdmin()
+  const ref = db.collection('classes').doc(classId)
   const snap = await ref.get()
   return { ref, snap }
 }

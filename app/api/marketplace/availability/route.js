@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server'
-import { getFirebaseUser, adminDb } from '@/lib/firebase-admin'
+import { getFirebaseUser, initAdmin } from '@/lib/firebase-admin'
 
 export async function GET(request) {
   try {
     const user = await getFirebaseUser(request)
     if (!user) return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
-    const snap = await adminDb.collection('instructors').doc(user.uid).collection('availability').get()
+    const { db } = initAdmin()
+    const snap = await db.collection('instructors').doc(user.uid).collection('availability').get()
     const items = snap.docs.map(d => ({ id: d.id, ...d.data() }))
     return NextResponse.json({ availability: items })
   } catch (e) {
@@ -20,9 +21,10 @@ export async function PUT(request) {
     const { availability } = await request.json()
     if (!Array.isArray(availability)) return NextResponse.json({ error: 'Invalid availability' }, { status: 400 })
 
-    const col = adminDb.collection('instructors').doc(user.uid).collection('availability')
+    const { db } = initAdmin()
+    const col = db.collection('instructors').doc(user.uid).collection('availability')
     const existing = await col.get()
-    const batch = adminDb.batch()
+    const batch = db.batch()
     existing.forEach(doc => batch.delete(doc.ref))
     availability.forEach((item) => {
       const ref = col.doc()

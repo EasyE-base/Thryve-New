@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { getFirebaseUser, adminDb } from '@/lib/firebase-admin'
+import { getFirebaseUser, initAdmin } from '@/lib/firebase-admin'
 
 const ALLOWED_FIELDS = [
   'displayName','avatarUrl','bio','specialties','certifications','yearsExperience',
@@ -22,7 +22,8 @@ export async function GET(request) {
     const user = await getFirebaseUser(request)
     if (!user) return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
 
-    const doc = await adminDb.collection('instructors').doc(user.uid).get()
+    const { db } = initAdmin()
+    const doc = await db.collection('instructors').doc(user.uid).get()
     return NextResponse.json(doc.exists ? doc.data() : {})
   } catch (e) {
     return NextResponse.json({ error: 'Failed to load profile' }, { status: 500 })
@@ -40,8 +41,9 @@ export async function PUT(request) {
     update.updatedAt = new Date().toISOString()
     if (!update.currency) update.currency = 'USD'
 
-    await adminDb.collection('instructors').doc(user.uid).set(update, { merge: true })
-    const saved = await adminDb.collection('instructors').doc(user.uid).get()
+    const { db } = initAdmin()
+    await db.collection('instructors').doc(user.uid).set(update, { merge: true })
+    const saved = await db.collection('instructors').doc(user.uid).get()
     return NextResponse.json(saved.data())
   } catch (e) {
     return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 })

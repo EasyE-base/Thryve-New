@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
-import { getFirebaseUser, adminDb } from '@/lib/firebase-admin'
+import { getFirebaseUser, initAdmin } from '@/lib/firebase-admin'
 
 export async function POST(request, { params }) {
   try {
+    const { db } = initAdmin()
     const user = await getFirebaseUser(request)
     if (!user) return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     const { id } = params
@@ -10,7 +11,7 @@ export async function POST(request, { params }) {
     if (!id || !id.endsWith(`_${user.uid}`)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
-    const ref = adminDb.collection('studio_instructor_links').doc(id)
+    const ref = db.collection('studio_instructor_links').doc(id)
     const snap = await ref.get()
     if (!snap.exists) return NextResponse.json({ error: 'Invite not found' }, { status: 404 })
     const now = new Date()
