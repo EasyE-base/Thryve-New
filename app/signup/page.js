@@ -16,7 +16,6 @@ export default function SignUpPage() {
     email: '',
     password: ''
   })
-  const [selectedRole, setSelectedRole] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const { signUp } = useAuth()
@@ -41,12 +40,6 @@ export default function SignUpPage() {
         return
       }
 
-      if (!selectedRole) {
-        toast.error('Please select a role to continue')
-        setLoading(false)
-        return
-      }
-
       if (formData.password.length < 6) {
         toast.error('Password must be at least 6 characters')
         setLoading(false)
@@ -55,22 +48,12 @@ export default function SignUpPage() {
 
       // Sign up with Firebase
       console.log('🔥 Creating Firebase user:', formData.email)
-      const result = await signUp(formData.email, formData.password, formData.name, selectedRole)
+      const result = await signUp(formData.email, formData.password, formData.name, null)
       
       if (result.success) {
         console.log('🔥 Firebase user created successfully:', result.user)
         toast.success('Account created successfully!')
-
-        // Directly route to the correct onboarding based on selected role
-        const roleMap = { studio: 'merchant', merchant: 'merchant', instructor: 'instructor', customer: 'customer' }
-        const mapped = roleMap[selectedRole] || selectedRole
-        const onboardingPaths = {
-          customer: '/onboarding/customer',
-          instructor: '/onboarding/instructor',
-          merchant: '/onboarding/merchant'
-        }
-        const target = onboardingPaths[mapped] || '/dashboard'
-        router.push(target)
+        router.push('/signup/role-selection')
       } else {
         throw new Error(result.error || 'Failed to create account')
       }
@@ -107,31 +90,7 @@ export default function SignUpPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Role selection */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Select your role</label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  {[
-                    { id: 'studio', label: 'Studio Owner' },
-                    { id: 'instructor', label: 'Instructor' },
-                    { id: 'customer', label: 'Enthusiast' }
-                  ].map((r) => (
-                    <button
-                      type="button"
-                      key={r.id}
-                      onClick={() => setSelectedRole(r.id)}
-                      className={`px-3 py-2 rounded-lg border text-sm ${
-                        selectedRole === r.id ? 'border-blue-600 text-blue-700 bg-blue-50' : 'border-gray-300 text-gray-700'
-                      }`}
-                    >
-                      {r.label}
-                    </button>
-                  ))}
-                </div>
-                {!selectedRole && (
-                  <p className="text-xs text-gray-500 mt-1">You must choose a role to continue</p>
-                )}
-              </div>
+              {/* Role selection removed: handled post-signup at /signup/role-selection */}
 
               <div>
                 <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">

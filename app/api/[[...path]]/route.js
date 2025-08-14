@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import Stripe from 'stripe'
+import { initAdmin, verifySessionCookie } from '@/lib/firebase-admin'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2024-06-20',
@@ -231,8 +232,8 @@ async function handlePOST(request) {
         return await testSignup(body)
       
       case '/auth/select-role':
-        // For role selection, we'll handle auth differently since user just signed up
-        return await handleRoleSelectionAPI(body, user?.id)
+        // Unified Firebase-only role selection using session cookie
+        return await handleRoleSelectionAPI(body)
       
       default:
         return NextResponse.json({ error: 'Endpoint not found' }, { status: 404 })
@@ -1416,80 +1417,38 @@ async function getFirebaseUser(uid) {
   }
 }
 
-async function handleRoleSelectionAPI(body, userId) {
-  const { role } = body
-  
-  console.log('=== ROLE SELECTION API ===')
-  console.log('User ID:', userId)
-  console.log('Selected role:', role)
-  
-  // If no userId passed, try to get it from the session directly
-  if (!userId) {
-    console.log('No userId provided, attempting to get from session...')
-    
-    const cookieStore = cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options)
-              )
-            } catch {
-              // Handle cookie setting errors
-            }
-          },
-        },
-      }
-    )
-    
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session?.user) {
-      console.log('No session found')
-      return NextResponse.json({ error: 'No active session found. Please log in again.' }, { status: 401 })
-    }
-    
-    userId = session.user.id
-    console.log('Got userId from session:', userId)
-  }
-  
-  // Validate role
-  const validRoles = ['customer', 'instructor', 'merchant']
-  if (!validRoles.includes(role)) {
-    return NextResponse.json({ error: `Invalid role: ${role}` }, { status: 400 })
-  }
-  
+async function handleRoleSelectionAPI(body) {
   try {
-    // Store role selection in MongoDB
-    await db.collection('profiles').updateOne(
-      { userId },
-      { 
-        $set: { 
-          role,
-          onboarding_complete: false,
-          updatedAt: new Date()
-        } 
-      },
-      { upsert: true }
-    )
-    
-    console.log('Role stored in MongoDB successfully for user:', userId)
-    
-    return NextResponse.json({ 
-      message: 'Role selected successfully',
-      role,
-      redirect: `/onboarding/${role}`
-    })
+    const inputRole = (body?.role || '').toString().trim().toLowerCase()
+
+    // Accept legacy "studio" but store as "merchant"
+    const roleMap = { studio: 'merchant', merchant: 'merchant', instructor: 'instructor', customer: 'customer' }
+    const role = roleMap[inputRole]
+
+    if (!role) {
+      return NextResponse.json({ error: `Invalid role: ${body?.role}` }, { status: 400 })
+    }
+
+    // Verify Firebase session cookie
+    const sessionCookie = cookies().get('session')?.value
+    if (!sessionCookie) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
+    const verifyResult = await verifySessionCookie(sessionCookie)
+    if (!verifyResult.success) {
+      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
+    }
+
+    const uid = verifyResult.decodedClaims.uid
+
+    // Write role to Firestore profiles/{uid}
+    const { db } = initAdmin()
+    await db.collection('profiles').doc(uid).set({ role }, { merge: true })
+
+    return NextResponse.json({ role, redirect: `/onboarding/${role}` })
   } catch (error) {
-    console.error('MongoDB role storage error:', error)
-    return NextResponse.json({ 
-      error: 'Failed to store role selection'
-    }, { status: 500 })
+    console.error('Role selection error:', error)
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
   }
 }

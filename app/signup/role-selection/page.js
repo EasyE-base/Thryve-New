@@ -3,8 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth-provider';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { toast } from 'sonner';
 
 export default function RoleSelectionPage() {
@@ -21,41 +19,24 @@ export default function RoleSelectionPage() {
 
   const handleRoleSelection = async () => {
     if (!selectedRole || !user) return;
-
     setIsLoading(true);
     try {
-      // Update the user document directly using client-side Firebase
-      const { doc, updateDoc } = await import('firebase/firestore');
-      const { db } = await import('@/lib/firebase');
-      
-      const userRef = doc(db, 'users', user.uid);
-      await updateDoc(userRef, {
-        role: selectedRole,
-        roleSelectedAt: new Date(),
-        onboardingStatus: 'started'
-      });
-
-      toast.success(`Role set successfully!`);
-
-      // Redirect based on role
-      switch (selectedRole) {
-        case 'studio':
-          router.push('/onboarding/merchant');
-          break;
-        case 'instructor':
-          router.push('/onboarding/instructor');
-          break;
-        case 'customer':
-          router.push('/onboarding/customer');
-          break;
-        default:
-          router.push('/dashboard');
+      const response = await fetch('/api/auth/select-role', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role: selectedRole })
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data?.error || 'Failed to save role')
       }
+      toast.success('Role set successfully!')
+      router.push(data.redirect || `/onboarding/${data.role}`)
     } catch (error) {
-      console.error('Error updating role:', error);
-      toast.error('Failed to save role. Please try again.');
+      console.error('Error updating role:', error)
+      toast.error(error.message || 'Failed to save role. Please try again.')
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
   };
 
