@@ -53,10 +53,11 @@ export async function middleware(request) {
       return NextResponse.redirect(url)
     }
 
-    if (!onboarded) {
-      const url = new URL(`/onboarding/${role === 'instructor' ? 'instructor' : 'merchant'}`, request.url)
-      return NextResponse.redirect(url)
-    }
+    // Temporarily disable onboarding redirect to restore dashboard access
+    // if (!onboarded) {
+    //   const url = new URL(`/onboarding/${role === 'instructor' ? 'instructor' : 'merchant'}`, request.url)
+    //   return NextResponse.redirect(url)
+    // }
 
     if (role !== 'merchant' && role !== 'instructor') {
       const url = new URL('/signup', request.url)
