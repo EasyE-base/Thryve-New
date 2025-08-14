@@ -11,8 +11,13 @@ export async function middleware(request) {
     return NextResponse.next()
   }
 
-  // Enforce Marketplace access at the edge
+  // Do NOT gate /marketplace at the edge; APIs enforce auth
   if (pathname.startsWith('/marketplace')) {
+    return NextResponse.next()
+  }
+
+  // Example of other protected sections can remain below
+  if (pathname.startsWith('/dashboard')) {
     // Prefer secure session cookie (Firebase session JWT), fallback to legacy 'user' cookie
     const sessionCookie = request.cookies.get('session')?.value || ''
     const legacyCookie = request.cookies.get('user')?.value || ''
@@ -44,7 +49,7 @@ export async function middleware(request) {
 
     if (!sessionCookie && !legacyCookie) {
       const url = new URL('/login', request.url)
-      url.searchParams.set('next', '/marketplace')
+      url.searchParams.set('next', pathname)
       return NextResponse.redirect(url)
     }
 
