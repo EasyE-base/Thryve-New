@@ -20,8 +20,8 @@ export const merchantLocationSchema = z.object({
   state: z.string().min(1),
   zip: z.string().min(1),
   country: z.string().min(1),
-  lat: z.number(),
-  lng: z.number(),
+  lat: z.number().optional(),
+  lng: z.number().optional(),
 })
 
 const businessHour = z.object({

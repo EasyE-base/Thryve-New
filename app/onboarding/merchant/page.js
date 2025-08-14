@@ -88,7 +88,7 @@ export default function MerchantOnboarding() {
   // ✅ Validation with zod schemas
   const isProfileValid = useMemo(() => merchantProfileSchema.safeParse(profileData).success, [profileData])
 
-  const isLocationValid = useMemo(() => merchantLocationSchema.safeParse(locationData).success, [locationData])
+  const isLocationValid = useMemo(() => merchantLocationSchema.safeParse(locationData).success, [locationData.address1, locationData.city, locationData.state, locationData.zip, locationData.country])
 
   const isOperationsValid = useMemo(() => merchantOperationsSchema.safeParse(operationsData).success, [operationsData])
 
