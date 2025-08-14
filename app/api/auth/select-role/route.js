@@ -3,22 +3,17 @@ import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { initAdmin, verifySessionCookie } from '@/lib/firebase-admin'
 
-export async function POST(req: Request) {
+export async function POST(req) {
   try {
-    let body: any = null
+    let body = null
     try {
       body = await req.json()
     } catch (_e) {
       body = null
     }
 
-    const inputRole = (body?.role || '').toString().trim().toLowerCase()
-    const roleMap: Record<string, 'merchant' | 'instructor' | 'customer'> = {
-      studio: 'merchant',
-      merchant: 'merchant',
-      instructor: 'instructor',
-      customer: 'customer',
-    }
+    const inputRole = ((body && body.role) || '').toString().trim().toLowerCase()
+    const roleMap = { studio: 'merchant', merchant: 'merchant', instructor: 'instructor', customer: 'customer' }
     const role = roleMap[inputRole]
 
     if (!role) {
@@ -35,7 +30,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
     }
 
-    const uid = verified.decodedClaims.uid as string
+    const uid = verified.decodedClaims.uid
 
     const { db } = initAdmin()
     await db.collection('profiles').doc(uid).set(
@@ -44,8 +39,8 @@ export async function POST(req: Request) {
     )
 
     return NextResponse.json({ role, redirect: `/onboarding/${role}` })
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? 'Server error' }, { status: 500 })
+  } catch (e) {
+    return NextResponse.json({ error: e?.message || 'Server error' }, { status: 500 })
   }
 }
 
