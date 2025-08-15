@@ -13,6 +13,8 @@ export const useAuth = () => useContext(AuthContext);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoaded, setProfileLoaded] = useState(false);
+  const [claimsChecked, setClaimsChecked] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -47,9 +49,20 @@ export function AuthProvider({ children }) {
           
           setUser(fullUser);
           console.log('🔥 AuthProvider: User authenticated:', fullUser.email);
+          setProfileLoaded(true);
+          try {
+            // Light touch claim check - don't block if fails
+            await fetch('/api/session/sync');
+          } catch (_) {}
+          setClaimsChecked(true);
           
           // Handle redirects based on profile completion - ONLY for specific paths
           // Let authenticated users stay on homepage - don't auto-redirect
+          if (!(profileLoaded && claimsChecked)) {
+            // Defer redirects until profile + claims ready
+            return;
+          }
+
           if (pathname === '/signup') {
             if (!userData?.role) {
               console.log('🔥 AuthProvider: No role, redirecting to role selection');
@@ -80,16 +93,20 @@ export function AuthProvider({ children }) {
         } catch (error) {
           console.error('🔥 AuthProvider: Error fetching user data:', error);
           setUser(null);
+          setProfileLoaded(true);
+          setClaimsChecked(true);
         }
       } else {
         console.log('🔥 AuthProvider: No authenticated user');
         setUser(null);
+        setProfileLoaded(true);
+        setClaimsChecked(true);
       }
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [pathname, router]);
+  }, [pathname, router, profileLoaded, claimsChecked]);
 
   const signUp = async (email, password, name, selectedRole = null) => {
     try {

@@ -13,14 +13,32 @@ export default function RoleSelectionPage() {
 
   useEffect(() => {
     console.log('🎉 Enhanced Role Selection Page Loaded!');
-    // Don't redirect immediately - let the auth state settle
-    // The user might be in the process of being authenticated after signup
+    // Kill-switch: if role already set and onboardingComplete, redirect away
+    const check = async () => {
+      try {
+        const res = await fetch('/api/session/sync');
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.role && data?.onboardingComplete) {
+            router.replace(`/dashboard/${data.role}`);
+          }
+        }
+      } catch (_) {}
+    }
+    check();
   }, [user, router]);
 
   const handleRoleSelection = async () => {
     if (!selectedRole || !user) return;
     setIsLoading(true);
     try {
+      // If role already present, block posts
+      const res = await fetch('/api/session/sync');
+      if (res.ok) {
+        const d = await res.json();
+        if (d?.role && d?.onboardingComplete) return;
+      }
+
       const response = await fetch('/api/auth/select-role', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
