@@ -195,11 +195,23 @@ export default function InstructorOnboarding() {
     if (!canAdvanceStep || loading || !user) return
     setLoading(true)
     try {
+      // 1) Persist role + onboarding
       await setDoc(doc(db, 'profiles', user.uid), { role: 'instructor', onboardingComplete: true, updatedAt: new Date() }, { merge: true })
-      await syncCustomClaims()
+
+      // 2) Sync server-side claims
+      await fetch('/api/claims/sync', { method: 'POST' })
+
+      // 3) Refresh ID token and session cookie
+      await auth.currentUser?.getIdToken(true)
+      const idToken = await auth.currentUser?.getIdToken()
+      if (idToken) {
+        await fetch('/api/session/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken }) })
+      }
+
+      // 4) Now route
       window.dataLayer?.push({ event: 'onboarding_complete', role: 'instructor' })
       toast.success('Instructor profile completed successfully!')
-      router.push('/dashboard/instructor')
+      router.replace('/dashboard/instructor')
     } catch (error) {
       console.error('Onboarding error:', error)
       toast.error('Error completing onboarding. Please try again.')

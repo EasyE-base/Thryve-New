@@ -197,12 +197,23 @@ export default function MerchantOnboarding() {
     setLoading(true)
 
     try {
-      // Mark onboarding complete
+      // 1) Persist role + onboarding
       await setDoc(doc(db, 'profiles', user.uid), { role: 'merchant', onboardingComplete: true, updatedAt: new Date() }, { merge: true })
-      await syncCustomClaims()
-      toast.success('Onboarding complete!')
+
+      // 2) Sync server-side claims
+      await fetch('/api/claims/sync', { method: 'POST' })
+
+      // 3) Refresh ID token and session cookie
+      await auth.currentUser?.getIdToken(true)
+      const idToken = await auth.currentUser?.getIdToken()
+      if (idToken) {
+        await fetch('/api/session/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken }) })
+      }
+
+      // 4) Now route
       window.dataLayer?.push({ event: 'onboarding_complete', role: 'merchant' })
-      router.push('/dashboard/merchant')
+      toast.success('Onboarding complete!')
+      router.replace('/dashboard/merchant')
     } catch (error) {
       console.error('Onboarding submission error:', error)
       toast.error('Failed to complete onboarding. Please try again.')
