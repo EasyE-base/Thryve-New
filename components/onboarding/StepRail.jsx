@@ -19,7 +19,7 @@ export default function StepRail({ steps, currentIndex = 0 }) {
           style={{ width: `${progressPct}%` }}
           aria-hidden="true"
         />
-        <div className="sr-only" role="progressbar" aria-valuemin={1} aria-valuemax={steps.length} aria-valuenow={currentIndex + 1} />
+        <div className="sr-only" role="progressbar" aria-valuemin={1} aria-valuemax={steps.length} aria-valuenow={(currentIndex ?? 0) + 1} />
       </div>
       <div className="mt-3 grid grid-cols-6 gap-2 text-[11px] text-gray-500">
         {steps.map((label, idx) => (

@@ -231,27 +231,27 @@ export default function MerchantOnboarding() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>First Name *</Label>
-                <Input value={profileData.firstName} onChange={(e) => { updateProfileData('firstName', e.target.value); }} onBlur={() => autosave()} />
+                <Input value={profileData.firstName} onChange={(e) => { updateProfileData('firstName', e.target.value); }} />
               </div>
               <div>
                 <Label>Last Name *</Label>
-                <Input value={profileData.lastName} onChange={(e) => { updateProfileData('lastName', e.target.value); }} onBlur={() => autosave()} />
+                <Input value={profileData.lastName} onChange={(e) => { updateProfileData('lastName', e.target.value); }} />
               </div>
               <div>
                 <Label>Business Email *</Label>
-                <Input type="email" value={profileData.businessEmail} onChange={(e) => { updateProfileData('businessEmail', e.target.value); }} onBlur={() => autosave()} />
+                <Input type="email" value={profileData.businessEmail} onChange={(e) => { updateProfileData('businessEmail', e.target.value); }} />
               </div>
               <div>
                 <Label>Phone (E.164)</Label>
-                <Input placeholder="+15551234567" value={profileData.phone} onChange={(e) => { updateProfileData('phone', e.target.value); }} onBlur={() => autosave()} />
+                <Input placeholder="+15551234567" value={profileData.phone} onChange={(e) => { updateProfileData('phone', e.target.value); }} />
               </div>
               <div>
                 <Label>Studio Name *</Label>
-                <Input value={profileData.studioName} onChange={(e) => { updateProfileData('studioName', e.target.value); }} onBlur={() => autosave()} />
+                <Input value={profileData.studioName} onChange={(e) => { updateProfileData('studioName', e.target.value); }} />
               </div>
               <div>
                 <Label>Studio Type *</Label>
-                <select className="w-full px-3 py-2 border border-gray-300 rounded-md" value={profileData.studioType} onChange={(e) => { updateProfileData('studioType', e.target.value); }} onBlur={() => autosave()}>
+                <select className="w-full px-3 py-2 border border-gray-300 rounded-md" value={profileData.studioType} onChange={(e) => { updateProfileData('studioType', e.target.value); }}>
                   <option value="">Select studio type</option>
                   <option value="yoga">Yoga</option>
                   <option value="pilates">Pilates</option>
